@@ -118,9 +118,9 @@ D:\APP Panaderia\            (raíz del repositorio público «Panaderia»)
 
 | Colección | Contenido | Lee | Escribe |
 |---|---|---|---|
-| `config/negocio` | UID de los dueños, nombre, IVA | Con sesión | Solo consola (dueños) y ajustes por dueños |
-| `solicitudes/{uid}` | Nombre y correo de quien pide acceso | Dueños y el solicitante | El solicitante (crear); dueños (borrar) |
-| `miembros/{uid}` | Perfil: `externo` o `pesaje`; activo | Dueños; cada uno el suyo | **Solo dueños** |
+| `config/negocio` | `duenos` (lista de UID), `nombre`, `iva` | Con sesión | Solo consola (dueños) y ajustes por dueños |
+| `solicitudes/{uid}` | `nombre`, `correo`, `creado` de quien pide acceso | Dueños y el solicitante | El solicitante (crear); dueños (borrar) |
+| `miembros/{uid}` | `nombre`, `correo`, `perfil` (`externo` o `pesaje`), `activo`, `por`, `en` | Dueños; cada uno el suyo | **Solo dueños** |
 | `productos/{id}` | nombre, unidad (`kg`/`un`), pesoRef, categoría, orden, activo | Todos los perfiles | Dueños y externo |
 | `precios/{id}` | productoId, clienteId, neto, desde | Dueños y externo (**no** pesaje) | Dueños y externo |
 | `trabajadores/{id}` | nombre, activo | Todos | Dueños y externo |
@@ -162,10 +162,11 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 - Ingreso con Google mínimo para **verificar la decisión T3** en iPhone, Android y Windows.
 - **Listo cuando:** se instala en los tres, abre en modo avión y el ingreso con Google funciona instalada.
 
-### Fase 2 · Cuentas, perfiles y reglas — chat 3
+### Fase 2 · Cuentas, perfiles y reglas — chat 3 ✔
 - Solicitud de acceso, aprobación y asignación de perfil, quitar acceso, pantalla de espera.
 - Reglas de Firestore completas y sus pruebas; caché sin conexión; App Check en modo supervisar; clave restringida.
 - **Listo cuando:** la cuenta de pesaje no puede leer precios ni con peticiones directas (probado con el emulador).
+- Hecho el 14-nov-2026 (versión 0.2.0). App Check queda preparado y apagado: lo enciende Felipe con `GUIA-FIREBASE.md`, paso 16. La prueba con el emulador corre en GitHub Actions (no se pudo ejecutar desde el chat). Detalle en `ESTADO.md`.
 
 ### Fase 3 · Catálogo — chat 4
 - Productos (kg/unidad, peso de referencia, categoría), precios netos con vigencia, trabajadores, cliente inicial, IVA.

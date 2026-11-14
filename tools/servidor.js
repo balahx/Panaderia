@@ -4,7 +4,7 @@
    · srv.lento(true) simula una red colgada. */
 const http = require('http'), fs = require('fs'), path = require('path');
 const RAIZ = path.resolve(__dirname, '..'), APP = path.join(RAIZ, 'APP'), FAKE = path.join(RAIZ, 'tests', 'fake-firebase');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png',
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.webmanifest': 'application/manifest+json', '.woff': 'font/woff', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8' };
 
 /* Cabeceras que firebase.json aplica a todo el sitio (source "**") */

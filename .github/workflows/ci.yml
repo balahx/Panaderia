@@ -27,3 +27,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Pruebas
         run: node tools/run-tests.js
+      - name: Reglas de Firestore (emulador)
+        run: |
+          npm install --no-save --no-audit --no-fund firebase@12.15.0 @firebase/rules-unit-testing@5.0.0
+          npx --yes firebase-tools@14 emulators:exec --only firestore --project demo-panaderia "node tests/rules-emulator.js"

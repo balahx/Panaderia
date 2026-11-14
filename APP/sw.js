@@ -7,13 +7,13 @@ let slowUntil = 0;
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './version.js', './guard.js', './firebase-config.js',
   './css/tokens.css', './css/base.css', './css/componentes.css',
   './js/app.js',
-  './js/core/nube.js', './js/core/acceso.js', './js/core/ui.js', './js/core/formato.js', './js/core/iconos.js', './js/core/actualizar.js',
-  './js/pantallas/ingreso.js', './js/pantallas/inicio.js', './js/pantallas/mas.js',
+  './js/core/nube.js', './js/core/acceso.js', './js/core/perfil.js', './js/core/ui.js', './js/core/formato.js', './js/core/iconos.js', './js/core/actualizar.js',
+  './js/pantallas/ingreso.js', './js/pantallas/espera.js', './js/pantallas/inicio.js', './js/pantallas/accesos.js', './js/pantallas/mas.js',
   './fonts/Barlow-Regular.woff', './fonts/Barlow-Medium.woff', './fonts/Barlow-SemiBold.woff', './fonts/BarlowCondensed-Medium.woff', './fonts/BarlowCondensed-SemiBold.woff', './fonts/BarlowCondensed-Bold.woff',
   './icons/icon.svg', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'];
 /* Copias locales del SDK (las descarga tools/vendor.js). Se guardan aparte y sin exigirlas: si aún no están, la app
    se instala igual y avisa en la pantalla de ingreso. */
-const VENDOR = ['./vendor/firebase/firebase-app.js', './vendor/firebase/firebase-auth.js'];
+const VENDOR = ['./vendor/firebase/firebase-app.js', './vendor/firebase/firebase-auth.js', './vendor/firebase/firebase-firestore.js', './vendor/firebase/firebase-app-check.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE)

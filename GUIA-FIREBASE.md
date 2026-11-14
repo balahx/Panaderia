@@ -1,10 +1,10 @@
 # Guía paso a paso · Firebase, publicación y repositorio
 
-> Fase 1 de la App Panadería. Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
+> Fases 1 y 2 de la App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
 > Tiempo estimado: 60 a 90 minutos la primera vez.
 > Los nombres de botones están en español; entre paréntesis va el nombre en inglés por si tu consola aparece en ese idioma. Google cambia a veces el texto de un botón: si no lo encuentras igual, busca el más parecido.
 
-**Antes de empezar, anota aquí tu ID de proyecto** (lo obtienes en el paso 3): `______________________`
+**Antes de empezar, anota aquí tu ID de proyecto** (lo obtienes en el paso 3): `panaderia-e2871`
 En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app será `https://ID.web.app`.
 
 | Paso | Qué se hace | Dónde |
@@ -22,6 +22,11 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 10 | Subir el código al repositorio `Panaderia` | Terminal y GitHub |
 | 11 | Seguridad: clave web, permisos, GitHub | Consolas |
 | 12 | Cómo publicar una versión nueva (para más adelante) | Terminal |
+| 13 | **Fase 2:** publicar la versión 0.2.0 y las reglas por perfil | Terminal |
+| 14 | Definir a los dueños (`config/negocio`) | Consola de Firebase |
+| 15 | Dar los accesos (externo y tablet) y verificar | La app, en cada equipo |
+| 16 | App Check en modo supervisar | reCAPTCHA, consola de Firebase y terminal |
+| 17 | Cierre de seguridad de la Fase 2 | Consolas |
 
 ---
 
@@ -215,10 +220,10 @@ Esta es la verificación de la **decisión T3** del plan. Hazla en los tres equi
 
 | Verificación | iPhone | Android | Windows |
 |---|---|---|---|
-| Se instala y abre desde su ícono | ☐ | ☐ | ☐ |
-| Ingreso con Google funciona instalada | ☐ | ☐ | ☐ |
-| Abre en modo avión con la sesión | ☐ | ☐ | ☐ |
-| Diagnóstico: Instalada · Lista · 0 bloqueos | ☐ | ☐ | ☐ |
+| Se instala y abre desde su ícono | ✓ | ✓ | ✓ |
+| Ingreso con Google funciona instalada | ✓ | ✓ | ✓ |
+| Abre en modo avión con la sesión | ✓ | ✓ | ✓ |
+| Diagnóstico: Instalada · Lista · 0 bloqueos | ✓ | ✓ | ✓ |
 
 **Listo cuando:** las doce casillas están marcadas. Si alguna falla, anota el equipo y qué pasó (o copia el Diagnóstico) y llévalo al próximo chat: la Fase 1 no se cierra hasta resolverlo.
 
@@ -248,7 +253,7 @@ git status
 
 ```
 git commit -m "Fase 1: base instalable, ingreso con Google y publicación (0.1.0)"
-git remote add origin https://github.com/TU_USUARIO/Panaderia.git
+git remote add origin https://github.com/Felipe González/Panaderia.git
 git push -u origin main
 ```
 
@@ -285,7 +290,7 @@ http://localhost:5000/*
 3. **Actions → General → Workflow permissions**: **Read repository contents permission**.
 4. **Collaborators**: solo tú.
 
-**D. Lo que queda para la Fase 2:** App Check con reCAPTCHA, perfiles y reglas por perfil, y revisar los dominios autorizados de Authentication. El plan gratuito (Spark) no puede generar cobros, así que las alertas de presupuesto solo aplican si algún día se cambia de plan.
+**D. Lo que sigue en la Fase 2 (pasos 13 a 17):** perfiles y reglas por perfil, App Check con reCAPTCHA y revisión de los dominios autorizados de Authentication. El plan gratuito (Spark) no puede generar cobros, así que las alertas de presupuesto solo aplican si algún día se cambia de plan.
 
 ## Paso 12 · Cómo publicar una versión nueva
 
@@ -306,6 +311,132 @@ git push
 
 ---
 
+## Paso 13 · Publicar la versión 0.2.0 y las reglas por perfil
+
+Desde esta versión la app usa la base de datos (Firestore) y cada cuenta entra con un **perfil**: Dueño, Externo o Pesaje.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+node tools/vendor.js
+npm test
+```
+
+`vendor.js` vuelve a descargar el SDK (ahora también trae `firebase-app-check.js`, que se usa en el paso 16). `npm test` debe terminar con **«todas bien»**.
+
+2. Publica la app **y las reglas**:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+Debe decir `firestore: released rules firestore.rules to cloud.firestore` y `Deploy complete!`. Si en cambio muestra un **error en `firestore.rules`** (con número de línea), no se publicó nada y las reglas anteriores siguen vigentes: copia el mensaje y llévalo al chat.
+
+3. Sube el código (paso 12: `git add .`, `git commit`, `git push`). En GitHub, pestaña **Actions**, el flujo **Pruebas** tiene ahora un paso nuevo, **«Reglas de Firestore (emulador)»**: es la prueba que demuestra, contra las reglas reales, que la cuenta de pesaje no puede leer precios. **Debe quedar en verde.** Si queda en rojo, abre el paso, copia las líneas con ✗ y llévalas al chat.
+
+4. Abre `https://ID.web.app`, pulsa **Actualizar ahora** si lo ofrece e ingresa.
+
+**Listo cuando:** la app muestra **«Falta el primer paso de configuración»** con tu identificador. Es lo esperado: todavía no existe el documento que dice quiénes son los dueños.
+
+## Paso 14 · Definir a los dueños (`config/negocio`)
+
+Nadie puede nombrarse dueño desde la app: los dueños se anotan **a mano, una sola vez**, en la consola de Firebase.
+
+1. Pide al dueño y a la dueña que abran la app e ingresen con su cuenta de Google **una vez**. Verán la pantalla «Falta el primer paso de configuración» (está bien).
+2. Consola de Firebase → **Authentication** → pestaña **Usuarios** (Users). Cada cuenta que ingresó aparece con su correo y su **UID de usuario** (User UID). Copia el UID del dueño y el de la dueña. (También lo muestra la app en esa pantalla, con el botón **Copiar identificador**.)
+3. Consola de Firebase → **Firestore Database** → pestaña **Datos** → **Iniciar colección** (Start collection):
+   - **ID de la colección:** `config` → Siguiente.
+   - **ID del documento:** `negocio` (escríbelo; no uses «ID automático»).
+   - Agrega tres campos:
+
+| Campo | Tipo | Valor |
+|---|---|---|
+| `duenos` | array | dos elementos de tipo **string**: el UID del dueño y el UID de la dueña |
+| `nombre` | string | `Panadería` |
+| `iva` | number | `19` |
+
+   - **Guardar**.
+4. Fíjate en la escritura exacta: `config`, `negocio` y `duenos` van en minúsculas y **sin ñ ni tilde**.
+
+**Listo cuando:** en el equipo de un dueño la pantalla pasa sola a **Inicio** y dice «Entraste con el perfil **Dueño**»; en **Más** aparece la opción **Accesos**.
+
+- Quien figure en `duenos` controla todo, incluidos los accesos: pon solo al dueño y a la dueña. Para cambiar un dueño más adelante se edita este mismo campo en la consola.
+- Si quieres probar antes de que ellos ingresen, pon **tu** UID en `duenos`, prueba, y después reemplázalo por los de ellos (tú pasas a pedir acceso como Externo, paso 15).
+- Los UID y los correos no se anotan en el repositorio. Si quieres guardarlos, usa la carpeta `privado\`.
+
+## Paso 15 · Dar los accesos y verificar
+
+1. **Tú (Externo):** ingresa en la app → **Pedir acceso**. Un dueño abre **Más → Accesos** (también le aparece un aviso amarillo en Inicio) → **Aprobar** → **Externo**. Tu pantalla de espera pasa sola a la app.
+2. **Tablet de la panadería (Pesaje):** en la tablet, ingresa con la cuenta de Google de la tablet → escribe un nombre que la identifique (por ejemplo «Tablet panadería») → **Pedir acceso**. Un dueño la aprueba con el perfil **Pesaje**.
+3. Si pide acceso alguien que no corresponde, el dueño pulsa **Rechazar**.
+
+Verifica y marca:
+
+| Verificación | ✓ |
+|---|---|
+| El dueño ve **Más → Accesos**, el aviso de solicitudes y puede aprobar | ☐ |
+| Tu cuenta entra con perfil **Externo** y en «Más» **no** aparece Accesos | ☐ |
+| La tablet entra con perfil **Pesaje** y **no** aparece Accesos | ☐ |
+| El dueño cambia un perfil (Accesos → **Cambiar**) y el otro equipo lo refleja | ☐ |
+| El dueño **quita** un acceso y en el otro equipo la app se cierra sola («Acceso quitado»); luego se lo **devuelve** | ☐ |
+| Con la app instalada y en **modo avión**, cada equipo abre con su perfil | ☐ |
+| GitHub → Actions → **Pruebas**: el paso «Reglas de Firestore (emulador)» está en verde | ☐ |
+
+**Listo cuando:** las siete casillas están marcadas. Lleva la tabla al próximo chat.
+
+## Paso 16 · App Check en modo supervisar
+
+App Check hace que Firebase distinga las peticiones que vienen de **tu app** de las que vienen de programas ajenos. Se parte en **modo supervisar**: la app envía su comprobante y Firebase solo lo mide, sin rechazar a nadie. Volverlo obligatorio queda para la Fase 8, cuando las mediciones muestren que todo llega verificado.
+
+Usa reCAPTCHA v3 de Google (invisible: nunca pide resolver nada). Es la **única excepción** a la regla de «nada de otros sitios» de la app, y por eso viene apagado: se enciende con una herramienta que abre la política de seguridad solo para reCAPTCHA.
+
+> Este paso no se pudo probar desde el chat con el reCAPTCHA real. Hazlo **después** de terminar el paso 15, así si algo cambia sabrás que fue por este paso. Es reversible (punto 7).
+
+1. Abre `https://www.google.com/recaptcha/admin/create` con tu cuenta de Google:
+   - **Etiqueta:** `Panaderia`.
+   - **Tipo de reCAPTCHA:** **Basado en puntuación (v3)** (Score based).
+   - **Dominios:** `ID.web.app` y `ID.firebaseapp.com` (sin `https://`). Agrega `localhost` si quieres probar en el computador.
+   - **Enviar**. Verás dos claves: la **clave del sitio** (pública) y la **clave secreta**.
+2. Consola de Firebase → **App Check** (en el menú, dentro de «Seguridad» o de «Compilación») → pestaña **Apps** → tu app web → **reCAPTCHA** → pega la **clave secreta** → **Guardar**.
+   - La clave secreta va **solo** ahí. No la pegues en ningún archivo del proyecto.
+   - **No pulses «Aplicar» (Enforce)** en ninguna parte: eso es el modo obligatorio.
+3. En `APP\firebase-config.js`, pega la **clave del sitio** entre las comillas de `appCheckSiteKey`:
+
+```
+export const appCheckSiteKey = 'PEGA_AQUI_LA_CLAVE_DEL_SITIO';
+```
+
+4. En **cmd**:
+
+```
+node tools/appcheck.js activar
+npm test
+firebase deploy --only hosting
+```
+
+`appcheck.js activar` cambia la política de seguridad en `APP\index.html` y en `firebase.json` (los dos, iguales). `npm test` comprueba que política y clave coincidan.
+
+5. Consola de Google Cloud → **APIs y servicios → Credenciales** → la clave web (paso 11.A) → **Restricciones de API**: agrega **Firebase App Check API** a las tres que ya estaban → **Guardar**.
+6. Verifica en cada equipo: **Más → Buscar actualización → Actualizar ahora**, y luego **Más → Diagnóstico de instalación**. Debe decir **App Check: Activo** y **Bloqueos de seguridad: 0**. Uno o dos días después, en la consola de Firebase → App Check → pestaña **APIs** → **Cloud Firestore**, el gráfico debe mostrar las solicitudes como **verificadas**.
+7. **Si algo falla** (la app no abre, no deja ingresar, o el Diagnóstico muestra bloqueos distintos de 0): copia el Diagnóstico para el chat y vuelve atrás:
+
+```
+node tools/appcheck.js desactivar
+```
+
+Deja `appCheckSiteKey = ''` en `APP\firebase-config.js`, y luego `npm test` y `firebase deploy --only hosting`.
+
+**Listo cuando:** el Diagnóstico dice «App Check: Activo», con 0 bloqueos, en los tres tipos de equipo.
+
+## Paso 17 · Cierre de seguridad de la Fase 2
+
+1. **Solo Google como forma de ingreso.** Consola de Firebase → Authentication → **Método de acceso** (Sign-in method): debe estar habilitado únicamente **Google**. Ni «Anónimo» ni «Correo y contraseña».
+2. **Dominios autorizados.** Authentication → **Configuración** (Settings) → **Dominios autorizados**: deben quedar `ID.web.app` y `ID.firebaseapp.com`. Si aparece `localhost`, puedes quitarlo; después **ingresa de nuevo en `https://ID.web.app`** para confirmar que todo sigue igual (si dejara de funcionar, vuelve a agregarlo y avisa en el chat).
+3. **Reglas publicadas.** Firestore Database → pestaña **Reglas**: el texto debe empezar con «Panadería · reglas de la Fase 2» y la fecha de publicación debe ser la de hoy.
+4. **Plan gratuito.** Abajo en el menú de la consola debe decir **Spark**.
+
+---
+
 ## Problemas frecuentes
 
 | Qué ves | Causa y solución |
@@ -319,6 +450,12 @@ git push
 | `npm` o `firebase` «no se reconoce» o «la ejecución de scripts está deshabilitada» | Cierra la terminal y abre **cmd** (no PowerShell). Si sigue, reinstala Node |
 | `firebase deploy` dice que falta el proyecto | Repite `firebase use --add` (paso 8.2) |
 | En el iPhone el ingreso se queda en Safari y no vuelve a la app | Anótalo en la tabla del paso 9 y llévalo al próximo chat (es justo lo que verifica T3) |
+| La app dice **«Falta el primer paso de configuración»** | No existe `config/negocio` o está mal escrito (paso 14). Revisa minúsculas y que `duenos` sea un **array** de textos |
+| Un dueño ve **«Pedir acceso»** en vez de entrar | Su UID no está en `duenos`, o se copió con un espacio o incompleto (paso 14.2). Cada cuenta de Google tiene un UID distinto |
+| La app dice **«No se pudo comprobar tu acceso (permission-denied)»** | Las reglas no se publicaron (paso 13.2) o App Check quedó en modo obligatorio por error (paso 16.2: debe estar sin «Aplicar») |
+| La app se queda en **«Comprobando tu acceso…»** | Sin internet la primera vez en ese equipo. Con internet, pulsa **Reintentar** |
+| `firebase deploy` muestra un error en `firestore.rules` | No se publicó nada. Copia el mensaje completo (con la línea) y llévalo al chat |
+| El Diagnóstico dice **«App Check: Falta el SDK»** | Ejecuta `node tools/vendor.js` y publica de nuevo (paso 13.1) |
 | Después de publicar no veo los cambios | **Más → Buscar actualización → Actualizar ahora** |
 
 ## Qué queda fuera del repositorio

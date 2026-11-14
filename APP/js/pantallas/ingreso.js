@@ -6,13 +6,13 @@ import * as acceso from '../core/acceso.js';
 import * as nube from '../core/nube.js';
 import { versionText } from '../core/actualizar.js';
 
-const hero = '<div class="hero"><span class="mk" aria-hidden="true">' + svg('pan') + '</span><h1 class="nm">Panadería</h1><span class="sl">Pesaje, entregas y ventas</span></div>';
+export const hero = '<div class="hero"><span class="mk" aria-hidden="true">' + svg('pan') + '</span><h1 class="nm">Panadería</h1><span class="sl">Pesaje, entregas y ventas</span></div>';
 
 function cuerpo(e) {
   if (e.tipo === 'cargando' || e.tipo === 'entrando') return '<div class="spin" role="status" aria-label="Cargando"></div><p class="lead">' + (e.tipo === 'entrando' ? 'Ingresando…' : 'Abriendo…') + '</p>';
   if (e.tipo === 'sin-config') return '<div class="card"><div class="note warn" id="sinConfig"><b>Falta conectar la app con Firebase.</b> Pega los datos del proyecto en <code>APP/firebase-config.js</code> (GUIA-FIREBASE.md, pasos 3 y 5) y vuelve a abrir.</div>' +
     '<button class="btn lg block" disabled>' + svg('user') + 'Ingresar con Google</button></div>';
-  if (e.tipo === 'sin-sdk') return '<div class="card">' + errorHTML('Falta la copia local del SDK de Firebase. Ejecuta «node tools/vendor.js» (GUIA-FIREBASE.md, paso 2) y vuelve a publicar.', { title: 'La app está incompleta', retry: 'recargar' }) + '</div>';
+  if (e.tipo === 'sin-sdk') return '<div class="card" id="sinSdk">' + errorHTML('Falta la copia local del SDK de Firebase (sesión o datos). Ejecuta «node tools/vendor.js» (GUIA-FIREBASE.md, paso 2) y vuelve a publicar.', { title: 'La app está incompleta', retry: 'recargar' }) + '</div>';
   return '<div class="card"><p class="lead">Entra con tu cuenta de Google.</p>' +
     '<button class="btn lg block" id="btnGoogle" data-act="entrar">' + svg('user') + 'Ingresar con Google</button>' +
     (e.error ? '<p class="form-error" role="alert">' + esc(e.error) + '</p>' : '') + '</div>' +

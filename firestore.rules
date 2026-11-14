@@ -1,10 +1,174 @@
 rules_version = '2';
-// Fase 1: todo cerrado. Nadie lee ni escribe hasta que la Fase 2 defina los perfiles (dueño, externo, pesaje).
-// Patrón del proyecto: todo prohibido salvo lo que se permita expresamente, y cada cambio probado con el emulador.
+
+// Panadería · reglas de la Fase 2 (perfiles y accesos). Todo lo que no se permite aquí queda prohibido.
+// Perfiles: DUEÑO (su UID figura en config/negocio, creado a mano en la consola), EXTERNO y PESAJE (miembros/{uid}, los crea un dueño).
+// «Gestión» = dueño o externo. La cuenta de pesaje nunca lee precios, clientes, cierres ni proyecciones.
+// Cada cambio se prueba con el emulador: tests/rules-emulator.js (casos en tests/reglas-casos.js).
+// La forma de los datos de catálogo, pesajes y cierres se afina en la fase de cada pantalla (3 a 7); el acceso por perfil queda fijado aquí.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+
+    // ---------- Quién es quién ----------
+    function sesion() { return request.auth != null; }
+    function esDueno() {
+      return sesion()
+        && exists(/databases/$(database)/documents/config/negocio)
+        && request.auth.uid in get(/databases/$(database)/documents/config/negocio).data.duenos;
+    }
+    function tienePerfil(p) {
+      return sesion()
+        && exists(/databases/$(database)/documents/miembros/$(request.auth.uid))
+        && get(/databases/$(database)/documents/miembros/$(request.auth.uid)).data.activo == true
+        && get(/databases/$(database)/documents/miembros/$(request.auth.uid)).data.perfil == p;
+    }
+    function esGestion() { return esDueno() || tienePerfil('externo'); }
+    function esPesaje() { return tienePerfil('pesaje'); }
+    function conAcceso() { return esGestion() || esPesaje(); }
+
+    // ---------- Ayudas ----------
+    function nuevo() { return request.resource.data; }
+    function texto(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
+    function dosDigitos(n) { return n < 10 ? '0' + string(n) : string(n); }
+    function diaDe(t) { return string(t.year()) + '-' + dosDigitos(t.month()) + '-' + dosDigitos(t.day()); }
+    // Día calendario chileno según la hora del SERVIDOR. Chile continental está a 3 o 4 horas de UTC según la época del año:
+    // se aceptan ambas (solo difieren durante una hora, alrededor de la medianoche).
+    function esHoy(fecha) {
+      return fecha == diaDe(request.time - duration.value(3, 'h')) || fecha == diaDe(request.time - duration.value(4, 'h'));
+    }
+
+    // ---------- Negocio ----------
+    // Lista de dueños, nombre e IVA. Se crea a mano en la consola: nadie puede nombrarse dueño desde la app.
+    match /config/negocio {
+      allow read: if sesion();
+      allow create, delete: if false;
+      // Un dueño puede ajustar el nombre y el IVA; la lista de dueños solo se cambia en la consola.
+      allow update: if esDueno()
+        && nuevo().diff(resource.data).affectedKeys().hasOnly(['nombre', 'iva'])
+        && texto(nuevo().nombre, 1, 60)
+        && nuevo().iva is number && nuevo().iva >= 0 && nuevo().iva <= 100;
+    }
+
+    // ---------- Solicitudes de acceso ----------
+    // Cada persona crea la suya, con su propio correo de Google y la hora del servidor. No se modifican: se aprueban (pasan a miembros) o se borran.
+    match /solicitudes/{uid} {
+      allow get: if sesion() && (request.auth.uid == uid || esDueno());
+      allow list: if esDueno();
+      allow create: if sesion() && request.auth.uid == uid
+        && nuevo().keys().hasOnly(['nombre', 'correo', 'creado'])
+        && nuevo().keys().hasAll(['nombre', 'correo', 'creado'])
+        && texto(nuevo().nombre, 2, 60)
+        && request.auth.token.email_verified == true
+        && nuevo().correo == request.auth.token.email
+        && nuevo().creado == request.time;
+      allow update: if false;
+      allow delete: if sesion() && (request.auth.uid == uid || esDueno());
+    }
+
+    // ---------- Miembros (externo y pesaje) ----------
+    // Solo los dueños aprueban, cambian el perfil y quitan accesos. Cada persona lee solo su propia ficha.
+    match /miembros/{uid} {
+      allow get: if sesion() && (request.auth.uid == uid || esDueno());
+      allow list: if esDueno();
+      allow create, update: if esDueno()
+        && nuevo().keys().hasOnly(['nombre', 'correo', 'perfil', 'activo', 'por', 'en'])
+        && nuevo().keys().hasAll(['nombre', 'correo', 'perfil', 'activo', 'por', 'en'])
+        && texto(nuevo().nombre, 2, 60)
+        && texto(nuevo().correo, 3, 200)
+        && nuevo().perfil in ['externo', 'pesaje']
+        && nuevo().activo is bool
+        && nuevo().por == request.auth.uid
+        && nuevo().en == request.time;
+      allow delete: if esDueno();
+    }
+
+    // ---------- Catálogo (pantallas: Fase 3) ----------
+    match /productos/{id} {
+      allow read: if conAcceso();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['nombre', 'unidad', 'pesoRef', 'categoria', 'orden', 'activo', 'en'])
+        && texto(nuevo().nombre, 1, 60)
+        && nuevo().unidad in ['kg', 'un']
+        && nuevo().activo is bool
+        && nuevo().en == request.time;
+      allow delete: if false;
+    }
+    // Precios: internos. La cuenta de pesaje NO los lee (ni uno por uno ni en lista).
+    match /precios/{id} {
+      allow read: if esGestion();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['productoId', 'clienteId', 'neto', 'desde', 'en'])
+        && texto(nuevo().productoId, 1, 60)
+        && nuevo().neto is number && nuevo().neto >= 0
+        && texto(nuevo().desde, 10, 10)
+        && nuevo().en == request.time;
+      allow delete: if esGestion();
+    }
+    match /trabajadores/{id} {
+      allow read: if conAcceso();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['nombre', 'activo', 'en'])
+        && texto(nuevo().nombre, 1, 60)
+        && nuevo().activo is bool
+        && nuevo().en == request.time;
+      allow delete: if false;
+    }
+    match /clientes/{id} {
+      allow read: if esGestion();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['nombre', 'activo', 'en'])
+        && texto(nuevo().nombre, 1, 60)
+        && nuevo().activo is bool
+        && nuevo().en == request.time;
+      allow delete: if false;
+    }
+
+    // ---------- Pesajes (pantallas: Fase 4) ----------
+    // Gestión: todo. Pesaje (la tablet): crea, y lee y corrige solo lo del día según la hora del servidor. No se borran: se anulan.
+    function pesajeValido() {
+      return nuevo().keys().hasOnly(['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'nota', 'anulado', 'creadoPor', 'en'])
+        && nuevo().keys().hasAll(['fecha', 'productoId', 'cantidad', 'unidad', 'creadoPor', 'en'])
+        && texto(nuevo().fecha, 10, 10)
+        && texto(nuevo().productoId, 1, 60)
+        && nuevo().cantidad is number && nuevo().cantidad > 0 && nuevo().cantidad <= 100000
+        && nuevo().unidad in ['kg', 'un']
+        && (!('nota' in nuevo()) || texto(nuevo().nota, 0, 200))
+        && (!('anulado' in nuevo()) || nuevo().anulado is bool)
+        && nuevo().en == request.time;
+    }
+    match /pesajes/{id} {
+      allow read: if esGestion() || (esPesaje() && esHoy(resource.data.fecha));
+      allow create: if pesajeValido() && nuevo().creadoPor == request.auth.uid
+        && (esGestion() || (esPesaje() && esHoy(nuevo().fecha)));
+      allow update: if pesajeValido() && nuevo().creadoPor == resource.data.creadoPor
+        && (esGestion() || (esPesaje() && esHoy(resource.data.fecha) && nuevo().fecha == resource.data.fecha));
+      allow delete: if false;
+    }
+    // Totales del día (se escriben junto con cada pesaje). La tablet solo toca el día de hoy.
+    match /dias/{fecha} {
+      allow read: if esGestion() || (esPesaje() && esHoy(fecha));
+      allow create, update: if (esGestion() || (esPesaje() && esHoy(fecha))) && nuevo().en == request.time;
+      allow delete: if false;
+    }
+
+    // ---------- Ventas, cierres y proyección (pantallas: Fases 5 a 7). Nada de esto lo ve la cuenta de pesaje ----------
+    match /cierres/{mes} {
+      allow read: if esGestion();
+      allow create: if esGestion() && nuevo().en == request.time;
+      // Un mes cerrado no se modifica.
+      allow update: if esGestion() && resource.data.get('cerrado', false) != true && nuevo().en == request.time;
+      allow delete: if esGestion() && resource.data.get('cerrado', false) != true;
+    }
+    match /proyeccion/{anio} {
+      allow read: if esGestion();
+      allow create, update: if esGestion() && nuevo().en == request.time;
+      allow delete: if false;
+    }
+    // Bitácora de correcciones: se agrega, nunca se cambia ni se borra.
+    match /cambios/{id} {
+      allow read: if esGestion();
+      allow create: if conAcceso() && nuevo().por == request.auth.uid && nuevo().en == request.time;
+      allow update, delete: if false;
     }
   }
 }

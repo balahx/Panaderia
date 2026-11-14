@@ -9,3 +9,6 @@ export const firebaseConfig = {
 };
 /* ID de cliente web de Google (termina en .apps.googleusercontent.com). Tampoco es secreto. */
 export const googleClientId = '790218080343-sqp3v83ucnhsmv4q9pbphs3r6faur0uo.apps.googleusercontent.com';
+/* Clave de sitio de reCAPTCHA v3 para App Check (pública). Vacía = App Check apagado.
+   Se llena en GUIA-FIREBASE.md, paso 16, junto con  node tools/appcheck.js activar  (abre la política de contenido para reCAPTCHA). */
+export const appCheckSiteKey = '';

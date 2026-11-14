@@ -6,7 +6,7 @@
    Cada archivo se guarda con sus «import» apuntando a la copia local, y se anota su huella (SHA-256) en VERSION.json. */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const VERSION = process.argv[2] || '12.15.0';
-const ARCHIVOS = ['firebase-app.js', 'firebase-auth.js', 'firebase-firestore.js'];   // app y auth: Fase 1 · firestore: Fase 2
+const ARCHIVOS = ['firebase-app.js', 'firebase-auth.js', 'firebase-firestore.js', 'firebase-app-check.js'];   // app y auth: Fase 1 · firestore y app-check: Fase 2
 const BASE = 'https://www.gstatic.com/firebasejs/' + VERSION + '/';
 const DEST = path.join(__dirname, '..', 'APP', 'vendor', 'firebase');
 

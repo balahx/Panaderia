@@ -115,3 +115,26 @@ dialog.cfm { margin: auto; max-width: min(380px, calc(100vw - 32px)); border-rad
 .upd-new { background: var(--gold-bg); padding: 10px 12px; border-radius: 10px; border-left: 3px solid var(--gold); }
 .ver-line { text-align: center; color: var(--muted); font-size: .84em; margin: 18px 0 4px; letter-spacing: .02em; }
 [data-upd] #gear::after { content: ""; position: absolute; top: 7px; right: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2px var(--bg); }
+
+/* ---------- Accesos y pantallas de espera (Fase 2) ---------- */
+.persona { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.persona:last-child { border-bottom: 0; }
+.persona .who { flex: 1 1 150px; min-width: 0; }
+.persona .who b { display: block; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.persona .who small { display: block; color: var(--muted); font-size: .84em; overflow-wrap: anywhere; }
+.persona-b { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.opcion { display: block; width: 100%; text-align: left; background: var(--surface2); border: 1.5px solid var(--line-strong); border-radius: 12px; padding: 12px 14px; margin: 0 0 10px; color: var(--ink); font: inherit; cursor: pointer; }
+.opcion b { display: block; font-weight: 600; }
+.opcion small { display: block; color: var(--muted); font-size: .9em; margin-top: 2px; }
+.opcion:hover:not(:disabled) { border-color: var(--btn); }
+.opcion:disabled { opacity: .6; cursor: default; }
+.aviso { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--warn-bg); color: var(--warn-ink); border: 0; border-radius: 12px; padding: 10px 12px; margin: 0 0 14px; min-height: 48px; font: 600 .96em var(--font-body); cursor: pointer; }
+.aviso span { flex: 1; }
+.aviso .ic { flex: none; width: 20px; height: 20px; }
+.estado-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; margin: 4px auto 12px; background: var(--ok); color: var(--on-ok); }
+.estado-ic .ic { width: 28px; height: 28px; }
+.actions.centro { justify-content: center; }
+.volver { padding-left: 0; min-height: 36px; text-decoration: none; }
+.chico { font-size: .87em; }
+.gate .legal b { overflow-wrap: anywhere; }
+.more-head .badge { flex: none; }

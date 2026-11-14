@@ -17,11 +17,16 @@ const rel = f => path.relative(APP, f).split(path.sep).join('/');
   const pol = {}; (m ? m[1] : '').split(';').map(x => x.trim()).filter(Boolean).forEach(x => { const [k, ...v] = x.split(/\s+/); pol[k] = v; });
   const solo = k => (pol[k] || []).join(' ');
   ok(solo('default-src') === "'none'", "por defecto no se permite nada (default-src 'none')");
-  ok(solo('script-src') === "'self'", 'scripts: solo los de la propia app (ni en línea, ni eval, ni otros sitios)');
+  /* App Check (GUIA-FIREBASE.md, paso 16) es la ÚNICA excepción a «nada de otros sitios»: si hay clave de sitio en firebase-config.js,
+     la política admite reCAPTCHA; si no la hay, queda estricta. Las dos formas exactas las define tools/appcheck.js. */
+  const AC = require('../tools/appcheck.js'), conAC = AC.hayClave();
+  ok(m[1] === AC.politica(conAC), conAC ? 'App Check activado: la política admite reCAPTCHA y nada más' : 'App Check apagado (sin clave de sitio): la política es la estricta');
+  ok(AC.politica(false).includes("script-src 'self';") && !/recaptcha|frame-src/.test(AC.politica(false)), 'estricta: scripts solo de la propia app, sin marcos');
+  const extras = AC.politica(true).split(/[;\s]+/).filter(x => /^https:/.test(x) && !AC.politica(false).includes(x));
+  ok(extras.length > 0 && extras.every(x => AC.RECAPTCHA.concat(AC.MARCOS, AC.APPCHECK).includes(x)) && extras.every(x => /^https:\/\/(www\.google\.com\/recaptcha\/|www\.gstatic\.com\/recaptcha\/|recaptcha\.google\.com\/recaptcha\/|content-firebaseappcheck\.googleapis\.com)$/.test(x)), 'con App Check solo se suman reCAPTCHA (por carpeta, no todo Google) y el servicio de App Check');
   ok(solo('style-src') === "'self'" && solo('font-src') === "'self'", 'estilos y tipografías: solo los de la propia app');
   ok(!m[1].includes('unsafe') && !m[1].includes('*'), "la política no usa 'unsafe-…' ni comodines");
-  ok((pol['connect-src'] || []).every(x => x === "'self'" || ['https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com', 'https://firestore.googleapis.com'].includes(x)), 'conexiones: solo la app y los tres servicios de Firebase');
-  ok(!pol['frame-src'] && solo('object-src') === "'none'" && solo('base-uri') === "'self'" && solo('form-action') === "'self'", 'sin marcos ni plugins; base y formularios solo hacia el propio sitio');
+  ok(solo('object-src') === "'none'" && solo('base-uri') === "'self'" && solo('form-action') === "'self'" && (conAC || !pol['frame-src']), 'sin plugins; base y formularios solo hacia el propio sitio' + (conAC ? '' : '; sin marcos'));
   const fj = JSON.parse(fs.readFileSync(path.join(RAIZ, 'firebase.json'), 'utf8')), hs = {};
   fj.hosting.headers.find(h => h.source === '**').headers.forEach(h => { hs[h.key] = h.value; });
   ok(hs['Content-Security-Policy'] === m[1] + "; frame-ancestors 'none'", "la cabecera de Hosting es la misma política más frame-ancestors 'none'");
@@ -53,6 +58,7 @@ const rel = f => path.relative(APP, f).split(path.sep).join('/');
   await page.waitForSelector('#toast:not([hidden])');
   for (const t of ['mas', 'inicio', 'mas']) { await page.click('#nav button[data-tab="' + t + '"]'); await page.waitForTimeout(120); }
   await page.click('[data-act="diag"]'); await page.waitForSelector('#dlg[open]'); await page.click('[data-act="cerrar-hoja"]');
+  await page.click('#irAccesos'); await page.waitForSelector('#secSolicitudes'); await page.click('.volver'); await page.waitForSelector('#irAccesos');
   await page.click('[data-act="upd-check"]'); await page.waitForTimeout(300);
   await page.click('[data-act="salir"]'); await page.waitForSelector('dialog.cfm[open]'); await page.click('dialog.cfm [data-r="0"]');
   const viol = v0.concat(await page.evaluate(() => window.__viol));

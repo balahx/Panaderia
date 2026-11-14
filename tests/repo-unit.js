@@ -33,12 +33,14 @@ ok(wfs.length >= 1, 'hay un flujo de pruebas (' + wfs.join(', ') + ')');
 for (const w of wfs) { const t = fs.readFileSync(path.join(wfDir, w), 'utf8'), uses = t.match(/uses:\s*\S+/g) || [];
   ok(uses.length > 0 && uses.every(u => /@[0-9a-f]{40}$/.test(u)), w + ': acciones fijadas por hash completo (' + uses.length + ')');
   ok(/^permissions:\s*\n\s+contents: read\s*$/m.test(t) && !/write/.test(t), w + ': permisos mínimos (contents: read)');
-  ok(!/pull_request_target/.test(t) && !/secrets\./.test(t), w + ': no usa pull_request_target ni secretos'); }
+  ok(!/pull_request_target/.test(t) && !/secrets\./.test(t), w + ': no usa pull_request_target ni secretos');
+  ok(/emulators:exec[^\n]*rules-emulator\.js/.test(t), w + ': prueba las reglas de Firestore con el emulador'); }
 
 console.log('4. Reglas de Firestore');
 const rules = fs.readFileSync(path.join(ROOT, 'firestore.rules'), 'utf8').replace(/\/\/.*$/gm, '');
-const allows = rules.match(/allow[^;]+;/g) || [];
-ok(/match \/\{document=\*\*\}/.test(rules) && allows.length === 1 && /allow read, write: if false;/.test(allows[0]), 'Fase 1: todo cerrado (una sola regla, «if false»)');
+ok(!/\{document=\*\*\}/.test(rules) && !/allow[^;]*:\s*if true\s*;/.test(rules), 'sin comodín general ni «if true»: lo que no se nombra queda cerrado');
+ok(/function esDueno\(\)[\s\S]*config\/negocio[\s\S]*?\.data\.duenos/.test(rules) && /match \/config\/negocio \{[\s\S]*?allow create, delete: if false;/.test(rules), 'los dueños salen de config/negocio, que no se crea ni se borra desde la app');
+ok(fs.existsSync(path.join(ROOT, 'tests', 'rules-emulator.js')) && fs.existsSync(path.join(ROOT, 'tests', 'reglas-casos.js')), 'hay prueba de reglas con el emulador y sus casos');
 
 console.log('5. SDK local (APP/vendor/firebase)');
 const V = require('../tools/vendor.js'), vdir = path.join(ROOT, 'APP', 'vendor', 'firebase');
@@ -49,7 +51,10 @@ if (!fs.existsSync(path.join(vdir, 'VERSION.json'))) {
   else console.log('  · pendiente: aún no se ha ejecutado «node tools/vendor.js» (GUIA-FIREBASE.md, paso 2)');
 } else {
   const info = JSON.parse(fs.readFileSync(path.join(vdir, 'VERSION.json'), 'utf8'));
-  for (const a of ['firebase-app.js', 'firebase-auth.js']) {
+  const obligatorios = ['firebase-app.js', 'firebase-auth.js', 'firebase-firestore.js'];
+  ok(obligatorios.every(a => info.archivos[a]), 'están los archivos que la app necesita (app, auth y firestore)');
+  if (!info.archivos['firebase-app-check.js']) console.log('  · pendiente: falta firebase-app-check.js; vuelve a ejecutar «node tools/vendor.js» antes de activar App Check (GUIA-FIREBASE.md, paso 16)');
+  for (const a of Object.keys(info.archivos)) {
     const f = path.join(vdir, a), t = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null;
     ok(t !== null && V.cargasExternas(t).length === 0, a + ' (' + info.version + ') está y no carga nada de otro sitio');
     ok(t !== null && info.archivos[a] && crypto.createHash('sha256').update(t).digest('hex') === info.archivos[a].sha256, a + ' coincide con la huella anotada al descargarlo');

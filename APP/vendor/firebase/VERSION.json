@@ -13,6 +13,10 @@
     "firebase-firestore.js": {
       "bytes": 704815,
       "sha256": "bae05eaa0e953469ce667fbb8a57a46539d4623e409113d33739d9ff4aa8c748"
+    },
+    "firebase-app-check.js": {
+      "bytes": 26058,
+      "sha256": "bf44efde6e99de567804d62df2983ec9aa2c55457d86203c5c226bea3045dbec"
     }
   }
 }
