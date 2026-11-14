@@ -1,0 +1,19 @@
+# Nunca al repositorio (PLAN §6 y §9)
+privado/
+app de muestra/
+.env*
+serviceAccount*.json
+*adminsdk*.json
+*.pem
+*.key
+tests/shots/
+node_modules/
+
+# Archivos locales de Firebase y del sistema
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*.log
+.DS_Store
+Thumbs.db

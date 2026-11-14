@@ -1,0 +1,18 @@
+{
+  "name": "Panadería",
+  "short_name": "Panadería",
+  "description": "Registro de pesaje, entregas y ventas de la panadería.",
+  "lang": "es-CL",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FAF5EC",
+  "theme_color": "#8A4B1E",
+  "icons": [
+    { "src": "icons/icon-192.png?v=1", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

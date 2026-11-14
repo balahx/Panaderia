@@ -1,0 +1,4 @@
+# Finales de línea iguales en Windows, Mac y Linux (las huellas del SDK local dependen de esto)
+* text=auto eol=lf
+*.png binary
+*.woff binary

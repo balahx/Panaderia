@@ -1,0 +1,39 @@
+/* Tipografías alojadas en la app (Barlow y Barlow Condensed, licencia SIL OFL; ver fonts/OFL-Barlow.txt). */
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; font-display: swap; src: url('../fonts/Barlow-Regular.woff') format('woff'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; font-display: swap; src: url('../fonts/Barlow-Medium.woff') format('woff'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; font-display: swap; src: url('../fonts/Barlow-SemiBold.woff') format('woff'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 500; font-style: normal; font-display: swap; src: url('../fonts/BarlowCondensed-Medium.woff') format('woff'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-style: normal; font-display: swap; src: url('../fonts/BarlowCondensed-SemiBold.woff') format('woff'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-style: normal; font-display: swap; src: url('../fonts/BarlowCondensed-Bold.woff') format('woff'); }
+
+/* Paleta cálida «Panadería»: crema de miga, café de corteza y dorado de horno. Claro y oscuro con la misma estructura.
+   --fs es la base de la letra: la pantalla de pesaje (Fase 4) la sube con [data-escala="grande"]. */
+:root {
+  --bg: #FAF5EC; --surface: #FFFDF8; --surface2: #F3EADB; --ink: #2E2018; --muted: #6B5645;
+  --line: #E6D9C4; --line-strong: #C7B292; --btn: #8A4B1E; --btn-ink: #FFFFFF;
+  --focus: #8A4B1E; --ok: #2F6B3F; --on-ok: #FFFFFF; --bad: #B4372A; --on-bad: #FFFFFF;
+  --gold: #B5791F; --gold-ink: #7A4F0C; --gold-bg: #F8EBCF;
+  --warn-bg: #FFEFC2; --warn-ink: #5E4200;
+  --fs: 15px;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+:root[data-escala="grande"] { --fs: 19px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1C1410; --surface: #281D17; --surface2: #34261E; --ink: #F6EDE2; --muted: #CDB9A5;
+    --line: #45342A; --line-strong: #6A503F; --btn: #D99455; --btn-ink: #20120A;
+    --focus: #F0B27A; --ok: #6CC38C; --on-ok: #06210F; --bad: #FF8273; --on-bad: #2A0A06;
+    --gold: #E5B25A; --gold-ink: #E5B25A; --gold-bg: #3A2C17;
+    --warn-bg: #3A2D08; --warn-ink: #F3D58A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1C1410; --surface: #281D17; --surface2: #34261E; --ink: #F6EDE2; --muted: #CDB9A5;
+  --line: #45342A; --line-strong: #6A503F; --btn: #D99455; --btn-ink: #20120A;
+  --focus: #F0B27A; --ok: #6CC38C; --on-ok: #06210F; --bad: #FF8273; --on-bad: #2A0A06;
+  --gold: #E5B25A; --gold-ink: #E5B25A; --gold-bg: #3A2C17;
+  --warn-bg: #3A2D08; --warn-ink: #F3D58A;
+  color-scheme: dark;
+}

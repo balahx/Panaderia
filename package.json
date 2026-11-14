@@ -1,0 +1,20 @@
+{
+  "name": "panaderia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App Panadería (PWA). La aplicación está en APP/ y no necesita compilación; esto es solo para pruebas y herramientas.",
+  "scripts": {
+    "test": "node tools/run-tests.js",
+    "servir": "node tools/servir.js",
+    "vendor": "node tools/vendor.js",
+    "arreglo": "node tools/bump.js fix",
+    "funcion": "node tools/bump.js feature",
+    "publicar": "node tools/run-tests.js && firebase deploy --only hosting,firestore:rules"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "version": "12.15.0",
+  "origen": "https://www.gstatic.com/firebasejs/12.15.0/",
+  "archivos": {
+    "firebase-app.js": {
+      "bytes": 102946,
+      "sha256": "19f16ff6ed885abf5106ae2e0dd1a8989121c21784ac8f444651e6fe9bcd53da"
+    },
+    "firebase-auth.js": {
+      "bytes": 155117,
+      "sha256": "e757a70ebf5d32abd8e73147a15031a88ae962ed1a0ab5943609abe59ce0f839"
+    },
+    "firebase-firestore.js": {
+      "bytes": 704815,
+      "sha256": "bae05eaa0e953469ce667fbb8a57a46539d4623e409113d33739d9ff4aa8c748"
+    }
+  }
+}
