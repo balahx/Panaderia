@@ -38,6 +38,7 @@ dialog[open] { display: flex; flex-direction: column; }
 dialog::backdrop { background: rgba(28, 16, 8, .55); }
 .sheet-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 8px 4px 18px; }
 .sheet-h h2 { margin: 0; overflow-wrap: anywhere; }
+.sheet-h .icon-btn { flex: none; }
 .sheet-b { overflow: auto; padding: 6px 18px calc(22px + env(safe-area-inset-bottom, 0px)); }
 dialog.cfm { margin: auto; max-width: min(380px, calc(100vw - 32px)); border-radius: 18px; }
 .cfm-in { padding: 22px 20px 18px; display: grid; gap: 10px; }
@@ -134,7 +135,34 @@ dialog.cfm { margin: auto; max-width: min(380px, calc(100vw - 32px)); border-rad
 .estado-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; margin: 4px auto 12px; background: var(--ok); color: var(--on-ok); }
 .estado-ic .ic { width: 28px; height: 28px; }
 .actions.centro { justify-content: center; }
-.volver { padding-left: 0; min-height: 36px; text-decoration: none; }
+.volver { padding-left: 0; min-height: 44px; min-width: 44px; text-decoration: none; }
 .chico { font-size: .87em; }
 .gate .legal b { overflow-wrap: anywhere; }
 .more-head .badge { flex: none; }
+
+/* ---------- Catálogo (Fase 3) ---------- */
+.seg { display: flex; gap: 4px; padding: 4px; margin: 0 0 16px; background: var(--surface2); border: 1px solid var(--line); border-radius: 14px; }
+.seg button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 4px 6px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: 600 .9em/1.15 var(--font-body); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
+.actions.arriba { margin: 0 0 14px; }
+.mrow .precio { flex: none; text-align: right; }
+.mrow .precio b { display: block; font-weight: 600; line-height: 1.2; }
+.mrow .precio small { display: block; color: var(--muted); font-size: .84em; }
+.mrow .badge { flex: none; }
+.precio-hoy { background: var(--gold-bg); border-left: 3px solid var(--gold); border-radius: 10px; padding: 10px 12px; margin: 0 0 12px; }
+.precio-hoy b { display: block; font: 700 1.9em/1.05 var(--font-display); }
+.precio-hoy span { display: block; }
+.precio-hoy small { display: block; color: var(--muted); font-size: .87em; margin-top: 2px; }
+.hist { border: 1px solid var(--line); border-radius: 12px; margin: 0 0 6px; }
+.hist-f { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.hist-f:last-child { border-bottom: 0; }
+.hist-f b { display: block; font-weight: 600; }
+.hist-f small { display: block; color: var(--muted); font-size: .87em; }
+.radios { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.radios legend { padding: 0; width: 100%; }
+.radio { flex: 1 1 130px; display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 12px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface2); cursor: pointer; font-weight: 500; }
+.radio input { width: 20px; height: 20px; margin: 0; accent-color: var(--btn); flex: none; }
+.radio:has(input:checked) { border-color: var(--btn); }
+.sheet-b .eyebrow { margin-top: 18px; }
+
+.txt + .muted { margin-top: 6px; }

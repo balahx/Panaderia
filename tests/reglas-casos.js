@@ -24,7 +24,7 @@ function semilla(HOY, ANTES) {
     'miembros/tablet': miembro('Tablet', 'pesaje', true),
     'miembros/ines': miembro('Ines', 'externo', false),
     'productos/p1': { nombre: 'Marraqueta', unidad: 'kg', activo: true, en: '@TS' },
-    'precios/pr1': { productoId: 'p1', clienteId: 'c1', neto: 1450, desde: '2026-01-01', en: '@TS' },
+    'precios/pr1': { productoId: 'p1', clienteId: 'c1', neto: 1450, desde: '2026-01-01', en: '@TS' },   // sembrado sin pasar por las reglas
     'trabajadores/t1': { nombre: 'Luis', activo: true, en: '@TS' },
     'clientes/c1': { nombre: 'Supermercado', activo: true, en: '@TS' },
     'pesajes/hoy1': pesaje(HOY, 'tablet'),
@@ -101,7 +101,7 @@ function casos(HOY, ANTES) {
   no('tablet', 'get', 'precios/pr1', 'no lee un precio');
   no('tablet', 'list', 'precios', 'ni la lista de precios');
   no('tablet', 'list', 'precios', 'ni filtrando por producto', null, { productoId: 'p1' });
-  no('tablet', 'set', 'precios/pr9', 'ni los escribe', { productoId: 'p1', clienteId: 'c1', neto: 1, desde: '2026-11-01', en: '@TS' });
+  no('tablet', 'set', 'precios/p1_c1_2026-12-01', 'ni los escribe', { productoId: 'p1', clienteId: 'c1', neto: 1, desde: '2026-12-01', en: '@TS' });
   no('tablet', 'delete', 'precios/pr1', 'ni los borra');
   no('tablet', 'get', 'clientes/c1', 'no lee clientes');
   no('tablet', 'list', 'clientes', 'ni su lista');
@@ -150,7 +150,7 @@ function casos(HOY, ANTES) {
     si(q, 'get', 'proyeccion/2027', q + ' lee la proyección');
     si(q, 'list', 'cambios', q + ' lee la bitácora');
     si(q, 'set', 'productos/n-' + q, q + ' crea un producto', { nombre: 'Hallulla', unidad: 'kg', activo: true, en: '@TS' });
-    si(q, 'set', 'precios/n-' + q, q + ' fija un precio', { productoId: 'p1', clienteId: 'c1', neto: 1500, desde: '2026-11-01', en: '@TS' });
+    si(q, 'set', 'precios/p1_c1_2026-11-01', q + ' fija un precio', { productoId: 'p1', clienteId: 'c1', neto: 1500, desde: '2026-11-01', en: '@TS' });
     si(q, 'set', 'pesajes/pas-' + q, q + ' registra en una fecha pasada', pesaje(ANTES, q));
     si(q, 'update', 'pesajes/viejo1', q + ' corrige un pesaje de otro día', { cantidad: 20, en: '@TS' });
     si(q, 'update', 'cierres/2026-11', q + ' modifica un mes abierto', { totales: { p1: 1 }, en: '@TS' });
@@ -163,6 +163,44 @@ function casos(HOY, ANTES) {
   no('rosa', 'update', 'cambios/x1', 'la bitácora no se reescribe', { que: 'otra cosa' });
   no('rosa', 'delete', 'cambios/x1', 'ni se borra');
   no('rosa', 'get', 'otra/cosa', 'una colección que no existe en las reglas queda cerrada');
+
+  t('8. Catálogo: forma de los datos (Fase 3)');
+  const prod = mas => Object.assign({ nombre: 'Pan de completo', unidad: 'un', activo: true, en: '@TS' }, mas || {});
+  const precio = (desde, mas) => Object.assign({ productoId: 'p1', clienteId: 'c1', neto: 1600, desde, en: '@TS' }, mas || {});
+  si('rosa', 'set', 'productos/u1', 'un producto por unidad lleva peso de referencia, categoría y orden', prod({ pesoRef: 100, categoria: 'Especiales', orden: 3 }));
+  no('rosa', 'set', 'productos/k2', 'uno por kilo no lleva peso de referencia', { nombre: 'Hallulla', unidad: 'kg', pesoRef: 100, activo: true, en: '@TS' });
+  no('rosa', 'set', 'productos/u2', 'el peso de referencia debe ser mayor que cero', prod({ pesoRef: 0 }));
+  no('rosa', 'set', 'productos/u2', 'y un número', prod({ pesoRef: '100' }));
+  no('rosa', 'set', 'productos/u2', 'la categoría no pasa de 40 letras', prod({ categoria: 'x'.repeat(41) }));
+  no('rosa', 'set', 'productos/u2', 'el orden es un número', prod({ orden: 'primero' }));
+  no('rosa', 'set', 'productos/u2', 'no se guarda sin decir si está activo', { nombre: 'Pan', unidad: 'un', en: '@TS' });
+  no('rosa', 'set', 'productos/u2', 'ni con campos de más (por ejemplo un precio)', prod({ neto: 250 }));
+  no('rosa', 'set', 'productos/u2', 'ni con una hora puesta a mano', prod({ en: 1700000000000 }));
+  no('rosa', 'update', 'productos/p1', 'la unidad de un producto no cambia después de creado', { unidad: 'un', en: '@TS' });
+  si('felipe', 'update', 'productos/p1', 'se le cambia el nombre, la categoría y el orden', { nombre: 'Marraqueta corriente', categoria: 'Corriente', orden: 1, en: '@TS' });
+  si('felipe', 'update', 'productos/u1', 'se desactiva (sin borrarlo)', { activo: false, en: '@TS' });
+  si('tablet', 'get', 'productos/u1', 'la tablet lo sigue leyendo');
+  si('rosa', 'set', 'precios/p1_c1_2026-12-01', 'un precio nuevo rige desde su fecha', precio('2026-12-01'));
+  si('rosa', 'get', 'precios/p1_c1_2026-11-01', 'y el anterior sigue guardado para los días pasados');
+  si('felipe', 'set', 'precios/p1_c1_2026-12-01', 'el precio de una fecha se corrige en su mismo documento', precio('2026-12-01', { neto: 1612.5 }));
+  no('rosa', 'set', 'precios/otro', 'el identificador de un precio es producto_cliente_fecha', precio('2026-12-15'));
+  no('rosa', 'set', 'precios/p1_c1_2026-12-15', 'ni el de otra fecha', precio('2026-12-16'));
+  no('rosa', 'set', 'precios/p1_c1_15-12-2026', 'la fecha va como AAAA-MM-DD', precio('15-12-2026'));
+  no('rosa', 'set', 'precios/p1_c1_2026-12-15', 'el precio debe ser mayor que cero', precio('2026-12-15', { neto: 0 }));
+  no('rosa', 'set', 'precios/p1_c1_2026-12-15', 'y un número', precio('2026-12-15', { neto: '1600' }));
+  no('rosa', 'set', 'precios/p1__2026-12-15', 'no se guarda sin cliente', { productoId: 'p1', neto: 1600, desde: '2026-12-15', en: '@TS' });
+  no('rosa', 'set', 'precios/p1_c1_2026-12-15', 'ni con campos de más', precio('2026-12-15', { nota: 'x' }));
+  si('felipe', 'delete', 'precios/p1_c1_2026-12-01', 'un precio anotado por error se quita');
+  si('felipe', 'set', 'trabajadores/t2', 'se agrega un trabajador', { nombre: 'Marta', activo: true, en: '@TS' });
+  si('rosa', 'update', 'trabajadores/t2', 'y se desactiva', { activo: false, en: '@TS' });
+  no('rosa', 'set', 'trabajadores/t3', 'un trabajador necesita nombre', { nombre: '', activo: true, en: '@TS' });
+  no('rosa', 'set', 'trabajadores/t3', 'y decir si está activo', { nombre: 'Otro', en: '@TS' });
+  no('rosa', 'delete', 'trabajadores/t2', 'los trabajadores no se borran (se desactivan)');
+  si('felipe', 'update', 'clientes/c1', 'el externo cambia el nombre del cliente', { nombre: 'Supermercado Central', en: '@TS' });
+  no('rosa', 'set', 'clientes/c2', 'un cliente necesita decir si está activo', { nombre: 'Almacén', en: '@TS' });
+  no('rosa', 'delete', 'clientes/c1', 'los clientes no se borran');
+  no('felipe', 'update', 'config/negocio', 'el IVA solo lo cambian los dueños', { iva: 10 });
+  si('pedro', 'update', 'config/negocio', 'un dueño cambia el IVA', { iva: 19 });
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

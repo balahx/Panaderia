@@ -1,4 +1,4 @@
-/* «Más»: la cuenta y su perfil, accesos (dueños), la versión y actualización, y el diagnóstico de instalación.
+/* «Más»: la cuenta y su perfil, catálogo (dueños y externo), accesos (dueños), la versión y actualización, y el diagnóstico de instalación.
    «Cerrar sesión» lo atiende app.js (vale también en las pantallas de espera). */
 import { esc, iniciales, fechaTexto } from '../core/formato.js';
 import { svg } from '../core/iconos.js';
@@ -36,6 +36,7 @@ export function html(ctx) {
     '<section class="card sec"><div class="more-head"><span class="av" aria-hidden="true">' + esc(iniciales(ctx.user.nombre)) + '</span>' +
     '<div class="who"><b>' + esc(ctx.user.nombre) + '</b><small>' + esc(ctx.user.correo) + '</small></div><span class="badge ok" id="miPerfil">' + esc(perfil.nombrePerfil(ctx.perfil)) + '</span></div></section>' +
     '<div class="mlist">' +
+    (perfil.puede(ctx.perfil, 'gestion') ? '<button class="mrow" id="irCatalogo" data-act="ir" data-tab="catalogo">' + svg('pan') + '<span class="mt"><b>Catálogo</b><small>Productos, precios, trabajadores, cliente e IVA</small></span>' + svg('chev', 'go') + '</button>' : '') +
     (perfil.puede(ctx.perfil, 'accesos') ? '<button class="mrow" id="irAccesos" data-act="ir" data-tab="accesos">' + svg('team') + '<span class="mt"><b>Accesos</b><small>' +
       (porRevisar(ctx) ? porRevisar(ctx) + ' por revisar' : 'Aprobar, cambiar perfil o quitar accesos') + '</small></span>' + (porRevisar(ctx) ? '<span class="badge warn">' + porRevisar(ctx) + '</span>' : '') + svg('chev', 'go') + '</button>' : '') +
     '<button class="mrow" data-act="diag">' + svg('info') + '<span class="mt"><b>Diagnóstico de instalación</b><small>Instalada, sin conexión e ingreso en este equipo</small></span>' + svg('chev', 'go') + '</button>' +

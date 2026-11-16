@@ -27,13 +27,13 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
     ok(res === c.ok, c.m + (res === c.ok ? '' : ' · ' + (res ? 'se permitió' : 'se rechazó')));
   }
 
-  console.log('8. El día según la hora del servidor');
+  console.log('9. El día según la hora del servidor');
   const t = Date.UTC(2026, 10, 15, 2, 30);   // 15-nov 02:30 UTC = 14-nov 23:30 en Chile (UTC-3)
   ok(R.esHoy('2026-11-14', t) && !R.esHoy('2026-11-15', t) && !R.esHoy('2026-11-13', t), 'a las 23:30 de Chile el día sigue siendo el 14');
   const t2 = Date.UTC(2026, 6, 15, 3, 30);   // en invierno (UTC-4): 14-jul 23:30
   ok(R.esHoy('2026-07-14', t2) && R.esHoy('2026-07-15', t2), 'en la hora dudosa de la medianoche se aceptan los dos días (verano e invierno)');
 
-  console.log('9. firestore.rules');
+  console.log('10. firestore.rules');
   const rules = fs.readFileSync(path.join(__dirname, '..', 'firestore.rules'), 'utf8').replace(/\/\/.*$/gm, '');
   const cols = [...new Set((rules.match(/match \/([a-z]+)\//g) || []).map(x => x.slice(7, -1)))].filter(x => x !== 'databases').sort();
   const esperadas = ['cambios', 'cierres', 'clientes', 'config', 'dias', 'miembros', 'pesajes', 'precios', 'productos', 'proyeccion', 'solicitudes', 'trabajadores'];

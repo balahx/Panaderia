@@ -1,5 +1,6 @@
 /* Único punto de contacto con Firebase. El SDK se carga desde la copia local (vendor/, la descarga tools/vendor.js):
-   nada viene de otros sitios. Fase 1: sesión. Fase 2: Firestore con caché sin conexión, accesos y App Check (opcional). */
+   nada viene de otros sitios. Fase 1: sesión. Fase 2: Firestore con caché sin conexión, accesos y App Check (opcional).
+   Fase 3: escrituras del catálogo (guardar, guardarVarios, borrar, ajustarNegocio). */
 import * as cfg from '../../firebase-config.js';
 
 const SDK = '../../vendor/firebase/';
@@ -96,3 +97,16 @@ export function aprobar(s, perfil) {
 /* Cambiar perfil, quitar o devolver el acceso: se reescribe la ficha completa, a nombre de quien lo hace. */
 export const guardarMiembro = (m, perfil, activo) => F.setDoc(F.doc(db, 'miembros/' + m.id), ficha(m, perfil, activo));
 export const borrarMiembro = uid => F.deleteDoc(F.doc(db, 'miembros/' + uid));
+
+/* ---------- Escrituras generales (catálogo, desde la Fase 3). Cada documento se escribe completo y con la hora del servidor (`en`) ---------- */
+const conHora = datos => Object.assign({}, datos, { en: F.serverTimestamp() });
+export const guardar = (ruta, datos) => F.setDoc(F.doc(db, ruta), conHora(datos));
+export const borrar = ruta => F.deleteDoc(F.doc(db, ruta));
+/* Varias escrituras juntas (o todas o ninguna): [{ ruta, datos }] */
+export function guardarVarios(lista) {
+  const b = F.writeBatch(db);
+  lista.forEach(x => b.set(F.doc(db, x.ruta), conHora(x.datos)));
+  return b.commit();
+}
+/* Ajustes del negocio que un dueño cambia desde la app (hoy: el IVA). La lista de dueños no se toca desde aquí. */
+export const ajustarNegocio = cambios => F.updateDoc(F.doc(db, 'config/negocio'), cambios);

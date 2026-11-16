@@ -1,10 +1,10 @@
 rules_version = '2';
 
-// Panadería · reglas de la Fase 2 (perfiles y accesos). Todo lo que no se permite aquí queda prohibido.
+// Panadería · reglas por perfil (Fase 2) y forma de los datos del catálogo (Fase 3). Todo lo que no se permite aquí queda prohibido.
 // Perfiles: DUEÑO (su UID figura en config/negocio, creado a mano en la consola), EXTERNO y PESAJE (miembros/{uid}, los crea un dueño).
 // «Gestión» = dueño o externo. La cuenta de pesaje nunca lee precios, clientes, cierres ni proyecciones.
 // Cada cambio se prueba con el emulador: tests/rules-emulator.js (casos en tests/reglas-casos.js).
-// La forma de los datos de catálogo, pesajes y cierres se afina en la fase de cada pantalla (3 a 7); el acceso por perfil queda fijado aquí.
+// La forma de los datos de pesajes, días y cierres se afina en la fase de cada pantalla (4 a 7); el acceso por perfil queda fijado aquí.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -82,25 +82,39 @@ service cloud.firestore {
       allow delete: if esDueno();
     }
 
-    // ---------- Catálogo (pantallas: Fase 3) ----------
-    match /productos/{id} {
-      allow read: if conAcceso();
-      allow create, update: if esGestion()
-        && nuevo().keys().hasOnly(['nombre', 'unidad', 'pesoRef', 'categoria', 'orden', 'activo', 'en'])
+    // ---------- Catálogo (Fase 3) ----------
+    // Productos: se venden por kilo o por unidad, y eso no cambia después de creados (los precios y pesajes dependen de la unidad).
+    // pesoRef = gramos de referencia por unidad (solo para los que se venden por unidad). No se borran: se desactivan.
+    function productoValido() {
+      return nuevo().keys().hasOnly(['nombre', 'unidad', 'pesoRef', 'categoria', 'orden', 'activo', 'en'])
+        && nuevo().keys().hasAll(['nombre', 'unidad', 'activo', 'en'])
         && texto(nuevo().nombre, 1, 60)
         && nuevo().unidad in ['kg', 'un']
         && nuevo().activo is bool
+        && (!('pesoRef' in nuevo()) || (nuevo().unidad == 'un' && nuevo().pesoRef is number && nuevo().pesoRef > 0 && nuevo().pesoRef <= 100000))
+        && (!('categoria' in nuevo()) || texto(nuevo().categoria, 1, 40))
+        && (!('orden' in nuevo()) || (nuevo().orden is number && nuevo().orden >= 0 && nuevo().orden <= 100000))
         && nuevo().en == request.time;
+    }
+    match /productos/{id} {
+      allow read: if conAcceso();
+      allow create: if esGestion() && productoValido();
+      allow update: if esGestion() && productoValido() && nuevo().unidad == resource.data.unidad;
       allow delete: if false;
     }
     // Precios: internos. La cuenta de pesaje NO los lee (ni uno por uno ni en lista).
+    // Cada precio rige desde su fecha (AAAA-MM-DD) para un producto y un cliente; el identificador es producto_cliente_fecha,
+    // así no hay dos precios para el mismo día. Un precio nuevo no toca los anteriores: los días pasados conservan su precio.
     match /precios/{id} {
       allow read: if esGestion();
       allow create, update: if esGestion()
         && nuevo().keys().hasOnly(['productoId', 'clienteId', 'neto', 'desde', 'en'])
+        && nuevo().keys().hasAll(['productoId', 'clienteId', 'neto', 'desde', 'en'])
         && texto(nuevo().productoId, 1, 60)
-        && nuevo().neto is number && nuevo().neto >= 0
-        && texto(nuevo().desde, 10, 10)
+        && texto(nuevo().clienteId, 1, 60)
+        && nuevo().neto is number && nuevo().neto > 0 && nuevo().neto <= 100000000
+        && nuevo().desde is string && nuevo().desde.size() == 10 && nuevo().desde.matches('[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
+        && id == nuevo().productoId + '_' + nuevo().clienteId + '_' + nuevo().desde
         && nuevo().en == request.time;
       allow delete: if esGestion();
     }
@@ -108,6 +122,7 @@ service cloud.firestore {
       allow read: if conAcceso();
       allow create, update: if esGestion()
         && nuevo().keys().hasOnly(['nombre', 'activo', 'en'])
+        && nuevo().keys().hasAll(['nombre', 'activo', 'en'])
         && texto(nuevo().nombre, 1, 60)
         && nuevo().activo is bool
         && nuevo().en == request.time;
@@ -117,6 +132,7 @@ service cloud.firestore {
       allow read: if esGestion();
       allow create, update: if esGestion()
         && nuevo().keys().hasOnly(['nombre', 'activo', 'en'])
+        && nuevo().keys().hasAll(['nombre', 'activo', 'en'])
         && texto(nuevo().nombre, 1, 60)
         && nuevo().activo is bool
         && nuevo().en == request.time;

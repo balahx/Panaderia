@@ -168,9 +168,10 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 - **Listo cuando:** la cuenta de pesaje no puede leer precios ni con peticiones directas (probado con el emulador).
 - Hecho el 14-nov-2026 (versión 0.2.0). App Check queda preparado y apagado: lo enciende Felipe con `GUIA-FIREBASE.md`, paso 16. La prueba con el emulador corre en GitHub Actions (no se pudo ejecutar desde el chat). Detalle en `ESTADO.md`.
 
-### Fase 3 · Catálogo — chat 4
+### Fase 3 · Catálogo — chat 4 ✔
 - Productos (kg/unidad, peso de referencia, categoría), precios netos con vigencia, trabajadores, cliente inicial, IVA.
 - **Listo cuando:** un cambio de precio no altera los montos de días anteriores.
+- Hecho el 15-nov-2026 (versión 0.3.0). Cada precio es un documento con su fecha «desde» (`precios/{producto_cliente_fecha}`) y el monto de un día se calcula con el precio vigente ese día. Falta que Felipe publique y cargue el catálogo real (`GUIA-FIREBASE.md`, paso 18). Detalle en `ESTADO.md`.
 
 ### Fase 4 · Pesaje y entregas del día — chat 5
 - Pantalla de la tablet completa, entregas numeradas, totales del día, corrección del mismo día, uso sin conexión.

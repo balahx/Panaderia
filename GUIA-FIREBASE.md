@@ -27,6 +27,7 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 15 | Dar los accesos (externo y tablet) y verificar | La app, en cada equipo |
 | 16 | App Check en modo supervisar | reCAPTCHA, consola de Firebase y terminal |
 | 17 | Cierre de seguridad de la Fase 2 | Consolas |
+| 18 | **Fase 3:** publicar la versión 0.3.0 (catálogo) y cargar productos, precios y trabajadores | Terminal y la app |
 
 ---
 
@@ -432,8 +433,54 @@ Deja `appCheckSiteKey = ''` en `APP\firebase-config.js`, y luego `npm test` y `f
 
 1. **Solo Google como forma de ingreso.** Consola de Firebase → Authentication → **Método de acceso** (Sign-in method): debe estar habilitado únicamente **Google**. Ni «Anónimo» ni «Correo y contraseña».
 2. **Dominios autorizados.** Authentication → **Configuración** (Settings) → **Dominios autorizados**: deben quedar `ID.web.app` y `ID.firebaseapp.com`. Si aparece `localhost`, puedes quitarlo; después **ingresa de nuevo en `https://ID.web.app`** para confirmar que todo sigue igual (si dejara de funcionar, vuelve a agregarlo y avisa en el chat).
-3. **Reglas publicadas.** Firestore Database → pestaña **Reglas**: el texto debe empezar con «Panadería · reglas de la Fase 2» y la fecha de publicación debe ser la de hoy.
+3. **Reglas publicadas.** Firestore Database → pestaña **Reglas**: el texto debe empezar con «Panadería · reglas» y la fecha de publicación debe ser la de hoy.
 4. **Plan gratuito.** Abajo en el menú de la consola debe decir **Spark**.
+
+---
+
+## Paso 18 · Publicar la versión 0.3.0 (catálogo) y cargar los datos
+
+Esta versión trae el **Catálogo** (Más → Catálogo): productos, precios netos con fecha de vigencia, trabajadores, cliente e IVA. También cambian las **reglas** (ahora revisan la forma de esos datos), así que hay que publicarlas junto con la app.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+npm test
+```
+
+Debe terminar con **«13 pruebas … todas bien»**.
+
+2. **Antes de publicar**, sube el código (paso 12: `git add .`, `git commit -m "Fase 3: catálogo"`, `git push`) y mira en GitHub → **Actions** → **Pruebas** que el paso **«Reglas de Firestore (emulador)»** quede en verde. Tiene 34 casos nuevos del catálogo y es la única prueba que usa las reglas reales: **desde el chat no se pudo ejecutar.** Si queda en rojo, **no publiques**: copia las líneas con ✗ y llévalas al chat.
+
+3. Con ese paso en verde, publica la app y las reglas:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+Debe decir `released rules firestore.rules` y `Deploy complete!`. Si muestra un **error en `firestore.rules`**, no se publicó nada: copia el mensaje con el número de línea y llévalo al chat.
+
+4. En cada equipo: **Más → Buscar actualización → Actualizar ahora** (debe decir versión 0.3.0).
+
+5. Con la cuenta de un dueño, carga el catálogo en este orden:
+   - **Más → Catálogo → Cliente e IVA → Crear el cliente** (viene propuesto «Supermercado»; cámbialo por el nombre real si quieres).
+   - **Productos → Agregar producto**, uno por cada tipo de pan. Elige **por kilo** o **por unidad**: después no se puede cambiar. Los de unidad pueden llevar el peso de cada una en gramos.
+   - Toca cada producto → **Poner precio**: el precio **neto** (sin IVA) y **desde cuándo rige**. Para que noviembre se pueda registrar en fecha pasada (Fase 5), el primer precio debe regir desde una fecha anterior, por ejemplo el **1 de enero de 2026**; la app pide confirmar porque es una fecha pasada.
+   - **Trabajadores → Agregar trabajador**: los nombres que aparecerán en la tablet para elegir quién pesa.
+
+6. Verifica y marca:
+
+| Comprobación | ✓ / ✗ |
+|---|---|
+| El dueño y el externo ven **Más → Catálogo**; la tablet (Pesaje) **no** | |
+| Un producto nuevo aparece en el otro equipo sin recargar | |
+| Con un precio desde el 1-ene y otro desde hoy, la ficha muestra el de hoy como **vigente** y el historial conserva el anterior | |
+| El externo puede poner precios, pero en «Cliente e IVA» **no** tiene el botón para cambiar el IVA | |
+| En **modo avión** el catálogo se ve, y al intentar guardar dice «Sin conexión: el catálogo se cambia con internet» | |
+| Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.3.0** | |
+| GitHub → Actions → Pruebas: **«Reglas de Firestore (emulador)»** en verde | |
+
+**Listo cuando:** las siete casillas están marcadas y el catálogo real quedó cargado (productos con precio y trabajadores).
 
 ---
 
@@ -456,6 +503,7 @@ Deja `appCheckSiteKey = ''` en `APP\firebase-config.js`, y luego `npm test` y `f
 | La app se queda en **«Comprobando tu acceso…»** | Sin internet la primera vez en ese equipo. Con internet, pulsa **Reintentar** |
 | `firebase deploy` muestra un error en `firestore.rules` | No se publicó nada. Copia el mensaje completo (con la línea) y llévalo al chat |
 | El Diagnóstico dice **«App Check: Falta el SDK»** | Ejecuta `node tools/vendor.js` y publica de nuevo (paso 13.1) |
+| Al guardar en el catálogo dice **«Esta cuenta no puede cambiar el catálogo»** | Las reglas nuevas no se publicaron (paso 18.3) o la cuenta es de Pesaje. Si es un dueño o el externo y las reglas están publicadas, anota qué estabas guardando y llévalo al chat |
 | Después de publicar no veo los cambios | **Más → Buscar actualización → Actualizar ahora** |
 
 ## Qué queda fuera del repositorio

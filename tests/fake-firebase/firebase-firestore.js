@@ -66,6 +66,8 @@ function aplicar(ops) {
   return Promise.resolve();
 }
 export const setDoc = (ref, datos) => aplicar([{ op: 'set', ruta: ref.ruta, datos }]);
+/* updateDoc: cambia solo los campos dados; el documento debe existir. */
+export const updateDoc = (ref, datos) => (leer(ref.ruta) ? aplicar([{ op: 'set', ruta: ref.ruta, datos: Object.assign({}, leer(ref.ruta), datos) }]) : Promise.reject(Object.assign(new Error('No document to update'), { code: 'not-found' })));
 export const deleteDoc = ref => aplicar([{ op: 'delete', ruta: ref.ruta }]);
 export function writeBatch() {
   const ops = [];

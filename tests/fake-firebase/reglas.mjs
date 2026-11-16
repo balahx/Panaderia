@@ -53,17 +53,24 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
   }
   if (col === 'productos') {
     if (leerOp) return acceso;
-    return escribir && gestion && solo(d, ['nombre', 'unidad', 'pesoRef', 'categoria', 'orden', 'activo', 'en']) && texto(d.nombre, 1, 60)
-      && ['kg', 'un'].includes(d.unidad) && typeof d.activo === 'boolean' && esTS(d.en);
+    if (!escribir || !gestion) return false;
+    const valido = solo(d, ['nombre', 'unidad', 'pesoRef', 'categoria', 'orden', 'activo', 'en']) && todas(d, ['nombre', 'unidad', 'activo', 'en']) && texto(d.nombre, 1, 60)
+      && ['kg', 'un'].includes(d.unidad) && typeof d.activo === 'boolean'
+      && (!('pesoRef' in d) || (d.unidad === 'un' && num(d.pesoRef) && d.pesoRef > 0 && d.pesoRef <= 100000))
+      && (!('categoria' in d) || texto(d.categoria, 1, 40))
+      && (!('orden' in d) || (num(d.orden) && d.orden >= 0 && d.orden <= 100000)) && esTS(d.en);
+    return valido && (op === 'create' || d.unidad === prev.unidad);
   }
   if (col === 'precios') {
     if (leerOp || op === 'delete') return gestion;
-    return gestion && solo(d, ['productoId', 'clienteId', 'neto', 'desde', 'en']) && texto(d.productoId, 1, 60) && num(d.neto) && d.neto >= 0
-      && texto(d.desde, 10, 10) && esTS(d.en);
+    const K = ['productoId', 'clienteId', 'neto', 'desde', 'en'];
+    return gestion && solo(d, K) && todas(d, K) && texto(d.productoId, 1, 60) && texto(d.clienteId, 1, 60) && num(d.neto) && d.neto > 0 && d.neto <= 100000000
+      && typeof d.desde === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d.desde) && id === d.productoId + '_' + d.clienteId + '_' + d.desde && esTS(d.en);
   }
   if (col === 'trabajadores' || col === 'clientes') {
     if (leerOp) return col === 'trabajadores' ? acceso : gestion;
-    return escribir && gestion && solo(d, ['nombre', 'activo', 'en']) && texto(d.nombre, 1, 60) && typeof d.activo === 'boolean' && esTS(d.en);
+    const K = ['nombre', 'activo', 'en'];
+    return escribir && gestion && solo(d, K) && todas(d, K) && texto(d.nombre, 1, 60) && typeof d.activo === 'boolean' && esTS(d.en);
   }
   if (col === 'pesajes') {
     if (op === 'get') return gestion || (pesaje && esHoy(prev.fecha, ahora));

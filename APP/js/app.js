@@ -10,19 +10,23 @@ import * as ingreso from './pantallas/ingreso.js';
 import * as espera from './pantallas/espera.js';
 import * as inicio from './pantallas/inicio.js';
 import * as accesos from './pantallas/accesos.js';
+import * as catalogo from './pantallas/catalogo.js';
 import * as mas from './pantallas/mas.js';
 
-/* Secciones. `oculta`: no va en la barra (se llega desde «Más»). `permiso`: qué perfil la ve (core/perfil.js). */
+/* Secciones. `oculta`: no va en la barra (se llega desde «Más»). `permiso`: qué perfil la ve (core/perfil.js).
+   `datos`: se vuelve a dibujar cuando cambia el catálogo (S.cat). */
 const TABS = [
   { id: 'inicio', t: 'Inicio', ic: 'hoy', mod: inicio },
+  { id: 'catalogo', t: 'Catálogo', ic: 'pan', mod: catalogo, oculta: true, permiso: 'gestion', datos: true },
   { id: 'accesos', t: 'Accesos', ic: 'team', mod: accesos, oculta: true, permiso: 'accesos' },
   { id: 'mas', t: 'Más', ic: 'more', mod: mas }
 ];
 /* S.estado: un perfil ('dueno' | 'externo' | 'pesaje') o lo que falta para tenerlo (ver perfil.resolver). */
-const S = { user: null, tab: 'inicio', gate: { tipo: 'cargando' }, estado: 'comprobando', acc: null, lento: false, sol: null, miem: null, errListas: '' };
-let escuchas = [], escuchasDueno = [], tLento = 0;
+const S = { user: null, tab: 'inicio', gate: { tipo: 'cargando' }, estado: 'comprobando', acc: null, lento: false, sol: null, miem: null, errListas: '',
+  cat: null, errCat: '', nivel: '' };   // cat: { productos, trabajadores, precios, clientes } (precios y clientes solo para gestión)
+let escuchas = [], escuchasDueno = [], escuchasCat = [], tLento = 0;
 const ctx = () => ({ user: S.user, perfil: S.estado, estado: S.estado, negocio: S.acc && S.acc.negocio, lento: S.lento, error: S.acc && S.acc.error,
-  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas });
+  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat });
 const visible = t => !t.permiso || perfil.puede(S.estado, t.permiso);
 const tabActual = () => TABS.find(t => t.id === S.tab && visible(t)) || TABS[0];
 
@@ -58,7 +62,7 @@ function pintarRed() {
 
 /* ---------- Acceso por perfil ---------- */
 function soltar(lista) { lista.forEach(f => { try { f(); } catch (e) { /* */ } }); lista.length = 0; }
-function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
+function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
 /* Al entrar: escucha quiénes son los dueños, la ficha de miembro y la solicitud de esta cuenta. Se actualiza solo. */
 function vigilarAcceso(u) {
   dejarDeVigilar();
@@ -67,7 +71,7 @@ function vigilarAcceso(u) {
     if (S.acc !== a) return;
     if (!meta.cache) { a[k] = v; a.firme[k] = true; a.error = ''; }
     else if (v !== null) a[k] = v;     // desde la copia del equipo: «no existe» no cuenta hasta que lo diga el servidor
-    evaluar();
+    evaluar(k);
   };
   const mal = cod => { if (S.acc !== a) return; a.error = cod; evaluar(); };
   escuchas.push(nube.vigilarDoc('config/negocio', dato('negocio'), mal));
@@ -76,7 +80,7 @@ function vigilarAcceso(u) {
   tLento = setTimeout(() => { if (S.acc === a && S.estado === 'comprobando') { S.lento = true; pintar(); } }, 7000);
   pintar();
 }
-function evaluar() {
+function evaluar(cambio) {
   const antes = S.estado; S.estado = perfil.resolver(S.acc);
   if (S.estado === 'dueno' && !escuchasDueno.length) {
     const lista = k => l => { S[k] = l; S.errListas = ''; if (S.estado === 'dueno') pintarApp(); };
@@ -85,10 +89,26 @@ function evaluar() {
     escuchasDueno.push(nube.vigilarCol('miembros', lista('miem'), mal));
   }
   if (S.estado !== 'dueno' && escuchasDueno.length) { soltar(escuchasDueno); S.sol = S.miem = null; }
-  if (S.estado === antes) return;   // misma pantalla: no se redibuja (no borra lo que se está escribiendo)
+  vigilarCatalogo();
+  if (S.estado === antes) {         // misma pantalla: no se redibuja (no borra lo que se está escribiendo)…
+    if (cambio === 'negocio' && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp();   // …salvo si cambió el IVA y la pantalla muestra precios
+    return;
+  }
   cerrarHoja();
   if (perfil.esPerfil(S.estado) && !perfil.esPerfil(antes)) { S.tab = 'inicio'; if (antes === 'espera') toast('Tu acceso fue aprobado'); }
   pintar();
+}
+/* Catálogo en vivo según el perfil: productos y trabajadores para todos; precios y clientes solo para dueños y externo
+   (la cuenta de pesaje ni los pide: las reglas se los negarían). */
+function vigilarCatalogo() {
+  const nivel = !perfil.esPerfil(S.estado) ? '' : perfil.puede(S.estado, 'gestion') ? 'gestion' : 'pesaje';
+  if (nivel === S.nivel) return;
+  soltar(escuchasCat); S.nivel = nivel; S.errCat = ''; S.cat = null;
+  if (!nivel) return;
+  const k = S.cat = { productos: null, trabajadores: null, precios: nivel === 'gestion' ? null : [], clientes: nivel === 'gestion' ? null : [] };
+  const repintar = () => { if (S.cat === k && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp(); };
+  for (const col of Object.keys(k).filter(c => k[c] === null))
+    escuchasCat.push(nube.vigilarCol(col, l => { if (S.cat !== k) return; k[col] = l; S.errCat = ''; repintar(); }, cod => { if (S.cat !== k) return; S.errCat = cod; repintar(); }));
 }
 function cerrarSesion() {
   ask({ title: '¿Cerrar sesión?', text: 'Para volver a entrar necesitarás internet y tu cuenta de Google.', ok: 'Cerrar sesión', danger: true })
@@ -111,6 +131,11 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || !e.target.dataset || !e.target.dataset.enter) return;
   const b = document.querySelector('[data-act="' + e.target.dataset.enter + '"]'); if (b) { e.preventDefault(); b.click(); }
+});
+/* Mientras se escribe en un campo: la pantalla actual puede reaccionar (vista previa, campos que dependen de otro) */
+document.addEventListener('input', e => {
+  const m = S.user && perfil.esPerfil(S.estado) ? tabActual().mod : null;
+  if (m && m.alEscribir) m.alEscribir(e.target, ctx());
 });
 addEventListener('online', pintarRed);
 addEventListener('offline', pintarRed);
