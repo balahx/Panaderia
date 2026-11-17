@@ -66,14 +66,15 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   ok(P.resumen([], prods, trabs).canastos === 0 && P.resumen(null).porEntrega.length === 0, 'un día sin pesajes');
   ok(P.recientes([{ id: 'a', en: 2 }, { id: 'b', en: 5 }, { id: 'c', en: 3 }]).map(x => x.id).join('') === 'bca', 'la lista va del más nuevo al más antiguo');
 
-  console.log('6. Montos del día (precio vigente de ese día)');
+  console.log('6. Montos del día (precio vigente de ese día, con core/ventas.js desde la Fase 5)');
+  const V = await import('../APP/js/core/ventas.js');
   const precios = [{ productoId: 'p1', clienteId: 'c1', neto: 1400, desde: '2026-01-01' }, { productoId: 'p1', clienteId: 'c1', neto: 1500, desde: '2026-11-17' }];
-  const M = P.montosDia(R.porPan, precios, 'c1', '2026-11-16', 19);
-  ok(M.filas[1].precio === 1400 && M.filas[1].neto === 66850, 'Marraqueta: 47,75 kg × $1.400 = $66.850 (el precio del 17 aún no rige)');
-  ok(M.sinPrecio.join() === 'Pan de completo' && M.filas[0].neto === null, 'el pan sin precio queda señalado y no suma');
+  const LV = V.lineas(L, prods, precios, 'c1', 19), M = V.totales(LV), mar = V.porPan(LV, prods).find(x => x.productoId === 'p1');
+  ok(mar.cantidad === 47.75 && mar.neto === 66850, 'Marraqueta: 47,75 kg × $1.400 = $66.850 (el precio del 17 aún no rige)');
+  ok(V.faltanPrecios(LV).map(x => x.nombre).join() === 'Pan de completo' && LV.find(l => l.productoId === 'p2').neto === null, 'el pan sin precio queda señalado y no suma');
   ok(M.neto === 66850 && M.iva === 12702 && M.total === 79552, 'neto, IVA (19 %) y total en pesos enteros');
-  ok(P.montosDia(R.porPan, precios, 'c1', '2026-11-17', 19).neto === 71625, 'al día siguiente rige el precio nuevo');
-  ok(P.montosDia(R.porPan, precios, null, '2026-11-16', 19).neto === 0, 'sin cliente no hay montos');
+  ok(V.totales(V.lineas(L.map(x => Object.assign({}, x, { fecha: '2026-11-17' })), prods, precios, 'c1', 19)).neto === 71625, 'al día siguiente rige el precio nuevo');
+  ok(V.totales(V.lineas(L, prods, precios, null, 19)).neto === 0, 'sin cliente no hay montos');
   ok(C.precioVigente(precios, 'p1', 'c1', '2026-11-16').neto === 1400, 'usa catalogo.precioVigente (la misma de la Fase 3)');
 
   console.log('7. Bitácora de correcciones');
@@ -83,6 +84,12 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   ok(P.diferencia(antes, Object.assign({}, antes, { _pend: true, en: 9 })) === null, 'si no cambia nada no hay constancia');
   const k = P.constancia('corregir', antes, dif, 'tablet');
   ok(JSON.stringify(Object.keys(k).sort()) === JSON.stringify(['antes', 'despues', 'fecha', 'pesajeId', 'por', 'tipo']) && k.pesajeId === 'a' && k.fecha === '2026-11-16', 'la constancia lleva el pesaje, su día y quién la hizo');
+  const kq = P.constancia('corregir', antes, dif, 'tablet', '  Tablet   Panadería ');
+  ok(kq.quien === 'Tablet Panadería' && !('quien' in P.constancia('anular', antes, dif, 'x', '   ')), 'y el nombre de la cuenta, si lo tiene (Fase 5)');
+  const D = P.describirCambio(Object.assign({}, kq, { antes: { cantidad: 18.5, productoId: 'p1', unidad: 'kg' }, despues: { cantidad: 7, productoId: 'p2', unidad: 'un' } }), prods, trabs, 'un');
+  ok(D.titulo === 'Corregido' && D.detalle === 'pan: Marraqueta → Pan de completo · cantidad: 18,50 kg → 7 un', 'la bitácora se lee: ' + D.detalle);
+  ok(P.describirCambio({ tipo: 'anular', antes: { anulado: false }, despues: { anulado: true } }).titulo === 'Anulado' && P.describirCambio({ tipo: 'anular', antes: {}, despues: {} }).detalle === '', 'anular y reactivar se nombran solos');
+  ok(P.describirCambio({ tipo: 'corregir', antes: { trabajadorId: 't1', entregaN: 1, nota: 'x' }, despues: { trabajadorId: 't2', entregaN: 2 } }, prods, trabs).detalle === 'quién pesó: Luis → Ana · entrega: n.º 1 → n.º 2 · nota: x → —', 'persona, entrega y nota quitada');
 
   console.log(fails ? '\nFALLAS: ' + fails : '\nTodo bien'); process.exit(fails ? 1 : 0);
 })();

@@ -3,7 +3,8 @@
    Estado inicial: «Rosa» (u-1001, la cuenta por defecto de google.js) es dueña, para que las pruebas de la Fase 1 entren directo.
    Sin conexión (fuera(true)) las escrituras quedan PENDIENTES en el equipo: se ven al instante con hasPendingWrites (como en Firestore),
    y al volver la conexión (fuera(false)) se envían en orden y pasan por las reglas con la hora de ESE momento.
-   Para las pruebas:  window.__fakeDb = { poner, borrar, leer, todo, fuera, pedir, pendientes }  (poner y borrar NO pasan por las reglas). */
+   Consultas: igualdad (==) y rangos (>=, <=, >, <). Lecturas directas del servidor (getDocsFromServer, getDocFromServer): sin conexión fallan.
+   Para las pruebas:  window.__fakeDb = { poner, borrar, leer, todo, fuera, pedir, pendientes, lecturas }  (poner y borrar NO pasan por las reglas). */
 import { permitido, TS } from './reglas.mjs';
 const L = localStorage, K = 'fake.db', KC = 'fake.cache', KF = 'fake.fuera', KP = 'fake.pend';
 const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', iva: 19 } };
@@ -28,7 +29,9 @@ function vista() {
   for (const b of pend()) for (const o of b.ops) { marcadas.add(o.ruta); if (o.op === 'delete') delete v[o.ruta]; else v[o.ruta] = sellar(o.datos, b.est); }
   return { v, marcadas, off };
 }
-const cumple = (datos, filtro) => Object.keys(filtro || {}).every(k => datos && datos[k] === filtro[k]);
+const cumple = (datos, filtro, rango) => Object.keys(filtro || {}).every(k => datos && datos[k] === filtro[k])
+  && (rango || []).every(r => datos && datos[r.campo] != null && (r.op === '>=' ? datos[r.campo] >= r.valor : r.op === '<=' ? datos[r.campo] <= r.valor : r.op === '>' ? datos[r.campo] > r.valor : datos[r.campo] < r.valor));
+let lecturas = 0;   // documentos entregados por el «servidor» (para revisar cuánto cuesta una pantalla o un respaldo)
 
 const escuchas = new Set();
 function emitir(w) {
@@ -43,7 +46,7 @@ function emitir(w) {
   } else {
     const col = w.ref.ruta, filtro = w.ref.filtro || {};
     if (!off && !permitido(quien(), 'list', col, filtro, null, leer, Date.now())) { escuchas.delete(w); if (w.err) w.err(denegado()); return; }
-    const rutas = enCol(v, col).filter(r => cumple(v[r], filtro)).sort();
+    const rutas = enCol(v, col).filter(r => cumple(v[r], filtro, w.ref.rango)).sort();
     if (!off) recordar(rutas.filter(r => r in d));
     firma = JSON.stringify([rutas.map(r => [r, v[r], marcadas.has(r)]), off]);
     snap = { docs: rutas.map(r => ({ id: r.split('/').pop(), data: () => v[r], metadata: { hasPendingWrites: marcadas.has(r), fromCache: off } })),
@@ -62,12 +65,32 @@ export function initializeFirestore(app, o) { window.__fakeFs = { opciones: o };
 export const getFirestore = app => ({ app, tipo: 'firestore' });
 export const doc = (db, ruta) => ({ tipo: 'doc', ruta });
 export const collection = (db, ruta) => ({ tipo: 'col', ruta });
-/* Consultas: solo filtros de igualdad (lo que usa la app). */
+/* Consultas: igualdad y rangos (lo que usa la app). Para las reglas solo cuentan las igualdades (un rango no prueba «solo hoy»). */
 export const where = (campo, op, valor) => ({ campo, op, valor });
 export function query(ref, ...filtros) {
-  const filtro = Object.assign({}, ref.filtro);
-  filtros.forEach(f => { if (f.op !== '==') throw new Error('El doble de prueba solo entiende «=="»'); filtro[f.campo] = f.valor; });
-  return Object.assign({}, ref, { filtro });
+  const filtro = Object.assign({}, ref.filtro), rango = (ref.rango || []).slice();
+  filtros.forEach(f => { if (f.op === '==') filtro[f.campo] = f.valor; else if (['>=', '<=', '>', '<'].includes(f.op)) rango.push(f); else throw new Error('El doble de prueba no entiende «' + f.op + '»'); });
+  return Object.assign({}, ref, { filtro, rango });
+}
+/* Lectura única desde el servidor: pasa por las reglas; sin conexión falla (no entrega la copia del equipo). */
+const sinRed = () => Object.assign(new Error('Failed to get documents from server.'), { code: 'unavailable' });
+export function getDocsFromServer(ref) {
+  return new Promise((res, rej) => setTimeout(() => {
+    if (fuera()) return rej(sinRed());
+    const d = todo(), filtro = ref.filtro || {};
+    if (!permitido(quien(), 'list', ref.ruta, filtro, null, leer, Date.now())) return rej(denegado());
+    const rutas = enCol(d, ref.ruta).filter(r => cumple(d[r], filtro, ref.rango)).sort(); lecturas += Math.max(1, rutas.length);
+    res({ docs: rutas.map(r => ({ id: r.split('/').pop(), data: () => d[r], metadata: { hasPendingWrites: false, fromCache: false } })), metadata: { fromCache: false, hasPendingWrites: false } });
+  }, 5));
+}
+export function getDocFromServer(ref) {
+  return new Promise((res, rej) => setTimeout(() => {
+    if (fuera()) return rej(sinRed());
+    const d = todo(), r = ref.ruta, hay = r in d;
+    if (!permitido(quien(), 'get', r, null, d[r] || null, leer, Date.now())) return rej(denegado());
+    lecturas++;
+    res({ id: r.split('/').pop(), exists: () => hay, data: () => (hay ? d[r] : undefined), metadata: { fromCache: false, hasPendingWrites: false } });
+  }, 5));
 }
 export const serverTimestamp = () => TS;
 export function onSnapshot(ref, opciones, next, err) {
@@ -120,6 +143,7 @@ window.__fakeDb = {
   leer, todo,
   fuera(si) { if (si) L.setItem(KF, '1'); else { L.removeItem(KF); vaciar(); } avisar(); },
   pendientes: () => pend(),
+  lecturas: () => lecturas,
   /* Petición directa con la cuenta actual, como la haría alguien saltándose la app: true si las reglas la permiten. */
   pedir(op, ruta, datos) { const prev = leer(ruta); return permitido(quien(), op === 'set' ? (prev ? 'update' : 'create') : op, ruta, datos || (op === 'list' ? {} : null), prev, leer, Date.now()); },
   cache

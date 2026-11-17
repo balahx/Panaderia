@@ -9,24 +9,24 @@
 | 0 | Planificación y cuestionario | 1 | ✔ Hecha (13-nov-2026) |
 | 1 | Base instalable, Firebase, Hosting, repositorio, guía paso a paso | 2 | ✔ Hecha. Verificación T3 (paso 9) con las 12 casillas marcadas en iPhone, Android y Windows (14-nov-2026) |
 | 2 | Cuentas de Google, perfiles, reglas, App Check | 3 | ✔ Hecha. Pasos 13 a 17 verificados por Felipe (15-nov-2026): las 7 casillas del paso 15 y el paso «Reglas de Firestore (emulador)» en verde. App Check sigue **sin configurar** (paso 16, opcional hasta la Fase 8) |
-| 3 | Catálogo: productos, precios, trabajadores | 4 | ✔ Hecha. Paso 18 verificado por Felipe (16-nov-2026): 6 de 7 casillas y el emulador en verde. La casilla «el externo no tiene el botón del IVA» quedó **sin marcar**: el código y `catalogo-e2e.js` lo cumplen; se vuelve a revisar en el paso 19 |
-| 4 | Pesaje y entregas del día (tablet) | 5 | ◐ Código, reglas, pruebas y guía hechos (16-nov-2026). **Falta que Felipe ejecute `GUIA-FIREBASE.md`, paso 19** (publicar, preparar la tablet y verificar) |
-| 5 | Ventas para dueños: registro, fecha pasada, Excel, respaldo | 6 | Pendiente |
+| 3 | Catálogo: productos, precios, trabajadores | 4 | ✔ Hecha. Paso 18 verificado por Felipe (16-nov-2026): 6 de 7 casillas y el emulador en verde. La casilla «el externo no tiene el botón del IVA» se verificó en el paso 19 (✓) |
+| 4 | Pesaje y entregas del día (tablet) | 5 | ✔ Hecha. Paso 19 verificado por Felipe (16-nov-2026): 7 de 8 casillas, Diagnóstico con 0 bloqueos y versión 0.4.0, emulador en verde. La casilla **modo avión** quedó sin marcar: se repite en el paso 20.5 (las pruebas lo cubren) |
+| 5 | Ventas para dueños: Entregas, registro, fecha pasada, Excel, respaldo | 6 | ◐ Código, reglas, pruebas y guía hechos (16-nov-2026). **Falta que Felipe ejecute `GUIA-FIREBASE.md`, paso 20** (publicar y verificar) |
 | 6 | Cierres mensuales (importar ene–oct 2026, cerrar mes) | 7 | Pendiente |
 | 7 | Indicadores, proyección y metas | 8 | Pendiente |
 | 8 | Cierre y entrega (incluye App Check obligatorio) | 9 | Pendiente |
 | 9 | Costos y margen por pan | 10 | Después |
 | 10 | Plan de producción diario | 11 | Después |
 
-Versión de la app: **0.4.0** (caché 2026.11.16.1) · 15 pruebas, todas bien (16-nov-2026, con Firebase, Google y Firestore simulados) · 184 casos de reglas
+Versión de la app: **0.5.0** (caché 2026.11.16.2) · 18 pruebas, todas bien (16-nov-2026, con Firebase, Google y Firestore simulados) · 204 casos de reglas
 
-## Qué falta para cerrar la Fase 4 (lo hace Felipe, con `GUIA-FIREBASE.md`, paso 19)
+## Qué falta para cerrar la Fase 5 (lo hace Felipe, con `GUIA-FIREBASE.md`, paso 20)
 
-1. `npm test` (15 pruebas).
-2. **Subir a GitHub antes de publicar** y mirar Actions → «Reglas de Firestore (emulador)»: las reglas de pesajes, días y bitácora cambiaron (30 casos nuevos, 184 en total) y **desde el chat no se pudieron compilar ni probar contra el emulador** (sin red para instalarlo). Si queda en rojo, no publicar y traer las líneas con ✗.
-3. `firebase deploy --only hosting,firestore:rules` y actualizar cada equipo a 0.4.0.
-4. Preparar la tablet (fecha y hora automáticas, elegir quién pesa) y hacer la prueba completa con el teléfono del dueño en **Hoy** (incluye modo avión).
-5. Marcar la tabla de 8 casillas del paso 19 (incluye la casilla pendiente del IVA del externo).
+1. `npm test` (18 pruebas).
+2. **Subir a GitHub antes de publicar** y mirar Actions → «Reglas de Firestore (emulador)»: hay 20 casos nuevos (204 en total: marca del respaldo, nombre en la bitácora, rangos de fechas) y **desde el chat no se pudieron probar contra el emulador** (sin red para instalarlo). Si queda en rojo, no publicar y traer las líneas con ✗.
+3. `firebase deploy --only hosting,firestore:rules` y actualizar cada equipo a 0.5.0.
+4. Repetir la prueba de **modo avión** pendiente del paso 19.
+5. Probar Entregas, fecha pasada, sin precio, Registro, Excel (abrirlo en Excel y comparar su total con Entregas) y Respaldo, y marcar la tabla de 8 casillas del paso 20.
 
 ## Decisiones tomadas
 
@@ -57,12 +57,30 @@ Versión de la app: **0.4.0** (caché 2026.11.16.1) · 15 pruebas, todas bien (1
 - CI: acciones fijadas por hash (checkout v4.1.7, setup-node v4.0.3) y Dependabot mensual para actualizarlas. **gitleaks no se incluyó** (no se pudo verificar su hash desde el chat); lo cubren `tests/repo-unit.js` y Secret scanning + Push protection de GitHub.
 - Letra grande para la panadería: `data-escala="grande"` en `<html>` (los tamaños usan `em`); desde la Fase 4 la activa `app.js` en la cuenta de pesaje y en la pestaña Pesaje.
 
+### Decisiones de la Fase 5 (16-nov-2026)
+
+- **Venta = pesaje** (confirmado por Felipe): lo vendido es todo lo pesado no anulado (kilos o unidades); los dueños no ajustan nada aparte. Lo que no se pesó en la tablet se anota en fecha pasada.
+- **Venta sin precio** (confirmado por Felipe): se registra igual (la cantidad cuenta) pero **no suma pesos**, y una **franja** avisa a dueños y externo («Vendido sin precio: Hallulla (13 nov)…»), con enlace a Catálogo. La franja mira lo que la app ya tiene cargado: el día abierto en **Hoy** y el período de **Entregas** o del **Registro** (no hace lecturas extra). El Excel marca esas filas «Sin precio ese día: no suma» y las lista en el Resumen.
+- **Montos por LÍNEA** (cambia la decisión de la Fase 4 de calcular por día con `montosDia`, que se eliminó): una línea = un pan en una entrega de un día; neto = precio vigente ese día × cantidad, en pesos; IVA = neto × IVA %, en pesos; total = neto + IVA. **Todo total es suma de líneas** (entrega, día, pan, mes, cada hoja del Excel, Hoy y Entregas). Motivo: el «Listo cuando» exige que el Excel del mes cuadre con la suma de sus entregas; con IVA calculado sobre el total del día, la suma de las entregas podía diferir en algunos pesos. Costo: el IVA del mes puede diferir en unos pocos pesos del 19 % del neto total (cada fila redondea); la contadora calcula el IVA oficial en la factura. Lógica en `core/ventas.js` (`lineas`, `totales`, `porEntrega`, `porDia`, `porPan`). **Las Fases 6 y 7 deben usar `ventas.lineas`** (por ejemplo, «Cerrar mes» = `porPan` del mes).
+- **Arreglo de redondeo:** `catalogo.montos` usaba `Math.round(precio × kilos)`, que falla en miles de combinaciones por los decimales del computador (105 × 2,30 = 241,4999… → 241 en vez de 242). Ahora `redondearPesos` corrige antes de redondear; `ventas-unit.js` lo prueba en 170 mil combinaciones.
+- **Pestañas de dueños y externo: Hoy · Entregas · Pesaje · Más.** **Entregas** revisa un mes (‹ › o calendario): totales, venta del mes, y cada día con sus entregas (horario, canastos, kilos o unidades, neto); «Ver el día y corregir» abre ese día en Hoy; «Descargar Excel del mes». Los meses no se guardan resumidos: se calculan con los pesajes del mes (`nube.vigilarRango`, una lectura por canasto al abrir la pantalla; Fase 6 guardará el cierre).
+- **Fecha pasada = «＋ Anotar canasto» en Hoy**, en el día que se mira (también hoy). «Más → Registros → Anotar en fecha pasada» abre Hoy en el día de ayer. La hoja pide pan, cantidad (un canasto o el total del día de ese pan), quién pesó, entrega (las del día y una más), hora y nota; «Guardar y anotar otro» deja la hoja abierta. Queda como un pesaje más (`creadoPor` = esa cuenta); la lista y el Registro dicen «anotado el …» cuando la hora del servidor es de un día posterior. Gestión puede mover un canasto a una entrega nueva al corregirlo.
+- **Registro general** (Más → Registros, pestaña oculta `registro`): período (por omisión, el mes hasta hoy; máximo un año), filtros por pan, quién pesó, entrega y estado (vigentes, anulados, todos), de a 100 con «Mostrar más», y **Correcciones**: la bitácora legible (`pesaje.describirCambio`: «cantidad: 29,00 kg → 30,00 kg», quién y cuándo). Tocar un canasto o una corrección abre la ficha para corregir (las hojas de `pesaje-hoja.js` buscan el canasto también en el período).
+- **Bitácora con nombre:** `cambios` lleva `quien` (opcional, nombre de la cuenta de Google): la cuenta de pesaje no puede leer los nombres de los miembros. Si falta (constancias viejas), se muestra «Tú», el nombre del miembro (solo dueños tienen la lista) o «Un dueño»/«Otra cuenta».
+- **Excel propio, sin librerías** (`core/xlsx.js`: ZIP sin comprimir + XML del formato; `core/excel.js`: las hojas). Seis hojas: **Resumen** (período, cliente, IVA, totales enlazados, panes sin precio, cómo se calcula), **Ventas** (una fila por pan y entrega: fecha, día, entrega, cliente, pan, unidad, cantidad, canastos, precio neto, neto, IVA, total, observación), **Entregas**, **Por día**, **Por pan** y **Canastos** (todos, con anulados marcados, quién pesó, nota y día en que se anotó). Fechas como fechas de Excel, pesos con formato, encabezado fijo y filtro, totales con **fórmula SUMA** y su resultado. Un texto que empieza con «=» nunca se vuelve fórmula. Se verificó abriéndolo con LibreOffice (recalcula iguales) y openpyxl; **falta verlo en Excel de Windows** (paso 20). El nombre: `ventas-AAAA-MM.xlsx` o `ventas-desde_a_hasta.xlsx`. La regla de `tests/csp.js` admite en `core/xlsx.js` solo los tres nombres de esquema del formato (no se cargan).
+- **Excel y respaldo leen DEL SERVIDOR** (`nube.leerRango`, `leerCol`, `leerDoc` con `getDocsFromServer`): sin conexión no se hacen (lo dicen), para no entregar un archivo incompleto.
+- **Respaldo** (de `backup.js` de la muestra): JSON `respaldo-panaderia-AAAA-MM-DD.json` con `config/negocio`, `config/respaldo`, productos, precios, trabajadores, clientes, pesajes, días, cambios, cierres y proyección; los dueños además miembros y solicitudes (el externo no puede leerlos). Cuesta una lectura por documento (se muestra). Al terminar se escribe `config/respaldo` (`por`, `quien`, `conteos`, `lecturas`, `en`). **Franja semanal:** si nunca hubo respaldo o pasaron 7 días, en todas las pantallas de dueños y externo (salvo Datos), con «Descargar» y «Más tarde» (calla hasta mañana en ese equipo, `localStorage` `pan.respaldoLuego`). **No hay restaurar** desde la app (no lo pide el plan); el archivo sirve de copia propia. **Ojo, crecimiento:** con unas 40 canastas al día, un respaldo completo lee ~15 mil documentos al año de datos; dentro del plan gratuito (50 mil lecturas al día), pero a revisar en la Fase 8.
+- **iPhone/iPad instalada:** las descargas usan el menú Compartir («Guardar en Archivos») si se puede, y si no, la descarga normal (`ui.descargar`). Por verificar en el paso 20.
+- **«Más» con grupos** (PLAN §8): Catálogo · Registros (Registro general, Anotar en fecha pasada) · Datos (Exportar a Excel y respaldo, con el texto del último respaldo) · Cuenta (Accesos, Diagnóstico, Cerrar sesión). La tablet no ve los grupos.
+- `app.js`: las pantallas pueden exportar `periodo(ctx)` → `{ desde, hasta, cambios }` (escucha en vivo `ctx.per = { desde, hasta, pesajes, cambios, err }`, solo gestión) y `abrir(dataset, ctx)` (al llegar con un botón `data-act="ir"`, por ejemplo con `data-dia`). Evento `pan:repintar` (`ui.repintar()`) para redibujar al terminar algo largo (Excel, respaldo). Franjas en `pantallas/avisos.js`. `config/respaldo` se escucha para gestión (1 lectura).
+- Pruebas: el Firestore simulado entiende rangos (`>=`, `<=`), `getDocsFromServer` y `getDocFromServer` (fallan sin conexión) y cuenta lecturas; los casos de reglas aceptan filtros de rango (`{ fecha: [desde, hasta] }`). `tests/leer-xlsx.js` (ayuda, no es prueba) abre los .xlsx y revisa sus CRC. `a11y.js` recorre 47 vistas.
+
 ### Decisiones de la Fase 4 (16-nov-2026)
 
 - **Pantallas por perfil:** dueños y externo entran a **Hoy** (`pantallas/inicio.js`) y tienen **Hoy · Pesaje · Más**; la cuenta de pesaje solo **Pesaje · Más** y letra grande. `app.js`: la pestaña de entrada es la primera que el perfil puede ver.
 - **«Cerrar entrega»** (confirmado por Felipe): lo toca quien pesa, con confirmación. `dias/{fecha}` = `{ entregaN, por, en }` guarda **solo la entrega en curso** (sin documento = n.º 1). Cada canasto lleva su `entregaN`. Si se cerró por error y la nueva no tiene canastos, «Volver a abrir la entrega n.º N». Las reglas dejan a la tablet subir o bajar de a uno; gestión, cualquier número (1 a 50).
 - **Los totales NO se guardan** en `dias` (el plan decía «totales por producto, entrega y trabajador»): se calculan en el equipo con los pesajes (`core/pesaje.js`, `resumen`). Motivo: guardar totales desde varios equipos, y sin conexión, produce choques y dos verdades; un día son unas decenas de canastos. Si las Fases 5–7 necesitan resúmenes de meses, que los calculen al «Cerrar mes» y los guarden en `cierres` (ya previsto).
-- **Montos de un día:** `pesaje.montosDia(porPan, precios, clienteId, fecha, iva)`: por pan, `precioVigente` de ESE día × cantidad del día, redondeado a pesos; el IVA sobre el neto total. **Las Fases 5–7 deben usar esta función** (no sumar canasto por canasto: el redondeo cambiaría).
+- ~~Montos de un día con `pesaje.montosDia`~~ → reemplazado en la Fase 5 por los montos por línea de `core/ventas.js` (ver arriba).
 - **«3 toques»** = pan → número → Guardar (el número puede tener varias cifras; con una cifra son 3 toques exactos). El pan queda elegido: el canasto siguiente son 2 pasos. Teclado propio (kilos: 3 cifras y 2 decimales; unidades: 5 cifras), y también teclado físico (números, coma o punto, ⌫, Enter).
 - **Avisos:** sobre 20 kg aviso sin bloquear; sobre 50 kg (o 2.000 unidades) pide confirmar porque casi seguro es un error de tecleo.
 - **Quién pesa** queda guardado en el equipo (`localStorage` `pan.pesador`), no en la nube. Si esa persona se desactiva, la tablet vuelve a preguntar.
@@ -111,11 +129,11 @@ Versión de la app: **0.4.0** (caché 2026.11.16.1) · 15 pruebas, todas bien (1
 ## Pendientes de información (PLAN §13)
 
 - Excel de cierres: Felipe los dejará en `privado\` cuando los tenga (Fase 6).
-- Resultado del paso 19 de la guía (tabla de 8 casillas, Diagnóstico de la tablet y si el emulador quedó en verde).
-- La casilla del paso 18 «el externo no tiene el botón del IVA» quedó sin marcar: se revisa en el paso 19.
+- Resultado del paso 20 de la guía (tabla de 8 casillas, incluida la de **modo avión** pendiente del paso 19, y si el emulador quedó en verde).
+- Ver el Excel en **Excel de Windows** y la descarga en el **iPhone** instalado (paso 20).
 - App Check (paso 16) sigue sin configurar: es obligatorio recién en la Fase 8.
-- Fase 5: ¿se registran ventas de un producto en un día sin precio vigente? (Hoy `precioVigente` devuelve `null`; **Hoy** lo muestra como «Sin precio ese día (no suman)».)
-- Fase 5: ¿la venta del día es exactamente lo pesado (pesaje = venta) o los dueños ajustan algo antes? Hoy **Hoy** calcula la venta con todo lo pesado no anulado.
+- Fase 6: ¿«Cerrar mes» guarda los montos por pan del mes tal como los da `ventas.porPan` (con su IVA por línea), o el cierre debe llevar además el IVA calculado sobre el total del mes?
+- Fase 6: formato de los Excel de cierres (ene–oct 2026): Felipe los deja en `privado\`; hace falta ver uno para importarlo. Para leer un .xlsx en la app no hace falta librería: los navegadores traen `DecompressionStream('deflate-raw')` para abrir el ZIP comprimido; `tests/leer-xlsx.js` sirve de guía (hoy solo lee los sin comprimir que genera la app).
 - «Ajustes» del plan (§8) aún no existe como pantalla: el IVA quedó dentro de Catálogo → Cliente e IVA.
 
 ## Mapa de archivos
@@ -124,7 +142,7 @@ Versión de la app: **0.4.0** (caché 2026.11.16.1) · 15 pruebas, todas bien (1
 |---|---|
 | `GUIA-FIREBASE.md` | Paso a paso: consola, publicación, instalación, repositorio, seguridad, problemas frecuentes |
 | `firebase.json` | Hosting publica `APP\`; cabeceras de seguridad (CSP, antimarcos) y de caché |
-| `firestore.rules` | Reglas por perfil de las 12 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días y bitácora; todo lo demás cerrado |
+| `firestore.rules` | Reglas por perfil de las 12 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días, bitácora (con `quien`) y `config/respaldo`; todo lo demás cerrado |
 | `package.json` · `.gitignore` · `.gitattributes` | Scripts npm, exclusiones, finales de línea |
 | `tools\plantillas-github\` · `.github\` | `ci.yml` (pruebas y reglas con emulador en GitHub Actions) y `dependabot.yml`. Las dos copias de `ci.yml` deben ser iguales |
 | `APP\index.html` | Cáscara: CSP, `#gate` (ingreso), `#appRoot` (app), `#dlg`, `#toast` |
@@ -135,14 +153,17 @@ Versión de la app: **0.4.0** (caché 2026.11.16.1) · 15 pruebas, todas bien (1
 | `APP\css\tokens.css` | Tipografías y paleta cálida (claro, oscuro, escala de letra) |
 | `APP\css\base.css` | Página, títulos, cabecera, barra de navegación, escritorio |
 | `APP\css\componentes.css` | Tarjetas, botones, campos, hojas, ingreso, listas, estados, avisos, accesos, catálogo (`.seg`, `.precio-hoy`, `.hist`, `.radios`), pesaje (`.pes-*`, dos columnas desde 700 px) y Hoy (`.stats`, `.entrega`, `.dia-nav`) |
-| `APP\js\app.js` | Arranque, sesión, acceso por perfil (escuchas en vivo), catálogo en vivo (`vigilarCatalogo` → `ctx.cat`), pesajes del día en vivo (`vigilarDia` → `ctx.dia`), pestañas (`TABS`, con `oculta`, `permiso`, `datos` y `grande`), reparto de acciones (`alActuar`), escritura (`alEscribir`) y teclado (`alTeclear`), cambio de día, cerrar sesión con aviso de datos sin enviar |
-| `APP\js\core\nube.js` | Único contacto con Firebase: sesión, Firestore con caché sin conexión (`vigilarDoc`, `vigilarCol`, `vigilarDonde` con `_pend`), accesos, escrituras generales (`guardar`, `guardarVarios`, `borrar`, `ajustarNegocio`), `pendientes()`, App Check opcional, `estado()` |
+| `APP\js\app.js` | Arranque, sesión, acceso por perfil (escuchas en vivo), catálogo en vivo (`vigilarCatalogo` → `ctx.cat`), pesajes del día en vivo (`vigilarDia` → `ctx.dia`), del período (`vigilarPeriodo` → `ctx.per`), marca del respaldo (`ctx.respaldo`), franjas (`pintarBanner`), pestañas (`TABS`, con `oculta`, `permiso`, `datos` y `grande`), reparto de acciones (`alActuar`), escritura (`alEscribir`) y teclado (`alTeclear`), cambio de día, cerrar sesión con aviso de datos sin enviar |
+| `APP\js\core\nube.js` | Único contacto con Firebase: sesión, Firestore con caché sin conexión (`vigilarDoc`, `vigilarCol`, `vigilarDonde` con `_pend`, `vigilarRango`), lecturas del servidor (`leerCol`, `leerRango`, `leerDoc`), accesos, escrituras generales (`guardar`, `guardarVarios`, `borrar`, `ajustarNegocio`), `pendientes()`, App Check opcional, `estado()` |
 | `APP\js\core\perfil.js` | Perfiles, permisos (`puede`) y `resolver` (qué pantalla corresponde). Lógica pura |
-| `APP\js\core\pesaje.js` | Pesaje, lógica pura: teclado (`teclear`), `validarCantidad` (aviso 20 kg, confirmar 50 kg), `nuevoPesaje`, `soloPesaje`, `diferencia` y `constancia` (bitácora), `entregaEnCurso`, `entregaActual`, **`resumen`** (totales por pan, entrega y trabajador), **`montosDia`**, `horaChile`, `sumarDias` |
-| `APP\js\core\catalogo.js` | Catálogo, lógica pura: `numero`, `pesos`, `montos`, `ivaDe`, validaciones, orden (`mover`), **`precioVigente`**, `historial`, `idPrecio`, `clientePrincipal`, `nuevoId` |
+| `APP\js\core\pesaje.js` | Pesaje, lógica pura: teclado (`teclear`), `validarCantidad` (aviso 20 kg, confirmar 50 kg), `nuevoPesaje`, `soloPesaje`, `diferencia`, `constancia` (bitácora, con `quien`) y `describirCambio` (bitácora legible), `entregaEnCurso`, `entregaActual`, **`resumen`** (totales por pan, entrega y trabajador), `horaChile`, `sumarDias` |
+| `APP\js\core\ventas.js` | Ventas, lógica pura: **`lineas`** (un pan en una entrega, con el precio vigente ese día), `totales`, `porEntrega`, `porDia`, `porPan`, `faltanPrecios`, meses (`rangoMes`, `sumarMeses`, `mesTexto`), `validarPeriodo`, `filtrar` y `ordenRegistro` (registro general) |
+| `APP\js\core\excel.js` · `xlsx.js` | Excel de ventas: las seis hojas (`libro`) · escritor .xlsx propio sin librerías (`crear`, ZIP sin comprimir, estilos, fórmulas) |
+| `APP\js\core\respaldo.js` | Respaldo: qué se lee por perfil (`reunir`), archivo (`armar`), marca (`marcaNueva`) y franja semanal (`toca`, `textoMarca`) |
+| `APP\js\core\catalogo.js` | Catálogo, lógica pura: `numero`, `pesos`, `montos` (con `redondearPesos`), `ivaDe`, validaciones, orden (`mover`), **`precioVigente`**, `historial`, `idPrecio`, `clientePrincipal`, `nuevoId` |
 | `APP\js\core\acceso.js` | Ingreso con Google por redirección: `comenzar`, `terminar`, `validar` |
 | `APP\js\core\actualizar.js` | Versión, «Buscar actualización», aviso de versión nueva |
-| `APP\js\core\ui.js` | `$`, `toast`, `ask` (confirmación), `hoja` / `cerrarHoja` |
+| `APP\js\core\ui.js` | `$`, `toast`, `ask` (confirmación), `hoja` / `cerrarHoja`, `descargar` (archivo hecho en el equipo; Compartir en iPhone instalado), `repintar` |
 | `APP\js\core\formato.js` | `esc`, `clp`, `kilos`, `fechaTexto`, `diaChile`, `iniciales` |
 | `APP\js\core\iconos.js` | Íconos SVG, `emptyHTML`, `errorHTML` |
 | `APP\js\pantallas\ingreso.js` | Pantalla de ingreso y avisos de configuración |
@@ -150,33 +171,40 @@ Versión de la app: **0.4.0** (caché 2026.11.16.1) · 15 pruebas, todas bien (1
 | `APP\js\pantallas\accesos.js` | Solo dueños: solicitudes, aprobar con perfil, cambiar, quitar, devolver; `aviso()` |
 | `APP\js\pantallas\catalogo.js` | Catálogo (dueños y externo): listas de productos con precio, trabajadores, cliente e IVA, y sus hojas |
 | `APP\js\pantallas\catalogo-producto.js` | Hojas de un producto: ficha con historial, formulario, precio con vigencia, orden, activar; ayudas comunes de las hojas (`enviar`, `error`, `pieHoja`) |
-| `APP\js\pantallas\inicio.js` | **Hoy** (dueños y externo): lo pesado en un día en vivo, venta con el precio vigente, por pan, entregas con sus canastos, por trabajador, anulados; otro día (‹ › y calendario) |
+| `APP\js\pantallas\inicio.js` | **Hoy** (dueños y externo): lo pesado en un día en vivo, venta con el precio vigente, por pan, entregas con sus canastos y su neto, por trabajador, anulados; otro día (‹ › y calendario); «＋ Anotar canasto» |
+| `APP\js\pantallas\anotar.js` | Hoja «Anotar canasto» (fecha pasada o hoy) para dueños y externo |
+| `APP\js\pantallas\entregas.js` | **Entregas**: el mes por día y entrega, venta del mes, «Descargar Excel del mes» |
+| `APP\js\pantallas\registro.js` | **Registro general**: período, filtros, canastos de a 100 y bitácora de correcciones |
+| `APP\js\pantallas\datos.js` | **Datos**: exportar a Excel (un mes u otras fechas) y respaldo; `exportar` lo usa también Entregas |
+| `APP\js\pantallas\avisos.js` | Franjas: accesos por revisar, vendido sin precio, respaldo semanal («Más tarde») |
 | `APP\js\pantallas\pesaje.js` | **Pesaje** (tablet, letra grande): quién pesa, entrega en curso con «Cerrar entrega» / «Volver a abrir», panes, teclado propio y físico, nota, «Pesado hoy» con «Por enviar» |
-| `APP\js\pantallas\pesaje-hoja.js` | Hojas comunes de un canasto: ficha, corregir, anular, reactivar (con constancia en `cambios`); nota del próximo canasto; `filaCanasto` |
-| `APP\js\pantallas\mas.js` | Cuenta y perfil, entradas a Catálogo y Accesos, diagnóstico (perfil, UID, datos, App Check), actualización |
+| `APP\js\pantallas\pesaje-hoja.js` | Hojas comunes de un canasto (del día o del período): ficha, corregir, anular, reactivar (con constancia en `cambios`); nota del próximo canasto; `filaCanasto` («anotado el …»), `anotadoDespues`, `rechazo` |
+| `APP\js\pantallas\mas.js` | Cuenta y perfil, grupos Catálogo · Registros · Datos · Cuenta (Accesos), diagnóstico (perfil, UID, datos, App Check), actualización |
 | `APP\vendor\firebase\` | SDK local (lo crea `tools/vendor.js`) |
 | `tools\servidor.js` · `servir.js` | Servidor local con las cabeceras de Hosting · `node tools/servir.js` |
 | `tools\bump.js` · `run-tests.js` · `vendor.js` | Subir versión · correr pruebas · descargar SDK (app, auth, firestore, app-check) |
 | `tools\appcheck.js` | `activar` / `desactivar` / `estado`: abre o cierra la política de contenido para reCAPTCHA en `index.html` y `firebase.json` |
 | `tests\version-unit.js` · `update-unit.js` · `acceso-unit.js` · `repo-unit.js` | Pruebas sin navegador: versión y caché, actualización, ingreso y formato, higiene del repositorio |
 | `tests\perfil-unit.js` · `reglas-unit.js` · `catalogo-unit.js` · `pesaje-unit.js` | Sin navegador: perfiles y pantallas de acceso · reglas contra la copia a mano · catálogo y vigencia de precios · teclado, cantidades, totales, montos y bitácora del pesaje |
+| `tests\ventas-unit.js` · `xlsx-unit.js` · `leer-xlsx.js` | Sin navegador: líneas de venta, redondeo, meses, filtros, **Excel que cuadra con las entregas** (también un mes al azar) y respaldo · escritor .xlsx (ZIP, CRC, XML, fechas, fórmulas) · ayuda para abrir los .xlsx en las pruebas |
+| `tests\ventas-e2e.js` | Con navegador: Entregas, sin precio con franja, anotar en fecha pasada, registro con filtros y bitácora, corrección con nombre, Excel = Entregas, respaldo y su franja, sin conexión, externo y tablet |
 | `tests\reglas-casos.js` · `rules-emulator.js` | Casos de reglas compartidos · prueba contra las reglas reales con el emulador (CI o `npm run reglas`) |
-| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 40 vistas |
-| `tests\fake-firebase\` | Dobles de prueba de Firebase, Google, Firestore (`window.__fakeDb`; con `setDoc`, `updateDoc`, `deleteDoc`, lotes, consultas `where ==` y escrituras pendientes sin conexión), App Check y la copia a mano de las reglas (`reglas.mjs`) |
+| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 47 vistas |
+| `tests\fake-firebase\` | Dobles de prueba de Firebase, Google, Firestore (`window.__fakeDb`; con `setDoc`, `updateDoc`, `deleteDoc`, lotes, consultas `where` de igualdad y de rango, lecturas del servidor, escrituras pendientes sin conexión y conteo de lecturas), App Check y la copia a mano de las reglas (`reglas.mjs`) |
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
 
 ```
-Proyecto App Panadería, Fase 5. Lee D:\APP Panaderia\ESTADO.md y de PLAN.md solo
-las secciones 3, 7, 8 y "Fase 5". De la "app de muestra" lee solo lo que sirva para
-exportar a Excel y respaldos (dime antes qué archivos vas a leer).
-De APP lee: js/app.js, js/core/nube.js, js/core/catalogo.js, js/core/pesaje.js, js/core/perfil.js, js/core/ui.js,
-js/core/formato.js, js/pantallas/inicio.js, js/pantallas/pesaje-hoja.js, js/pantallas/mas.js, css/componentes.css,
-firestore.rules (bloques Pesajes y Cambios), tests/reglas-casos.js, tests/fake-firebase/firebase-firestore.js,
-tests/fake-firebase/reglas.mjs y tests/a11y.js.
-Resultado del paso 19 de GUIA-FIREBASE.md: [pegar la tabla de 8 casillas, el Diagnóstico de la tablet
+Proyecto App Panadería, Fase 6. Lee D:\APP Panaderia\ESTADO.md y de PLAN.md solo
+las secciones 3, 7 y "Fase 6". Mira los Excel de cierres que dejé en D:\APP Panaderia\privado
+(dime antes cuáles vas a abrir). De la "app de muestra" lee solo lo que sirva para importar
+desde Excel (dime antes qué archivos vas a leer).
+De APP lee: js/app.js, js/core/nube.js, js/core/ventas.js, js/core/xlsx.js, js/core/catalogo.js,
+js/pantallas/entregas.js, js/pantallas/datos.js, js/pantallas/mas.js, css/componentes.css,
+firestore.rules (bloque Cierres), tests/reglas-casos.js, tests/fake-firebase/firebase-firestore.js,
+tests/fake-firebase/reglas.mjs, tests/leer-xlsx.js y tests/a11y.js.
+Resultado del paso 20 de GUIA-FIREBASE.md: [pegar la tabla de 8 casillas, el Diagnóstico
 y si el paso «Reglas de Firestore (emulador)» de GitHub Actions quedó en verde o los ✗].
-Ventas sin precio: [¿se pueden registrar ventas de un pan en un día sin precio vigente?]
-Venta = pesaje: [¿la venta del día es todo lo pesado no anulado, o los dueños ajustan algo antes?]
-Desarrolla la Fase 5 completa. Al terminar: pruebas, versión 0.5.0 y ESTADO.md actualizado.
+IVA del cierre: [¿«Cerrar mes» guarda el IVA como suma de líneas (igual que el Excel) o calculado sobre el neto del mes?]
+Desarrolla la Fase 6 completa. Al terminar: pruebas, versión 0.6.0 y ESTADO.md actualizado.
 ```

@@ -3,7 +3,7 @@
    No incluye las pruebas de reglas con el emulador de Firebase (desde la Fase 2: corren en GitHub Actions). */
 const fs = require('fs'), path = require('path'), cp = require('child_process');
 const dir = path.join(__dirname, '..', 'tests'), filtro = process.argv[2] || '';
-const skip = new Set(['rules-emulator.js', 'reglas-casos.js']);
+const skip = new Set(['rules-emulator.js', 'reglas-casos.js', 'leer-xlsx.js']);   // leer-xlsx.js es una ayuda de las pruebas, no una prueba
 const files = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !skip.has(f) && !f.startsWith('shots-') && f.includes(filtro)).sort();
 const failed = []; const t0 = Date.now();
 for (const f of files) {

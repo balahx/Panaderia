@@ -150,8 +150,12 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   const copia = await db('cache');
   ok(!copia.some(r => /^(precios|clientes|cambios)\//.test(r)), 'la app de la tablet no pide precios, clientes ni la bitácora');
   const ajeno = { fecha: ANTES, hora: '06:00', entregaN: 1, productoId: 'p1', cantidad: 5, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: 'u-3003', en: { __ts: true } };
-  ok((await db('pedir', 'set', 'pesajes/trampa', ajeno)) === false && (await db('pedir', 'list', 'pesajes')) === false && (await db('pedir', 'update', 'pesajes/ayer1', Object.assign({}, SEMILLA['pesajes/ayer1'], { cantidad: 99, en: { __ts: true } }))) === false,
-    'con peticiones directas no anota en otra fecha, no lista todos los pesajes ni corrige los de ayer');
+  /* Para «no corrige los de otro día» se usa un canasto de hace tres días: entre las 00:00 y las 00:59 (y de 23:00 a 23:59 en invierno) las reglas
+     aceptan dos fechas como «hoy» (no conocen la zona horaria: ver esHoy en firestore.rules), así que uno de AYER puede valer a esa hora. */
+  await db('poner', 'pesajes/antes1', Object.assign({}, SEMILLA['pesajes/ayer1'], { fecha: ANTES }));
+  ok((await db('pedir', 'set', 'pesajes/trampa', ajeno)) === false && (await db('pedir', 'list', 'pesajes')) === false && (await db('pedir', 'update', 'pesajes/antes1', Object.assign({}, SEMILLA['pesajes/ayer1'], { fecha: ANTES, cantidad: 99, en: { __ts: true } }))) === false,
+    'con peticiones directas no anota en otra fecha, no lista todos los pesajes ni corrige los de días anteriores');
+  await db('borrar', 'pesajes/antes1');
   await salir();
 
   console.log('9. El dueño: «Hoy» en vivo, con montos');
@@ -185,7 +189,7 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
 
   console.log('11. El externo también ve «Hoy» y puede pesar');
   await entrar(FELIPE); await page.waitForSelector('#hoyTotales');
-  ok((await page.locator('#nav button').allTextContents()).join() === 'Hoy,Pesaje,Más' && !!(await page.$('#hoyMontos')), 've Hoy con montos, y la pestaña Pesaje');
+  ok((await page.locator('#nav button').allTextContents()).join() === 'Hoy,Entregas,Pesaje,Más' && !!(await page.$('#hoyMontos')), 've Hoy con montos, y las pestañas Entregas y Pesaje');
   await tocar('#nav button[data-tab="pesaje"]'); await page.waitForSelector('#pesPanes');
   ok((await page.getAttribute('html', 'data-escala')) === 'grande' && /Pesa: Luis/.test(await page.textContent('#pesQuienActual')), 'en Pesaje la letra crece (y el equipo recuerda quién pesa)');
   await salir();

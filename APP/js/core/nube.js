@@ -1,7 +1,8 @@
 /* Único punto de contacto con Firebase. El SDK se carga desde la copia local (vendor/, la descarga tools/vendor.js):
    nada viene de otros sitios. Fase 1: sesión. Fase 2: Firestore con caché sin conexión, accesos y App Check (opcional).
    Fase 3: escrituras del catálogo (guardar, guardarVarios, borrar, ajustarNegocio).
-   Fase 4: consulta de los pesajes de un día (vigilarDonde) y aviso de datos sin enviar (pendientes). */
+   Fase 4: consulta de los pesajes de un día (vigilarDonde) y aviso de datos sin enviar (pendientes).
+   Fase 5: pesajes y bitácora de un período (vigilarRango) y lecturas directas del servidor para el Excel y el respaldo (leerCol, leerRango, leerDoc). */
 import * as cfg from '../../firebase-config.js';
 
 const SDK = '../../vendor/firebase/';
@@ -83,11 +84,18 @@ export function vigilarCol(ruta, cb, alFallar) {
 /* Escucha los documentos de una colección con un campo igual a un valor (los pesajes de un día): cb([{ id, …datos }], { cache, pend }).
    Un documento anotado en este equipo y aún no recibido por el servidor (por ejemplo, sin conexión) trae `_pend: true`.
    La hora del servidor de un documento recién anotado viene estimada (para ordenar la lista sin esperar a internet). */
-export function vigilarDonde(col, campo, valor, cb, alFallar) {
-  return F.onSnapshot(F.query(F.collection(db, col), F.where(campo, '==', valor)), { includeMetadataChanges: true },
-    s => cb(s.docs.map(d => Object.assign({ id: d.id }, plano(d.data({ serverTimestamps: 'estimate' })), d.metadata.hasPendingWrites ? { _pend: true } : {})),
-      { cache: s.metadata.fromCache, pend: s.metadata.hasPendingWrites }), e => fallo(e, alFallar));
-}
+const filas = s => s.docs.map(d => Object.assign({ id: d.id }, plano(d.data({ serverTimestamps: 'estimate' })), d.metadata.hasPendingWrites ? { _pend: true } : {}));
+const escuchar = (q, cb, alFallar) => F.onSnapshot(q, { includeMetadataChanges: true }, s => cb(filas(s), { cache: s.metadata.fromCache, pend: s.metadata.hasPendingWrites }), e => fallo(e, alFallar));
+export const vigilarDonde = (col, campo, valor, cb, alFallar) => escuchar(F.query(F.collection(db, col), F.where(campo, '==', valor)), cb, alFallar);
+/* Igual, con un campo entre dos valores, ambos incluidos (los pesajes de un mes: fecha entre '2026-11-01' y '2026-11-30').
+   Un solo campo con rango: Firestore no pide índices compuestos. Solo dueños y externo (las reglas no se lo dan a la tablet). */
+export const vigilarRango = (col, campo, desde, hasta, cb, alFallar) => escuchar(F.query(F.collection(db, col), F.where(campo, '>=', desde), F.where(campo, '<=', hasta)), cb, alFallar);
+
+/* Lecturas que deben venir completas DEL SERVIDOR (Excel y respaldo): sin conexión fallan, en vez de entregar solo la copia del equipo. */
+const unaVez = s => s.docs.map(d => Object.assign({ id: d.id }, plano(d.data())));
+export const leerCol = ruta => F.getDocsFromServer(F.collection(db, ruta)).then(unaVez);
+export const leerRango = (col, campo, desde, hasta) => F.getDocsFromServer(F.query(F.collection(db, col), F.where(campo, '>=', desde), F.where(campo, '<=', hasta))).then(unaVez);
+export const leerDoc = ruta => F.getDocFromServer(F.doc(db, ruta)).then(s => (s.exists() ? plano(s.data()) : null));
 /* ¿Quedan escrituras de este equipo sin llegar al servidor? Si en `ms` no se confirman, se responde que sí (sin internet no llegan). */
 export function pendientes(ms) {
   if (!db) return Promise.resolve(false);

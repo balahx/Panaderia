@@ -10,17 +10,25 @@ import * as actualizar from './core/actualizar.js';
 import * as ingreso from './pantallas/ingreso.js';
 import * as espera from './pantallas/espera.js';
 import * as inicio from './pantallas/inicio.js';
+import * as entregas from './pantallas/entregas.js';
 import * as pesaje from './pantallas/pesaje.js';
+import * as registro from './pantallas/registro.js';
+import * as datos from './pantallas/datos.js';
+import * as avisos from './pantallas/avisos.js';
 import * as accesos from './pantallas/accesos.js';
 import * as catalogo from './pantallas/catalogo.js';
 import * as mas from './pantallas/mas.js';
 
 /* Secciones. `oculta`: no va en la barra (se llega desde «Más»). `permiso`: qué perfil la ve (core/perfil.js).
-   `datos`: se vuelve a dibujar cuando cambia el catálogo (S.cat) o lo pesado (S.dia). `grande`: letra grande (la panadería).
-   La primera que el perfil puede ver es la de entrada: «Hoy» para dueños y externo, «Pesaje» para la tablet. */
+   `datos`: se vuelve a dibujar cuando cambia el catálogo (S.cat), lo pesado (S.dia) o el período (S.per). `grande`: letra grande (la panadería).
+   La primera que el perfil puede ver es la de entrada: «Hoy» para dueños y externo, «Pesaje» para la tablet.
+   Un módulo puede exportar fecha(ctx) (qué día escuchar), periodo(ctx) (qué rango de días) y abrir(dataset) (al llegar desde un botón «ir»). */
 const TABS = [
   { id: 'inicio', t: 'Hoy', ic: 'hoy', mod: inicio, permiso: 'gestion', datos: true },
+  { id: 'entregas', t: 'Entregas', ic: 'camion', mod: entregas, permiso: 'gestion', datos: true },
   { id: 'pesaje', t: 'Pesaje', ic: 'pesa', mod: pesaje, permiso: 'pesaje', datos: true, grande: true },
+  { id: 'registro', t: 'Registro', ic: 'lista', mod: registro, oculta: true, permiso: 'gestion', datos: true },
+  { id: 'datos', t: 'Datos', ic: 'bajar', mod: datos, oculta: true, permiso: 'gestion', datos: true },
   { id: 'catalogo', t: 'Catálogo', ic: 'pan', mod: catalogo, oculta: true, permiso: 'gestion', datos: true },
   { id: 'accesos', t: 'Accesos', ic: 'team', mod: accesos, oculta: true, permiso: 'accesos' },
   { id: 'mas', t: 'Más', ic: 'more', mod: mas }
@@ -28,10 +36,12 @@ const TABS = [
 /* S.estado: un perfil ('dueno' | 'externo' | 'pesaje') o lo que falta para tenerlo (ver perfil.resolver). */
 const S = { user: null, tab: 'inicio', gate: { tipo: 'cargando' }, estado: 'comprobando', acc: null, lento: false, sol: null, miem: null, errListas: '',
   cat: null, errCat: '', nivel: '',     // cat: { productos, trabajadores, precios, clientes } (precios y clientes solo para gestión)
-  dia: null };                          // dia: { fecha, pesajes, dia (entrega en curso), err } (core/pesaje.js)
-let escuchas = [], escuchasDueno = [], escuchasCat = [], escuchasDia = [], tLento = 0;
+  dia: null,                            // dia: { fecha, pesajes, dia (entrega en curso), err } (core/pesaje.js)
+  per: null,                            // per: { desde, hasta, pesajes, cambios, err } (Entregas y Registro; solo gestión)
+  respaldo: undefined };                // config/respaldo: undefined = aún no se sabe · null = nunca hubo (core/respaldo.js)
+let escuchas = [], escuchasDueno = [], escuchasCat = [], escuchasDia = [], escuchasPer = [], escuchasGes = [], tLento = 0;
 const ctx = () => ({ user: S.user, perfil: S.estado, estado: S.estado, negocio: S.acc && S.acc.negocio, lento: S.lento, error: S.acc && S.acc.error,
-  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, hoy: diaChile(new Date()) });
+  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, per: S.per, respaldo: S.respaldo, hoy: diaChile(new Date()) });
 const visible = t => !t.permiso || perfil.puede(S.estado, t.permiso);
 const tabActual = () => TABS.find(t => t.id === S.tab && visible(t)) || TABS.find(visible);
 
@@ -48,10 +58,10 @@ function pintarIngreso(estado) { if (estado) S.gate = estado; pintarPuerta(ingre
 function pintarApp() {
   const g = $('#gate'); g.hidden = true; g.innerHTML = ''; $('#appRoot').hidden = false;
   const act = tabActual(), enBarra = act.oculta ? 'mas' : act.id;
-  vigilarDia();
+  vigilarDia(); vigilarPeriodo();
   if (act.grande || S.estado === 'pesaje') document.documentElement.dataset.escala = 'grande'; else delete document.documentElement.dataset.escala;
   $('#nav').innerHTML = TABS.filter(t => !t.oculta && visible(t)).map(t => '<button data-act="ir" data-tab="' + t.id + '"' + (t.id === enBarra ? ' aria-current="page"' : '') + '>' + svg(t.ic) + '<span>' + t.t + '</span></button>').join('');
-  $('#banner').innerHTML = act.id === 'accesos' ? '' : accesos.aviso(ctx());
+  pintarBanner();
   const v = $('#view'); v.dataset.tab = act.id; v.innerHTML = act.mod.html(ctx());
   medirBarra(); pintarRed();
 }
@@ -60,6 +70,8 @@ function pintar() {
   if (!S.user) { pintarIngreso(); return; }
   if (perfil.esPerfil(S.estado)) pintarApp(); else pintarPuerta(espera.html(ctx()));
 }
+/* Franjas de aviso sobre la pantalla: accesos por revisar, ventas sin precio y respaldo semanal (pantallas/avisos.js). */
+function pintarBanner() { const b = $('#banner'); if (b && perfil.esPerfil(S.estado)) b.innerHTML = avisos.html(ctx(), tabActual().id); }
 function medirBarra() { const b = $('#bar'); if (b) document.documentElement.style.setProperty('--barh', b.offsetHeight + 'px'); }
 function pintarRed() {
   const el = $('#netBar'); if (!el) return;
@@ -70,7 +82,7 @@ function pintarRed() {
 
 /* ---------- Acceso por perfil ---------- */
 function soltar(lista) { lista.forEach(f => { try { f(); } catch (e) { /* */ } }); lista.length = 0; }
-function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); S.dia = null; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
+function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); soltar(escuchasPer); soltar(escuchasGes); S.dia = null; S.per = null; S.respaldo = undefined; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
 /* Al entrar: escucha quiénes son los dueños, la ficha de miembro y la solicitud de esta cuenta. Se actualiza solo. */
 function vigilarAcceso(u) {
   dejarDeVigilar();
@@ -97,6 +109,15 @@ function evaluar(cambio) {
     escuchasDueno.push(nube.vigilarCol('miembros', lista('miem'), mal));
   }
   if (S.estado !== 'dueno' && escuchasDueno.length) { soltar(escuchasDueno); S.sol = S.miem = null; }
+  /* Dueños y externo: la marca del último respaldo (para la franja semanal). Cambia poco: se redibuja la franja, y la pantalla
+     solo si es la de Datos (que la muestra). */
+  if (perfil.puede(S.estado, 'gestion') && !escuchasGes.length)
+    escuchasGes.push(nube.vigilarDoc('config/respaldo', (d, meta) => {
+      if (d === null && meta.cache) return;
+      S.respaldo = d; if (!perfil.puede(S.estado, 'gestion')) return;
+      if (tabActual().id === 'datos') pintarApp(); else pintarBanner();
+    }, () => { S.respaldo = undefined; }));
+  if (!perfil.puede(S.estado, 'gestion') && escuchasGes.length) { soltar(escuchasGes); S.respaldo = undefined; }
   vigilarCatalogo();
   if (S.estado === antes) {         // misma pantalla: no se redibuja (no borra lo que se está escribiendo)…
     if (cambio === 'negocio' && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp();   // …salvo si cambió el IVA y la pantalla muestra precios
@@ -135,6 +156,19 @@ function vigilarDia() {
   escuchasDia.push(nube.vigilarDonde('pesajes', 'fecha', f, l => { if (S.dia !== k) return; k.pesajes = l; k.err = ''; repintar(); }, cod => { if (S.dia !== k) return; k.err = cod; repintar(); }));
   escuchasDia.push(nube.vigilarDoc('dias/' + f, d => { if (S.dia !== k) return; k.dia = d; repintar(); }, cod => { if (S.dia !== k) return; k.err = cod; repintar(); }));
 }
+/* Pesajes de un período (y su bitácora, si la pantalla la pide), en vivo, mientras se mira Entregas o el Registro general.
+   Solo dueños y externo. Cuesta una lectura por documento al abrir: por eso se escucha solo en esas pantallas. */
+function vigilarPeriodo() {
+  const t = tabActual(), q = S.user && perfil.puede(S.estado, 'gestion') && t && t.mod.periodo ? t.mod.periodo(ctx()) : null;
+  const clave = q ? q.desde + '|' + q.hasta + '|' + (q.cambios ? 1 : 0) : '';
+  if ((S.per ? S.per.clave : '') === clave) return;
+  soltar(escuchasPer); S.per = null;
+  if (!q) return;
+  const k = S.per = { clave, desde: q.desde, hasta: q.hasta, pesajes: null, cambios: q.cambios ? null : [], err: '' };
+  const repintar = () => { if (S.per === k && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp(); };
+  escuchasPer.push(nube.vigilarRango('pesajes', 'fecha', q.desde, q.hasta, l => { if (S.per !== k) return; k.pesajes = l; k.err = ''; repintar(); }, cod => { if (S.per !== k) return; k.err = cod; repintar(); }));
+  if (q.cambios) escuchasPer.push(nube.vigilarRango('cambios', 'fecha', q.desde, q.hasta, l => { if (S.per !== k) return; k.cambios = l; repintar(); }, cod => { if (S.per !== k) return; k.err = cod; repintar(); }));
+}
 /* A medianoche cambia el día: la pantalla que muestra «hoy» pasa sola al día nuevo. */
 let ultimoDia = diaChile(new Date());
 setInterval(() => { const d = diaChile(new Date()); if (d !== ultimoDia) { ultimoDia = d; if (S.user && perfil.esPerfil(S.estado)) pintarApp(); } }, 30000);
@@ -157,7 +191,8 @@ document.addEventListener('click', e => {
   if (!S.user) { ingreso.alActuar(act, el, pintarIngreso); return; }
   if (act === 'salir') { cerrarSesion(); return; }
   if (!perfil.esPerfil(S.estado)) { espera.alActuar(act, el, ctx()); return; }
-  if (act === 'ir') { const t = TABS.find(x => x.id === el.dataset.tab && visible(x)); if (t) { S.tab = t.id; pintarApp(); scrollTo(0, 0); } return; }
+  if (act === 'ir') { const t = TABS.find(x => x.id === el.dataset.tab && visible(x)); if (t) { if (t.mod.abrir) t.mod.abrir(el.dataset, ctx()); S.tab = t.id; pintarApp(); scrollTo(0, 0); } return; }
+  if (avisos.alActuar(act, el, ctx())) { pintarBanner(); return; }
   const r = tabActual().mod.alActuar(act, el, ctx());
   if (r === 'repintar') pintarApp();          // la pantalla cambió algo que decide qué datos escuchar (por ejemplo, el día)
   else if (!r) mas.alActuar(act, el, ctx());
@@ -178,6 +213,7 @@ document.addEventListener('input', e => {
   const m = S.user && perfil.esPerfil(S.estado) ? tabActual().mod : null;
   if (m && m.alEscribir && m.alEscribir(e.target, ctx()) === 'repintar') pintarApp();
 });
+document.addEventListener('pan:repintar', () => { if (S.user && perfil.esPerfil(S.estado)) pintarApp(); });
 addEventListener('online', pintarRed);
 addEventListener('offline', pintarRed);
 addEventListener('resize', medirBarra);

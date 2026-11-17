@@ -20,7 +20,11 @@ export const IC = {
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>',
   dot: '<circle cx="12" cy="12" r="3.5"/>',
   pesa: '<path d="M7.6 9.2h8.8l2.6 10.3H5z"/><circle cx="12" cy="6.3" r="2.3"/>',
-  warn: '<path d="M12 4l9 15.5H3z"/><path d="M12 10v4.5M12 17.2v.1"/>'
+  warn: '<path d="M12 4l9 15.5H3z"/><path d="M12 10v4.5M12 17.2v.1"/>',
+  camion: '<path d="M3 6.5h11V16H3z"/><path d="M14 9.5h3.8l3.2 3.4V16h-7z"/><circle cx="7" cy="17.3" r="1.8"/><circle cx="17.2" cy="17.3" r="1.8"/>',
+  lista: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.6" cy="6.5" r="1" fill="currentColor"/><circle cx="4.6" cy="12" r="1" fill="currentColor"/><circle cx="4.6" cy="17.5" r="1" fill="currentColor"/>',
+  bajar: '<path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/>',
+  mas: '<path d="M12 5v14M5 12h14"/>'
 };
 export function svg(n, c) {
   return '<svg class="ic ' + (c || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (IC[n] || IC.dot) + '</svg>';

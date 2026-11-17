@@ -1,4 +1,4 @@
-/* Utilidades de interfaz: buscar elementos, aviso breve (toast), confirmación (ask) y hojas. */
+/* Utilidades de interfaz: buscar elementos, aviso breve (toast), confirmación (ask), hojas y descarga de archivos. */
 import { esc } from './formato.js';
 import { svg } from './iconos.js';
 
@@ -35,3 +35,19 @@ export function hoja(titulo, html) {
   if (!d.open) d.showModal();
 }
 export function cerrarHoja() { const d = $('#dlg'); if (d && d.open) d.close(); }
+
+/* Descarga un archivo hecho en el equipo (Excel o respaldo): no pasa por internet. `datos`: texto o bytes.
+   En la app instalada en iPhone o iPad (navigator.standalone) se ofrece el menú Compartir («Guardar en Archivos», correo…), porque ahí
+   una descarga común puede quedar en una vista previa sin salida; si Compartir no se puede, se descarga igual. */
+export async function descargar(nombre, datos, tipo) {
+  const blob = new Blob([datos], { type: tipo || 'application/octet-stream' });
+  if (navigator.standalone === true && navigator.canShare) {
+    try { const f = new File([blob], nombre, { type: blob.type }); if (navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: nombre }); return; } }
+    catch (e) { if (e && e.name === 'AbortError') return; /* otro error: se descarga como siempre */ }
+  }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = nombre; a.rel = 'noopener'; a.hidden = true; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+/* Pide a la app que vuelva a dibujar la pantalla actual (cuando termina algo que tomó un rato: un Excel, un respaldo). */
+export const repintar = () => document.dispatchEvent(new Event('pan:repintar'));

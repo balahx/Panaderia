@@ -1,6 +1,7 @@
 /* Accesibilidad de las pantallas (portado de la app de muestra en la Fase 3): en 360 px y 390 px, claro y oscuro, recorre el ingreso,
-   Hoy (con datos, otro día y las hojas de un canasto), Pesaje (con letra grande, teclado, nota y cierre de entrega), «Más», Accesos
-   y el Catálogo con sus hojas y formularios, y comprueba que no hay desborde lateral, que todo lo tocable
+   Hoy (con datos, otro día, las hojas de un canasto y la de anotar), Entregas con las franjas de aviso (sin precio y respaldo),
+   Pesaje (con letra grande, teclado, nota y cierre de entrega), «Más» con sus grupos, Registro general (canastos y bitácora),
+   Datos (Excel y respaldo), Accesos y el Catálogo con sus hojas y formularios, y comprueba que no hay desborde lateral, que todo lo tocable
    mide al menos 44 px, que todo botón tiene nombre y todo campo su etiqueta, y que el texto tiene contraste suficiente.
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
@@ -23,7 +24,8 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
 const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
 const HOY = dia(Date.now()), pes = (id, hora, n, prod, cant, unidad, mas) => ['pesajes/' + id, Object.assign({ fecha: HOY, hora, entregaN: n, productoId: prod, cantidad: cant, unidad, trabajadorId: 't1', anulado: false, creadoPor: 'u-1001', en: 1794600000000 + Number(hora.replace(':', '')) }, mas || {})];
 Object.assign(SEMILLA, Object.fromEntries([pes('h1', '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', '05:20', 1, 'p2', 1200, 'un', { nota: 'Canasto con una nota bastante larga para ver cómo se corta en la lista' }),
-  pes('h3', '05:30', 1, 'p3', 123.45, 'kg'), pes('h4', '08:00', 2, 'p1', 20.25, 'kg'), pes('h5', '08:05', 2, 'p1', 99, 'kg', { anulado: true })]), { ['dias/' + HOY]: { entregaN: 2, por: 'u-1001', en: 1 } });
+  pes('h3', '05:30', 1, 'p3', 123.45, 'kg'), pes('h4', '08:00', 2, 'p1', 20.25, 'kg'), pes('h5', '08:05', 2, 'p1', 99, 'kg', { anulado: true })]), { ['dias/' + HOY]: { entregaN: 2, por: 'u-1001', en: 1 },
+  'cambios/k1': { tipo: 'corregir', pesajeId: 'h1', fecha: HOY, antes: { cantidad: 18, nota: 'Una nota anterior bastante larga para ver cómo se corta' }, despues: { cantidad: 18.5 }, por: 'u-3003', quien: 'Tablet Panadería con un nombre largo', en: 1794600000000 } });   // p3 (Hallulla) no tiene precio: sale la franja de «vendido sin precio»
 const CHECK = () => {
   const lum = c => { const a = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; };
   const parse = s => { const m = /rgba?\(([^)]+)\)/.exec(s); if (!m) return null; const p = m[1].split(',').map(x => parseFloat(x)); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
@@ -82,8 +84,11 @@ const CHECK = () => {
     await hoja('canasto: ficha', '#hoyEntregas .entrega[data-n="1"] .pes-fila', '#canDetalle');
     await tocar('#dlg [data-act="can-corregir"]'); await page.waitForSelector('#cCant'); await page.fill('#cCant', 'x'); await tocar('#dlg [data-act="can-guardar"]'); await look('canasto: corregir con error'); await cerrar();
     await hoja('canasto: anulado', '#hoyAnulados .pes-fila', '[data-act="can-reactivar"]'); await cerrar();
+    await tocar('#hoyAnotar'); await page.waitForSelector('#dlg[open] #anCant'); await tocar('#dlg [data-act="anotar-guardar"]'); await look('hoy: anotar canasto con error'); await cerrar();
     await tocar('[data-act="hoy-dia"][data-d="-1"]'); await page.waitForSelector('.empty'); await look('hoy: día sin pesajes');
+    await hoja('hoy: anotar en fecha pasada', '#hoyAnotar', '#anDia'); await cerrar();
     await tocar('[data-act="hoy-dia"][data-d="0"]'); await page.waitForSelector('#hoyTotales');
+    await tocar('#nav button[data-tab="entregas"]'); await page.waitForSelector('#entTotal'); await page.waitForSelector('#avisoRespaldo'); await page.waitForSelector('#avisoSinPrecio'); await look('entregas: mes con franjas de aviso');
     await tocar('#nav button[data-tab="pesaje"]'); await page.waitForSelector('#pesQuien'); await look('pesaje: quién pesa (letra grande)');
     await tocar('#pesQuien .pes-op'); await page.waitForSelector('#pesPanes'); await look('pesaje: elegir pan');
     await tocar('#pesPanes .pes-op:nth-child(1)'); for (const k of ['2', '5', ',', '5']) await tocar('#pesTeclado [data-k="' + k + '"]'); await page.waitForSelector('#pesAviso'); await look('pesaje: teclado con aviso');
@@ -93,6 +98,11 @@ const CHECK = () => {
     await hoja('pesaje: canasto del día', '#listaPesajes .pes-fila', '#canDetalle'); await cerrar();
     await tocar('#nav button[data-tab="mas"]'); await look('más');
     await hoja('diagnóstico', '[data-act="diag"]', '#diag'); await cerrar();
+    await tocar('#irRegistro'); await page.waitForSelector('#regResumen'); await look('registro: canastos');
+    await tocar('[data-act="reg-ver"][data-v="bitacora"]'); await page.waitForSelector('#regBitacora'); await look('registro: bitácora'); await tocar('.volver');
+    await tocar('#irDatos'); await page.waitForSelector('#datExcel'); await look('datos: excel y respaldo');
+    await tocar('[data-act="dat-modo"][data-v="rango"]'); await page.fill('#datDesde', HOY); await page.dispatchEvent('#datDesde', 'input'); await page.fill('#datHasta', '2026-01-01'); await page.dispatchEvent('#datHasta', 'input');
+    await page.waitForSelector('#secExcel .form-error'); await look('datos: otras fechas con error'); await tocar('[data-act="dat-modo"][data-v="mes"]'); await tocar('.volver');
     await tocar('#irAccesos'); await page.waitForSelector('#secSolicitudes .persona'); await look('accesos');
     await hoja('accesos: aprobar', '[data-act="acc-elegir"]', '.opcion'); await cerrar();
     await hoja('accesos: cambiar', '#secMiembros [data-act="acc-ver"]', '.opcion'); await cerrar();

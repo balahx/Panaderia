@@ -47,7 +47,7 @@ const INTRUSO = { sub: '4004', email: 'intruso@example.com', name: 'Otra Persona
   await entrar({}, '#appRoot:not([hidden])');
   await page.waitForSelector('#avisoAccesos');
   ok(/3 solicitudes de acceso por revisar/.test(await page.textContent('#avisoAccesos')), 'en Inicio hay un aviso con las solicitudes por revisar');
-  ok((await page.getAttribute('#view', 'data-tab')) === 'inicio' && /Hola, Rosa/.test(await page.textContent('#hoySaludo')) && (await page.locator('#nav button').allTextContents()).join() === 'Hoy,Pesaje,Más', 'la dueña entra a «Hoy»; la barra tiene Hoy, Pesaje y Más');
+  ok((await page.getAttribute('#view', 'data-tab')) === 'inicio' && /Hola, Rosa/.test(await page.textContent('#hoySaludo')) && (await page.locator('#nav button').allTextContents()).join() === 'Hoy,Entregas,Pesaje,Más', 'la dueña entra a «Hoy»; la barra tiene Hoy, Entregas, Pesaje y Más');
   await tocar('#nav button[data-tab="mas"]');
   ok((await page.textContent('#miPerfil')) === 'Dueño' && /3 por revisar/.test(await page.textContent('#irAccesos')), '«Más» muestra el perfil y la entrada a Accesos con el número pendiente');
   await tocar('#irAccesos'); await page.waitForSelector('#secSolicitudes .persona');

@@ -38,9 +38,12 @@ export const enCampo = n => (n == null || Number.isNaN(n) ? '' : String(Math.rou
 export const IVA_DEFECTO = 19;
 export const ivaDe = negocio => (negocio && typeof negocio.iva === 'number' ? negocio.iva : IVA_DEFECTO);
 export const conIva = (neto, iva) => neto * (1 + iva / 100);
+/* Pesos enteros, redondeando la mitad hacia arriba. Antes se corrige el error de los decimales del computador:
+   105 × 2,30 da 241,4999… y debe ser 242. Los precios y los kilos llevan hasta 2 decimales: el producto exacto, hasta 4. */
+export const redondearPesos = x => Math.round(Math.round(x * 1e4) / 1e4);
 /* Monto de una venta: neto, IVA y total en pesos enteros. */
 export function montos(neto, cantidad, iva) {
-  const n = Math.round(neto * cantidad), i = Math.round(n * iva / 100);
+  const n = redondearPesos(neto * cantidad), i = redondearPesos(n * iva / 100);
   return { neto: n, iva: i, total: n + i };
 }
 export function validarIva(texto) {

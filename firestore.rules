@@ -48,6 +48,19 @@ service cloud.firestore {
         && texto(nuevo().nombre, 1, 60)
         && nuevo().iva is number && nuevo().iva >= 0 && nuevo().iva <= 100;
     }
+    // Último respaldo descargado (Fase 5): lo anota quien descarga, para la franja de aviso semanal. Nada de esto lo ve la tablet.
+    match /config/respaldo {
+      allow read: if esGestion();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['por', 'quien', 'conteos', 'lecturas', 'en'])
+        && nuevo().keys().hasAll(['por', 'quien', 'conteos', 'lecturas', 'en'])
+        && nuevo().por == request.auth.uid
+        && texto(nuevo().quien, 1, 60)
+        && nuevo().conteos is map
+        && nuevo().lecturas is int && nuevo().lecturas >= 0
+        && nuevo().en == request.time;
+      allow delete: if false;
+    }
 
     // ---------- Solicitudes de acceso ----------
     // Cada persona crea la suya, con su propio correo de Google y la hora del servidor. No se modifican: se aprueban (pasan a miembros) o se borran.
@@ -206,17 +219,18 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Bitácora de correcciones: se agrega junto con cada corrección, anulación o reactivación de un pesaje; nunca se cambia ni se borra.
-    // La tablet deja constancia solo de lo del día.
+    // La tablet deja constancia solo de lo del día. `quien` (opcional, Fase 5): nombre de la cuenta, para el registro general.
     match /cambios/{id} {
       allow read: if esGestion();
       allow create: if conAcceso()
-        && nuevo().keys().hasOnly(['tipo', 'pesajeId', 'fecha', 'antes', 'despues', 'por', 'en'])
+        && nuevo().keys().hasOnly(['tipo', 'pesajeId', 'fecha', 'antes', 'despues', 'por', 'quien', 'en'])
         && nuevo().keys().hasAll(['tipo', 'pesajeId', 'fecha', 'antes', 'despues', 'por', 'en'])
         && nuevo().tipo in ['corregir', 'anular', 'reactivar']
         && texto(nuevo().pesajeId, 1, 60)
         && fechaValida(nuevo().fecha)
         && nuevo().antes is map && nuevo().despues is map
         && nuevo().por == request.auth.uid
+        && (!('quien' in nuevo()) || texto(nuevo().quien, 1, 60))
         && nuevo().en == request.time
         && (esGestion() || esHoy(nuevo().fecha));
       allow update, delete: if false;

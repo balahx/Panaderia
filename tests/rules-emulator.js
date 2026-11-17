@@ -31,7 +31,7 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
     const db = dbs[c.q], d = c.d ? con(c.d, TS()) : null;
     let p;
     if (c.op === 'get') p = db.doc(c.r).get();
-    else if (c.op === 'list') { let q = db.collection(c.r); for (const k in (c.f || {})) q = q.where(k, '==', c.f[k]); p = q.get(); }
+    else if (c.op === 'list') { let q = db.collection(c.r); for (const k in (c.f || {})) q = Array.isArray(c.f[k]) ? q.where(k, '>=', c.f[k][0]).where(k, '<=', c.f[k][1]) : q.where(k, '==', c.f[k]); p = q.get(); }
     else if (c.op === 'set') p = db.doc(c.r).set(d);
     else if (c.op === 'update') p = db.doc(c.r).update(d);
     else p = db.doc(c.r).delete();

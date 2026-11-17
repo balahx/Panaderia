@@ -39,8 +39,12 @@ const rel = f => path.relative(APP, f).split(path.sep).join('/');
   const bad = code.filter(f => /\son(click|change|input|submit|load|error)=["']|\beval\(|new Function\(|\sstyle=["']|document\.write|insertAdjacentHTML\(|<script/.test(fs.readFileSync(f, 'utf8'))).map(rel);
   ok(bad.length === 0, 'el código no genera manejadores ni estilos en línea, ni usa eval' + (bad.length ? ': ' + bad.join(', ') : ''));
   const PERMITIDOS = ['https://accounts.google.com/o/oauth2/v2/auth'];
-  const ext = code.flatMap(f => (fs.readFileSync(f, 'utf8').match(/https?:\/\/[^\s'"`)]+/g) || []).filter(u => !PERMITIDOS.includes(u)).map(u => rel(f) + ' → ' + u));
-  ok(ext.length === 0, 'el único sitio externo nombrado en el código es el ingreso de Google' + (ext.length ? ': ' + ext.join(', ') : ''));
+  /* El formato Excel (.xlsx) exige NOMBRAR sus esquemas (espacios de nombres XML); no son direcciones que se carguen (connect-src lo impediría).
+     Se admiten solo en core/xlsx.js y solo esos tres. */
+  const ESQUEMAS = ['http://schemas.openxmlformats.org/spreadsheetml/2006/main', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'http://schemas.openxmlformats.org/package/2006/'];
+  const sinComentarios = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const ext = code.flatMap(f => (sinComentarios(fs.readFileSync(f, 'utf8')).match(/https?:\/\/[^\s'"`)]+/g) || []).filter(u => !PERMITIDOS.includes(u) && !(rel(f) === 'js/core/xlsx.js' && ESQUEMAS.includes(u))).map(u => rel(f) + ' → ' + u));
+  ok(ext.length === 0, 'el único sitio externo nombrado en el código es el ingreso de Google (más los nombres de esquema del formato Excel)' + (ext.length ? ': ' + ext.join(', ') : ''));
   const css = fs.readFileSync(path.join(APP, 'css', 'tokens.css'), 'utf8');
   ok(['Barlow-Regular', 'Barlow-Medium', 'Barlow-SemiBold', 'BarlowCondensed-Medium', 'BarlowCondensed-SemiBold', 'BarlowCondensed-Bold'].every(n => fs.existsSync(path.join(APP, 'fonts', n + '.woff')) && css.includes('fonts/' + n + '.woff')) && fs.existsSync(path.join(APP, 'fonts', 'OFL-Barlow.txt')), 'las seis tipografías están en la app, declaradas, y con su licencia');
   ok(/'\.\/guard\.js'/.test(fs.readFileSync(path.join(APP, 'sw.js'), 'utf8')) && html.indexOf('guard.js') < html.indexOf('js/app.js'), 'guard.js se carga primero y está en la caché sin conexión');

@@ -1,4 +1,5 @@
-/* «Más»: la cuenta y su perfil, catálogo (dueños y externo), accesos (dueños), la versión y actualización, y el diagnóstico de instalación.
+/* «Más»: la cuenta y su perfil; para dueños y externo, los submenús del PLAN §8: Catálogo, Registros (registro general y fecha pasada)
+   y Datos (Excel y respaldo); Accesos (dueños); la versión y actualización, y el diagnóstico de instalación.
    «Cerrar sesión» lo atiende app.js (vale también en las pantallas de espera). */
 import { esc, iniciales, fechaTexto } from '../core/formato.js';
 import { svg } from '../core/iconos.js';
@@ -7,6 +8,8 @@ import * as actualizar from '../core/actualizar.js';
 import * as nube from '../core/nube.js';
 import * as perfil from '../core/perfil.js';
 import { porRevisar } from './accesos.js';
+import { sumarDias } from '../core/pesaje.js';
+import * as R from '../core/respaldo.js';
 
 const instalada = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const DATOS = { cache: 'Con copia sin conexión', memoria: 'Sin copia en este equipo (solo con internet)', 'sin-sdk': 'Falta el SDK' };
@@ -31,12 +34,21 @@ export function diagnostico(ctx) {
     ['Versión', actualizar.label(actualizar.current()) + ' (' + actualizar.current().v + ')']
   ];
 }
+const fila = (id, ic, t, d, extra) => '<button class="mrow" id="' + id + '" data-act="ir" ' + extra + '>' + svg(ic) + '<span class="mt"><b>' + esc(t) + '</b><small>' + esc(d) + '</small></span>' + svg('chev', 'go') + '</button>';
+function gestion(ctx) {
+  const marca = R.textoMarca(ctx.respaldo);
+  return '<p class="eyebrow mas-grupo">Catálogo</p><div class="mlist">' + fila('irCatalogo', 'pan', 'Catálogo', 'Productos, precios, trabajadores, cliente e IVA', 'data-tab="catalogo"') + '</div>' +
+    '<p class="eyebrow mas-grupo">Registros</p><div class="mlist">' + fila('irRegistro', 'lista', 'Registro general', 'Todos los canastos con filtros, y las correcciones', 'data-tab="registro"') +
+    fila('irFechaPasada', 'mas', 'Anotar en fecha pasada', 'Abre «Hoy» en el día de ayer; con ‹ › eliges otro', 'data-tab="inicio" data-dia="' + sumarDias(ctx.hoy, -1) + '"') + '</div>' +
+    '<p class="eyebrow mas-grupo">Datos</p><div class="mlist">' + fila('irDatos', 'bajar', 'Exportar a Excel y respaldo', marca || 'Ventas con neto, IVA y total; copia de todos los datos', 'data-tab="datos"') + '</div>' +
+    '<p class="eyebrow mas-grupo">Cuenta</p>';
+}
 export function html(ctx) {
   return '<span class="eyebrow">Más</span><h1>Cuenta y ajustes</h1>' +
     '<section class="card sec"><div class="more-head"><span class="av" aria-hidden="true">' + esc(iniciales(ctx.user.nombre)) + '</span>' +
     '<div class="who"><b>' + esc(ctx.user.nombre) + '</b><small>' + esc(ctx.user.correo) + '</small></div><span class="badge ok" id="miPerfil">' + esc(perfil.nombrePerfil(ctx.perfil)) + '</span></div></section>' +
+    (perfil.puede(ctx.perfil, 'gestion') ? gestion(ctx) : '') +
     '<div class="mlist">' +
-    (perfil.puede(ctx.perfil, 'gestion') ? '<button class="mrow" id="irCatalogo" data-act="ir" data-tab="catalogo">' + svg('pan') + '<span class="mt"><b>Catálogo</b><small>Productos, precios, trabajadores, cliente e IVA</small></span>' + svg('chev', 'go') + '</button>' : '') +
     (perfil.puede(ctx.perfil, 'accesos') ? '<button class="mrow" id="irAccesos" data-act="ir" data-tab="accesos">' + svg('team') + '<span class="mt"><b>Accesos</b><small>' +
       (porRevisar(ctx) ? porRevisar(ctx) + ' por revisar' : 'Aprobar, cambiar perfil o quitar accesos') + '</small></span>' + (porRevisar(ctx) ? '<span class="badge warn">' + porRevisar(ctx) + '</span>' : '') + svg('chev', 'go') + '</button>' : '') +
     '<button class="mrow" data-act="diag">' + svg('info') + '<span class="mt"><b>Diagnóstico de instalación</b><small>Instalada, sin conexión e ingreso en este equipo</small></span>' + svg('chev', 'go') + '</button>' +

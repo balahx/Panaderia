@@ -237,6 +237,28 @@ function casos(HOY, ANTES, AYER) {
   no('rosa', 'set', 'cambios/x5', 'la constancia es de un tipo conocido', cambio('borrar', HOY, 'rosa'));
   no('rosa', 'set', 'cambios/x5', 'y lleva lo de antes y lo de después', cambio('corregir', HOY, 'rosa', { despues: 'otra cosa' }));
   no('rosa', 'set', 'cambios/x5', 'sin campos de más', cambio('corregir', HOY, 'rosa', { nota: 'x' }));
+
+  t('10. Ventas, registro general y respaldo (Fase 5)');
+  si('rosa', 'list', 'pesajes', 'un dueño lista los pesajes de un período (rango de fechas)', null, { fecha: [ANTES, HOY] });
+  si('felipe', 'list', 'cambios', 'el externo lee la bitácora de un período', null, { fecha: [ANTES, HOY] });
+  no('tablet', 'list', 'pesajes', 'la tablet no lista un período (solo lo de hoy)', null, { fecha: [ANTES, HOY] });
+  no('tablet', 'list', 'cambios', 'ni la bitácora de un período', null, { fecha: [ANTES, HOY] });
+  si('felipe', 'set', 'pesajes/pas1', 'el externo anota un canasto en fecha pasada', pesaje(ANTES, 'felipe', { nota: 'Anotado después' }));
+  no('rosa', 'set', 'pesajes/pas2', 'pero a su propio nombre (no a nombre de otra cuenta)', pesaje(ANTES, 'felipe'));
+  si('tablet', 'set', 'cambios/q1', 'la constancia puede llevar el nombre de la cuenta', cambio('corregir', HOY, 'tablet', { quien: 'Tablet Panadería' }));
+  no('rosa', 'set', 'cambios/q2', 'el nombre no va vacío', cambio('corregir', HOY, 'rosa', { quien: '' }));
+  no('rosa', 'set', 'cambios/q2', 'ni con más de 60 letras', cambio('corregir', HOY, 'rosa', { quien: 'x'.repeat(61) }));
+  si('felipe', 'get', 'config/respaldo', 'el externo consulta el último respaldo (aunque aún no haya)');
+  no('tablet', 'get', 'config/respaldo', 'la tablet no');
+  no('carla', 'get', 'config/respaldo', 'ni una cuenta sin acceso');
+  si('felipe', 'set', 'config/respaldo', 'el externo anota que descargó un respaldo', { por: 'felipe', quien: 'Felipe', conteos: { pesajes: 3 }, lecturas: 12, en: '@TS' });
+  si('rosa', 'set', 'config/respaldo', 'y un dueño lo reemplaza con el suyo', { por: 'rosa', quien: 'Rosa', conteos: { pesajes: 4 }, lecturas: 13, en: '@TS' });
+  no('rosa', 'set', 'config/respaldo', 'no a nombre de otra cuenta', { por: 'felipe', quien: 'Felipe', conteos: {}, lecturas: 1, en: '@TS' });
+  no('rosa', 'set', 'config/respaldo', 'las lecturas son un número entero', { por: 'rosa', quien: 'Rosa', conteos: {}, lecturas: 1.5, en: '@TS' });
+  no('rosa', 'set', 'config/respaldo', 'sin campos de más', { por: 'rosa', quien: 'Rosa', conteos: {}, lecturas: 1, archivo: 'x', en: '@TS' });
+  no('tablet', 'set', 'config/respaldo', 'la tablet no anota respaldos', { por: 'tablet', quien: 'Tablet', conteos: {}, lecturas: 1, en: '@TS' });
+  no('rosa', 'delete', 'config/respaldo', 'la marca del respaldo no se borra');
+  no('rosa', 'set', 'config/ajustes', 'otros documentos de config siguen cerrados', { x: 1, en: '@TS' });
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

@@ -33,6 +33,12 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
   const leerOp = op === 'get' || op === 'list', escribir = op === 'create' || op === 'update';
 
   if (col === 'config') {
+    if (id === 'respaldo') {
+      if (leerOp) return gestion;
+      const K = ['por', 'quien', 'conteos', 'lecturas', 'en'];
+      return escribir && gestion && solo(d, K) && todas(d, K) && d.por === q.uid && texto(d.quien, 1, 60) && mapa(d.conteos)
+        && Number.isInteger(d.lecturas) && d.lecturas >= 0 && esTS(d.en);
+    }
     if (id !== 'negocio') return false;
     if (leerOp) return true;
     if (op !== 'update') return false;
@@ -114,8 +120,8 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
   if (col === 'cambios') {
     if (leerOp) return gestion;
     const K = ['tipo', 'pesajeId', 'fecha', 'antes', 'despues', 'por', 'en'];
-    return op === 'create' && acceso && solo(d, K) && todas(d, K) && ['corregir', 'anular', 'reactivar'].includes(d.tipo) && texto(d.pesajeId, 1, 60)
-      && fechaValida(d.fecha) && mapa(d.antes) && mapa(d.despues) && d.por === q.uid && esTS(d.en) && (gestion || esHoy(d.fecha, ahora));
+    return op === 'create' && acceso && solo(d, K.concat(['quien'])) && todas(d, K) && ['corregir', 'anular', 'reactivar'].includes(d.tipo) && texto(d.pesajeId, 1, 60)
+      && fechaValida(d.fecha) && mapa(d.antes) && mapa(d.despues) && d.por === q.uid && (!('quien' in d) || texto(d.quien, 1, 60)) && esTS(d.en) && (gestion || esHoy(d.fecha, ahora));
   }
   return false;
 }

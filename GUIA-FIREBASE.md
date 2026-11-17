@@ -1,6 +1,6 @@
 # Guía paso a paso · Firebase, publicación y repositorio
 
-> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
+> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4 · paso 20: Fase 5). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
 > Tiempo estimado: 60 a 90 minutos la primera vez.
 > Los nombres de botones están en español; entre paréntesis va el nombre en inglés por si tu consola aparece en ese idioma. Google cambia a veces el texto de un botón: si no lo encuentras igual, busca el más parecido.
 
@@ -29,6 +29,7 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 17 | Cierre de seguridad de la Fase 2 | Consolas |
 | 18 | **Fase 3:** publicar la versión 0.3.0 (catálogo) y cargar productos, precios y trabajadores | Terminal y la app |
 | 19 | **Fase 4:** publicar la versión 0.4.0 (pesaje y entregas) y empezar a usar la tablet | Terminal, la tablet y el teléfono del dueño |
+| 20 | **Fase 5:** publicar la versión 0.5.0 (ventas, registro, fecha pasada, Excel y respaldo) | Terminal, el teléfono del dueño y el computador |
 
 ---
 
@@ -539,6 +540,56 @@ Debe decir `released rules firestore.rules` y `Deploy complete!`.
 
 ---
 
+## Paso 20 · Publicar la versión 0.5.0 (ventas para los dueños)
+
+Esta versión trae, para dueños y externo: la pestaña **Entregas** (el mes por día y por entrega, con la venta), **«＋ Anotar canasto»** en **Hoy** (también en días pasados: así se completa noviembre), el **Registro general** (Más → Registros: todos los canastos con filtros y las correcciones), **Exportar a Excel** y **Respaldo** (Más → Datos), y dos **franjas de aviso**: «Vendido sin precio» y «Respaldo» (si pasó una semana). Cambian las **reglas** (marca del respaldo y nombre en la bitácora): hay que publicarlas junto con la app.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+npm test
+```
+
+Debe terminar con **«18 pruebas … todas bien»**.
+
+2. **Antes de publicar**, sube el código (`git add .`, `git commit -m "Fase 5: ventas, registro, Excel y respaldo"`, `git push`) y mira en GitHub → **Actions** → **Pruebas** que **«Reglas de Firestore (emulador)»** quede en verde. Ahora son **204 casos** (20 nuevos) y **desde el chat no se pudieron ejecutar**: si queda en rojo, **no publiques** y lleva las líneas con ✗ al chat.
+
+3. Con ese paso en verde:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+4. En **cada equipo**: **Más → Buscar actualización → Actualizar ahora** (debe decir versión 0.5.0).
+
+5. **Pendiente del paso 19 (modo avión):** con el teléfono del dueño en **Hoy**, pon la tablet en **modo avión**, registra un canasto (queda «Por enviar»), quita el modo avión y mira que llegue al teléfono. Después **anúlalo**.
+
+6. **Prueba con el teléfono del dueño o el computador:**
+   - **Entregas:** revisa el mes. Cada día muestra sus entregas con horario, kilos o unidades y venta. «Ver el día y corregir» abre ese día en **Hoy**.
+   - **Fecha pasada:** en **Hoy**, con **‹ Anterior** ve a un día de noviembre, toca **«＋ Anotar canasto el …»**, elige pan, escribe la cantidad (puede ser el total del día de ese pan), quién pesó, entrega y hora, y **Guardar** (o **Guardar y anotar otro**). Aparece en ese día y en **Entregas**.
+   - **Sin precio:** si un pan se vendió un día en que aún no tenía precio, aparece la franja **«Vendido sin precio: …»**. Anota su precio en Catálogo **con «desde» en ese día o antes** y la franja se va sola.
+   - **Registro general** (Más → Registros): prueba los filtros (pan, quién pesó, entrega, anulados) y mira **Correcciones**: cada una dice qué cambió, quién y cuándo.
+   - **Excel** (Más → Datos, o el botón de **Entregas**): descarga el mes y ábrelo en Excel. En la hoja **Entregas**, el **Total** debe ser **igual** al de la pantalla **Entregas** y al de la hoja **Ventas** (eso es el «Listo cuando» de la fase).
+   - **Respaldo** (Más → Datos): **Descargar respaldo**. Se baja un archivo `respaldo-panaderia-AAAA-MM-DD.json`: guárdalo en una carpeta privada (por ejemplo, en `privado\respaldos\`, que no se sube a GitHub). La franja «Todavía no hay ningún respaldo» desaparece y vuelve a salir a los 7 días.
+   - En **iPhone** (app instalada), al descargar se abre el menú **Compartir**: elige **Guardar en Archivos**.
+
+7. Verifica y marca:
+
+| Comprobación | ✓ / ✗ |
+|---|---|
+| **Pendiente del paso 19:** en modo avión el canasto queda «Por enviar» y llega al teléfono del dueño al volver internet | |
+| La barra de dueños y externo dice **Hoy · Entregas · Pesaje · Más**; la tablet sigue solo con **Pesaje · Más** y sin franjas | |
+| Un canasto anotado en un día pasado aparece en ese día (Hoy y Entregas) y el Registro dice «anotado el …» | |
+| Un pan vendido sin precio muestra la franja «Vendido sin precio» y desaparece al anotar su precio | |
+| En el Registro general, los filtros funcionan y «Correcciones» muestra qué cambió y quién | |
+| El Excel del mes abre en Excel con 6 hojas, y su **Total** es igual al de la pantalla **Entregas** | |
+| El respaldo se descarga, quedó guardado en un lugar privado, y la franja del respaldo se fue | |
+| Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.5.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde | |
+
+**Listo cuando:** las ocho casillas están marcadas.
+
+---
+
 ## Problemas frecuentes
 
 | Qué ves | Causa y solución |
@@ -563,6 +614,9 @@ Debe decir `released rules firestore.rules` y `Deploy complete!`.
 | Un canasto queda **«Por enviar»** mucho rato | La tablet no tiene internet. Se envía solo al volver la conexión; no cierres sesión mientras tanto |
 | La tablet pregunta **«¿Quién pesa?»** otra vez | Se desactivó a esa persona en el catálogo, o se borraron los datos del navegador. Toca el nombre de nuevo |
 | Después de publicar no veo los cambios | **Más → Buscar actualización → Actualizar ahora** |
+| Al descargar el Excel o el respaldo dice **«hace falta internet»** | Se leen directo del servidor para que salgan completos. Conéctate y vuelve a tocar el botón |
+| El Excel o el respaldo dice **«el servidor no lo permitió»** | Las reglas nuevas no se publicaron (paso 20.3) o la cuenta es de Pesaje |
+| La franja **«Vendido sin precio»** no se va | El precio quedó con «desde» **después** del día vendido. Corrige la fecha del precio en Catálogo (la franja mira el día abierto en Hoy y el mes de Entregas o el período del Registro) |
 
 ## Qué queda fuera del repositorio
 

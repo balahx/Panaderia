@@ -215,3 +215,21 @@ dialog.cfm { margin: auto; max-width: min(380px, calc(100vw - 32px)); border-rad
   .pes-vacio p { margin: 0; }
   .pes-tecla { min-height: 2.9em; }
 }
+
+/* Fase 5: franjas de aviso, Entregas, Registro general, Datos y «Más» con grupos */
+.aviso.franja { cursor: default; flex-wrap: wrap; }
+.aviso.franja span:not(.franja-b) { flex: 1 1 14em; }
+.franja-b { display: flex; gap: 8px; flex: none; margin-left: auto; }
+.franja-b .btn.ghost { color: var(--warn-ink); border-color: currentColor; }
+.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5em, 1fr)); gap: 0 12px; }
+.ent-dia .entrega-h b { font-size: 1.15em; }
+.ent-monto { font: 700 1.1em/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.ent-dia .mlist { margin: 8px 0 0; }
+.ent-dia .actions { margin-top: 10px; }
+.filtros .seg { margin: 14px 0 0; }
+.reg-dia { font: 600 .95em var(--font-body); color: var(--muted); margin: 16px 0 6px; }
+.mrow.cambio .mt small + small { margin-top: 2px; }
+.mrow.cambio:disabled { cursor: default; opacity: 1; }
+.mas-grupo { margin: 18px 0 6px; }
+#hoyAnotar .ic { width: 18px; height: 18px; }
+.btn .ic { width: 18px; height: 18px; flex: none; }

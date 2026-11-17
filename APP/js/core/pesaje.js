@@ -4,7 +4,7 @@
                            trabajadorId, nota?, anulado, creadoPor (UID de la cuenta), en (hora del servidor) }
    Día:                  dias/{fecha} = { entregaN (la entrega en curso), por, en }. Sin el documento, la entrega en curso es la n.º 1.
    Los totales NO se guardan: se calculan aquí con los pesajes (así no hay dos verdades, ni choques entre equipos sin conexión). */
-import { numero, precioVigente } from './catalogo.js';
+import { numero } from './catalogo.js';
 import { kilos } from './formato.js';
 
 export const AVISO_KG = 20;        // sobre esto: aviso, sin bloquear (a veces se supera)
@@ -89,7 +89,12 @@ export function diferencia(antes, despues) {
   return Object.keys(A).length || Object.keys(B).length ? { antes: A, despues: B } : null;
 }
 /* Registro de la bitácora (cambios/{id}) para una corrección, anulación o reactivación. */
-export const constancia = (tipo, p, dif, uid) => ({ tipo, pesajeId: p.id, fecha: p.fecha, antes: dif.antes, despues: dif.despues, por: uid });
+/* `quien`: nombre de la cuenta que corrige (se muestra en el registro general; la cuenta de pesaje no puede leer los nombres de los miembros). */
+export function constancia(tipo, p, dif, uid, quien) {
+  const c = { tipo, pesajeId: p.id, fecha: p.fecha, antes: dif.antes, despues: dif.despues, por: uid };
+  const q = String(quien == null ? '' : quien).replace(/\s+/g, ' ').trim().slice(0, 60); if (q) c.quien = q;
+  return c;
+}
 
 /* ---------- Entregas ---------- */
 export const entregaEnCurso = dia => (dia && Number.isInteger(dia.entregaN) && dia.entregaN >= 1 ? dia.entregaN : 1);
@@ -136,17 +141,21 @@ export function entregaActual(pesajes, dia) {
 }
 export const textoTotales = t => [t.kg ? kilos(t.kg) + ' kg' : '', t.un ? textoCantidad(t.un, 'un') : ''].filter(Boolean).join(' · ') || '—';
 
-/* ---------- Montos del día (solo dueños y externo) ----------
-   Por pan: precio vigente ese día (catalogo.precioVigente) × cantidad del día, redondeado a pesos. El IVA va sobre el neto total.
-   Las Fases 5 a 7 deben calcular los montos de un día con esta misma función. */
-export function montosDia(panes, precios, clienteId, fecha, iva) {
-  let neto = 0; const filas = [], sinPrecio = [];
-  for (const x of panes) {
-    const pr = clienteId ? precioVigente(precios, x.productoId, clienteId, fecha) : null;
-    if (!pr) { sinPrecio.push(x.nombre); filas.push({ productoId: x.productoId, precio: null, neto: null }); continue; }
-    const n = Math.round(pr.neto * x.cantidad); neto += n;
-    filas.push({ productoId: x.productoId, precio: pr.neto, neto: n });
-  }
-  const i = Math.round(neto * iva / 100);
-  return { filas, neto, iva: i, total: neto + i, sinPrecio };
+/* ---------- Bitácora legible ----------
+   Texto de una constancia (cambios/{id}) para el registro general: { titulo, detalle }. Solo lo que cambió, con nombres. */
+const NOMBRES = { productoId: 'pan', cantidad: 'cantidad', trabajadorId: 'quién pesó', entregaN: 'entrega', nota: 'nota', fecha: 'día', hora: 'hora' };
+export function describirCambio(c, productos, trabajadores, unidad) {
+  const titulo = { corregir: 'Corregido', anular: 'Anulado', reactivar: 'Reactivado' }[c.tipo] || 'Cambio';
+  const A = c.antes || {}, B = c.despues || {}, u = unidad || B.unidad || A.unidad;   // si la unidad no cambió, es la del canasto
+  const ver = (k, v, un) => {
+    if (v === undefined || v === null || v === '') return '—';
+    if (k === 'productoId') return nombreDe(productos, v);
+    if (k === 'trabajadorId') return nombreDe(trabajadores, v);
+    if (k === 'cantidad') return textoCantidad(v, un || u);
+    if (k === 'entregaN') return 'n.º ' + v;
+    return String(v);
+  };
+  const partes = Object.keys(NOMBRES).filter(k => k in A || k in B)
+    .map(k => NOMBRES[k] + ': ' + ver(k, A[k], A.unidad) + ' → ' + ver(k, B[k], B.unidad));
+  return { titulo, detalle: partes.join(' · ') };
 }

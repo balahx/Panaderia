@@ -119,6 +119,7 @@ D:\APP Panaderia\            (raíz del repositorio público «Panaderia»)
 | Colección | Contenido | Lee | Escribe |
 |---|---|---|---|
 | `config/negocio` | `duenos` (lista de UID), `nombre`, `iva` | Con sesión | Solo consola (dueños) y ajustes por dueños |
+| `config/respaldo` | Último respaldo descargado: `por`, `quien`, `conteos`, `lecturas`, `en` (Fase 5, para la franja semanal) | Dueños y externo | Dueños y externo (a su nombre); no se borra |
 | `solicitudes/{uid}` | `nombre`, `correo`, `creado` de quien pide acceso | Dueños y el solicitante | El solicitante (crear); dueños (borrar) |
 | `miembros/{uid}` | `nombre`, `correo`, `perfil` (`externo` o `pesaje`), `activo`, `por`, `en` | Dueños; cada uno el suyo | **Solo dueños** |
 | `productos/{id}` | nombre, unidad (`kg`/`un`), pesoRef, categoría, orden, activo | Todos los perfiles | Dueños y externo |
@@ -129,7 +130,7 @@ D:\APP Panaderia\            (raíz del repositorio público «Panaderia»)
 | `dias/{fecha}` | entregaN (entrega en curso), por, en. **Los totales no se guardan**: se calculan con los pesajes (Fase 4) | Todos (pesaje: solo hoy) | Pesaje: de a un paso (cerrar o volver a abrir); dueños y externo: cualquier número |
 | `cierres/{aaaa-mm}` | totales del mes por producto (cantidad, precio, neto), origen (`excel`/`app`), cerrado | Dueños y externo | Dueños y externo; un mes cerrado no se modifica |
 | `proyeccion/{año}` | factores y metas mensuales | Dueños y externo | Dueños y externo |
-| `cambios/{id}` | bitácora: tipo (`corregir`/`anular`/`reactivar`), pesajeId, fecha, antes, despues, por, en | Dueños y externo | Se crea con cada corrección (la tablet, solo de lo del día) |
+| `cambios/{id}` | bitácora: tipo (`corregir`/`anular`/`reactivar`), pesajeId, fecha, antes, despues, por, `quien` (nombre de la cuenta, opcional, Fase 5), en | Dueños y externo | Se crea con cada corrección (la tablet, solo de lo del día) |
 
 Reglas: todo lo no permitido queda prohibido; el perfil se comprueba en el servidor; la fecha de un pesaje de la tablet debe ser la del día según la hora del servidor.
 
@@ -178,10 +179,11 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 - **Listo cuando:** registrar un canasto toma 3 toques o menos y lo anotado sin internet aparece en el teléfono del dueño al volver la conexión. *Desde aquí la panadería puede empezar a usarla.*
 - Hecho el 16-nov-2026 (versión 0.4.0): pantalla **Pesaje** (tablet) y pestaña **Hoy** (dueños y externo). Un documento por canasto; `dias/{fecha}` guarda solo la entrega en curso; los totales se calculan con los pesajes. Falta que Felipe publique y verifique (`GUIA-FIREBASE.md`, paso 19). Detalle en `ESTADO.md`.
 
-### Fase 5 · Ventas para los dueños — chat 6
+### Fase 5 · Ventas para los dueños — chat 6 ✔
 - Hoy, Entregas (revisión), registro general con filtros, fecha pasada, correcciones con bitácora.
 - Exportar a Excel (neto, IVA, total, cliente), respaldo y franja de aviso semanal.
 - **Listo cuando:** el Excel de un mes cuadra con la suma de sus entregas.
+- Hecho (16-nov-2026, versión 0.5.0): pestaña **Entregas**, «＋ Anotar canasto» en **Hoy** (fecha pasada), **Registro general** con filtros y bitácora, **Excel** propio (sin librerías) y **respaldo** con franja semanal. Venta = lo pesado no anulado; un pan sin precio se registra y avisa. Montos por **línea** (un pan en una entrega): todos los totales son sumas de líneas (ESTADO.md, decisiones de la Fase 5).
 
 ### Fase 6 · Cierres mensuales — chat 7
 - Importar los Excel de enero a octubre de 2026 (subir, revisar, confirmar; emparejar nombres de pan con el catálogo).
