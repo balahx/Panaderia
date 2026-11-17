@@ -69,7 +69,7 @@ No se usa: `assign.js`, `plan-import.js`, `compare.js`, `competitions.js`, `app.
 | Sincronización | Motor propio (`sync.js` + `reads.js`, cola en localStorage) | **Caché sin conexión del propio SDK de Firestore**: menos código, cola de envíos y tiempo real incluidos. **Decisión confirmada por Felipe** |
 | SDK y Excel | Desde CDN | **Alojados dentro de la app** (`vendor/`): abre sin internet y CSP sin orígenes de terceros. El lector de Excel se carga solo al importar o exportar |
 | Ingreso | Correo y contraseña | Google, por **redirección de página completa** hecha por la propia app (`core/acceso.js`) y de vuelta al mismo dominio de Firebase Hosting; Firebase recibe el `id_token`. Sin ventanas emergentes, marcos ni scripts de Google (cambio de la Fase 1) |
-| Lecturas de la cuota | Lee registros uno a uno | **Resúmenes por día y por mes**: los indicadores leen pocas decenas de documentos |
+| Lecturas de la cuota | Lee registros uno a uno | Un día se calcula con sus pesajes (decenas de documentos); **resúmenes por mes** en `cierres` para que los indicadores lean pocos documentos |
 | Seguridad | Pendientes detectados en la auditoría | Aplicados desde el inicio (§9) |
 
 ## 5. Decisiones técnicas
@@ -80,7 +80,7 @@ No se usa: `assign.js`, `plan-import.js`, `compare.js`, `competitions.js`, `app.
 | T2 | Firebase: Authentication (solo Google), Firestore, Hosting, App Check. **Proyecto nuevo** en la cuenta de Google de Felipe. **Solo plan gratuito** (sin Cloud Functions) |
 | T3 | Publicación en **Firebase Hosting** (mismo dominio que el ingreso: evita los problemas de Google en iPhone/iPad). Dirección oficial `https://ID.web.app` (la de `firebaseapp.com` redirige). El ingreso es por redirección de página completa (ver §4). Se verifica en la Fase 1 con instalación real (GUIA-FIREBASE.md, paso 9). El código vive en el repositorio público `Panaderia` |
 | T4 | Sin conexión: service worker para los archivos + caché persistente de Firestore para los datos. Lo anotado sin internet se envía solo al volver la conexión |
-| T5 | Totales por día mantenidos en el mismo envío que cada pesaje (incremento atómico); los pesos ($) se calculan en el equipo del dueño con el precio vigente, así la tablet nunca recibe precios |
+| T5 | ~~Totales por día mantenidos con cada pesaje~~ **Cambio de la Fase 4:** los totales del día se calculan en el equipo con los pesajes del día (unas decenas de documentos), sin guardarlos, para evitar choques entre equipos sin conexión. Los resúmenes de meses se guardan al «Cerrar mes» (`cierres`). Los pesos ($) se calculan en el equipo del dueño con el precio vigente, así la tablet nunca recibe precios |
 | T6 | Excel con SheetJS alojado en la app, carga diferida |
 | T7 | Gráficos SVG propios (`charts.js` de la muestra) |
 | T8 | CLP sin decimales; kilos con 2 decimales; fechas `es-CL`; zona America/Santiago; IVA 19 % configurable |
@@ -125,11 +125,11 @@ D:\APP Panaderia\            (raíz del repositorio público «Panaderia»)
 | `precios/{id}` | productoId, clienteId, neto, desde | Dueños y externo (**no** pesaje) | Dueños y externo |
 | `trabajadores/{id}` | nombre, activo | Todos | Dueños y externo |
 | `clientes/{id}` | nombre (inicial: el supermercado) | Dueños y externo | Dueños y externo |
-| `pesajes/{id}` | fecha, hora, entregaN, productoId, cantidad, unidad, trabajadorId, nota, anulado, creadoPor | Todos (pesaje: solo del día) | Pesaje: crear, y corregir/anular solo del día; dueños y externo: todo |
-| `dias/{fecha}` | totales por producto y por entrega, por trabajador | Todos | Junto con cada pesaje |
+| `pesajes/{id}` | fecha, hora, entregaN, productoId, cantidad, unidad, trabajadorId, nota, anulado, creadoPor, en (un documento por canasto) | Todos (pesaje: solo del día) | Pesaje: crear (hoy, o ayer por lo anotado sin conexión), y corregir/anular solo del día; dueños y externo: todo |
+| `dias/{fecha}` | entregaN (entrega en curso), por, en. **Los totales no se guardan**: se calculan con los pesajes (Fase 4) | Todos (pesaje: solo hoy) | Pesaje: de a un paso (cerrar o volver a abrir); dueños y externo: cualquier número |
 | `cierres/{aaaa-mm}` | totales del mes por producto (cantidad, precio, neto), origen (`excel`/`app`), cerrado | Dueños y externo | Dueños y externo; un mes cerrado no se modifica |
 | `proyeccion/{año}` | factores y metas mensuales | Dueños y externo | Dueños y externo |
-| `cambios/{id}` | bitácora de correcciones | Dueños y externo | Se crea con cada corrección |
+| `cambios/{id}` | bitácora: tipo (`corregir`/`anular`/`reactivar`), pesajeId, fecha, antes, despues, por, en | Dueños y externo | Se crea con cada corrección (la tablet, solo de lo del día) |
 
 Reglas: todo lo no permitido queda prohibido; el perfil se comprueba en el servidor; la fecha de un pesaje de la tablet debe ser la del día según la hora del servidor.
 
@@ -171,11 +171,12 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 ### Fase 3 · Catálogo — chat 4 ✔
 - Productos (kg/unidad, peso de referencia, categoría), precios netos con vigencia, trabajadores, cliente inicial, IVA.
 - **Listo cuando:** un cambio de precio no altera los montos de días anteriores.
-- Hecho el 15-nov-2026 (versión 0.3.0). Cada precio es un documento con su fecha «desde» (`precios/{producto_cliente_fecha}`) y el monto de un día se calcula con el precio vigente ese día. Falta que Felipe publique y cargue el catálogo real (`GUIA-FIREBASE.md`, paso 18). Detalle en `ESTADO.md`.
+- Hecho el 15-nov-2026 (versión 0.3.0). Cada precio es un documento con su fecha «desde» (`precios/{producto_cliente_fecha}`) y el monto de un día se calcula con el precio vigente ese día. Publicado y verificado por Felipe (paso 18, 16-nov-2026). Detalle en `ESTADO.md`.
 
-### Fase 4 · Pesaje y entregas del día — chat 5
+### Fase 4 · Pesaje y entregas del día — chat 5 ✔
 - Pantalla de la tablet completa, entregas numeradas, totales del día, corrección del mismo día, uso sin conexión.
 - **Listo cuando:** registrar un canasto toma 3 toques o menos y lo anotado sin internet aparece en el teléfono del dueño al volver la conexión. *Desde aquí la panadería puede empezar a usarla.*
+- Hecho el 16-nov-2026 (versión 0.4.0): pantalla **Pesaje** (tablet) y pestaña **Hoy** (dueños y externo). Un documento por canasto; `dias/{fecha}` guarda solo la entrega en curso; los totales se calculan con los pesajes. Falta que Felipe publique y verifique (`GUIA-FIREBASE.md`, paso 19). Detalle en `ESTADO.md`.
 
 ### Fase 5 · Ventas para los dueños — chat 6
 - Hoy, Entregas (revisión), registro general con filtros, fecha pasada, correcciones con bitácora.
@@ -218,7 +219,7 @@ Un chat por fase (tabla anterior). Reglas:
 |---|---|
 | Lista de panes: **la crean los dueños en la app**, con su precio (el precio es interno: solo dueños y externo, nunca en la tablet) | Emparejar cierres en Fase 6 |
 | Archivos Excel de cierres ene–oct 2026 | Fase 6 |
-| Confirmar «Cerrar entrega» en la tablet como forma de separar las entregas del día | Fase 4 |
+| ~~Confirmar «Cerrar entrega» en la tablet~~ Confirmado por Felipe (16-nov-2026): quien pesa cierra la entrega con un botón | Fase 4 ✔ |
 | Node: no está instalado; Felipe lo instalará (versión LTS desde nodejs.org) antes de la Fase 1 | Fase 1 |
 | Cuenta de Google para la tablet y correos de los dueños (no se anotan en el repositorio) | Fase 2 |
 

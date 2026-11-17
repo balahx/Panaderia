@@ -1,6 +1,7 @@
 /* Único punto de contacto con Firebase. El SDK se carga desde la copia local (vendor/, la descarga tools/vendor.js):
    nada viene de otros sitios. Fase 1: sesión. Fase 2: Firestore con caché sin conexión, accesos y App Check (opcional).
-   Fase 3: escrituras del catálogo (guardar, guardarVarios, borrar, ajustarNegocio). */
+   Fase 3: escrituras del catálogo (guardar, guardarVarios, borrar, ajustarNegocio).
+   Fase 4: consulta de los pesajes de un día (vigilarDonde) y aviso de datos sin enviar (pendientes). */
 import * as cfg from '../../firebase-config.js';
 
 const SDK = '../../vendor/firebase/';
@@ -79,6 +80,19 @@ export function vigilarCol(ruta, cb, alFallar) {
   return F.onSnapshot(F.collection(db, ruta), { includeMetadataChanges: true },
     s => cb(s.docs.map(d => Object.assign({ id: d.id }, plano(d.data()))), { cache: s.metadata.fromCache }), e => fallo(e, alFallar));
 }
+/* Escucha los documentos de una colección con un campo igual a un valor (los pesajes de un día): cb([{ id, …datos }], { cache, pend }).
+   Un documento anotado en este equipo y aún no recibido por el servidor (por ejemplo, sin conexión) trae `_pend: true`.
+   La hora del servidor de un documento recién anotado viene estimada (para ordenar la lista sin esperar a internet). */
+export function vigilarDonde(col, campo, valor, cb, alFallar) {
+  return F.onSnapshot(F.query(F.collection(db, col), F.where(campo, '==', valor)), { includeMetadataChanges: true },
+    s => cb(s.docs.map(d => Object.assign({ id: d.id }, plano(d.data({ serverTimestamps: 'estimate' })), d.metadata.hasPendingWrites ? { _pend: true } : {})),
+      { cache: s.metadata.fromCache, pend: s.metadata.hasPendingWrites }), e => fallo(e, alFallar));
+}
+/* ¿Quedan escrituras de este equipo sin llegar al servidor? Si en `ms` no se confirman, se responde que sí (sin internet no llegan). */
+export function pendientes(ms) {
+  if (!db) return Promise.resolve(false);
+  return Promise.race([F.waitForPendingWrites(db).then(() => false, () => false), new Promise(r => setTimeout(() => r(true), ms || 1500))]);
+}
 
 /* ---------- Accesos (PLAN §2 y §7). Las reglas de Firestore deciden; aquí solo se envía ---------- */
 export function pedirAcceso(nombre) {
@@ -102,7 +116,8 @@ export const borrarMiembro = uid => F.deleteDoc(F.doc(db, 'miembros/' + uid));
 const conHora = datos => Object.assign({}, datos, { en: F.serverTimestamp() });
 export const guardar = (ruta, datos) => F.setDoc(F.doc(db, ruta), conHora(datos));
 export const borrar = ruta => F.deleteDoc(F.doc(db, ruta));
-/* Varias escrituras juntas (o todas o ninguna): [{ ruta, datos }] */
+/* Varias escrituras juntas (o todas o ninguna): [{ ruta, datos }]. Quedan en la copia del equipo al instante (también sin internet)
+   y la promesa termina cuando el servidor las recibe: el pesaje no la espera para seguir (solo atiende si el servidor las rechaza). */
 export function guardarVarios(lista) {
   const b = F.writeBatch(db);
   lista.forEach(x => b.set(F.doc(db, x.ruta), conHora(x.datos)));

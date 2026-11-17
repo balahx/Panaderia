@@ -1,7 +1,8 @@
-/* Panadería — arranque: service worker, sesión, acceso por perfil, navegación y reparto de acciones a cada pantalla.
-   Cada pantalla es un módulo en pantallas/ con  html(ctx)  y  alActuar(act, el, ctx). */
+/* Panadería — arranque: service worker, sesión, acceso por perfil, datos en vivo, navegación y reparto de acciones a cada pantalla.
+   Cada pantalla es un módulo en pantallas/ con  html(ctx)  y  alActuar(act, el, ctx)  (y si quiere  alEscribir  y  alTeclear). */
 import { $, ask, cerrarHoja, toast } from './core/ui.js';
 import { svg } from './core/iconos.js';
+import { diaChile } from './core/formato.js';
 import * as nube from './core/nube.js';
 import * as acceso from './core/acceso.js';
 import * as perfil from './core/perfil.js';
@@ -9,32 +10,37 @@ import * as actualizar from './core/actualizar.js';
 import * as ingreso from './pantallas/ingreso.js';
 import * as espera from './pantallas/espera.js';
 import * as inicio from './pantallas/inicio.js';
+import * as pesaje from './pantallas/pesaje.js';
 import * as accesos from './pantallas/accesos.js';
 import * as catalogo from './pantallas/catalogo.js';
 import * as mas from './pantallas/mas.js';
 
 /* Secciones. `oculta`: no va en la barra (se llega desde «Más»). `permiso`: qué perfil la ve (core/perfil.js).
-   `datos`: se vuelve a dibujar cuando cambia el catálogo (S.cat). */
+   `datos`: se vuelve a dibujar cuando cambia el catálogo (S.cat) o lo pesado (S.dia). `grande`: letra grande (la panadería).
+   La primera que el perfil puede ver es la de entrada: «Hoy» para dueños y externo, «Pesaje» para la tablet. */
 const TABS = [
-  { id: 'inicio', t: 'Inicio', ic: 'hoy', mod: inicio },
+  { id: 'inicio', t: 'Hoy', ic: 'hoy', mod: inicio, permiso: 'gestion', datos: true },
+  { id: 'pesaje', t: 'Pesaje', ic: 'pesa', mod: pesaje, permiso: 'pesaje', datos: true, grande: true },
   { id: 'catalogo', t: 'Catálogo', ic: 'pan', mod: catalogo, oculta: true, permiso: 'gestion', datos: true },
   { id: 'accesos', t: 'Accesos', ic: 'team', mod: accesos, oculta: true, permiso: 'accesos' },
   { id: 'mas', t: 'Más', ic: 'more', mod: mas }
 ];
 /* S.estado: un perfil ('dueno' | 'externo' | 'pesaje') o lo que falta para tenerlo (ver perfil.resolver). */
 const S = { user: null, tab: 'inicio', gate: { tipo: 'cargando' }, estado: 'comprobando', acc: null, lento: false, sol: null, miem: null, errListas: '',
-  cat: null, errCat: '', nivel: '' };   // cat: { productos, trabajadores, precios, clientes } (precios y clientes solo para gestión)
-let escuchas = [], escuchasDueno = [], escuchasCat = [], tLento = 0;
+  cat: null, errCat: '', nivel: '',     // cat: { productos, trabajadores, precios, clientes } (precios y clientes solo para gestión)
+  dia: null };                          // dia: { fecha, pesajes, dia (entrega en curso), err } (core/pesaje.js)
+let escuchas = [], escuchasDueno = [], escuchasCat = [], escuchasDia = [], tLento = 0;
 const ctx = () => ({ user: S.user, perfil: S.estado, estado: S.estado, negocio: S.acc && S.acc.negocio, lento: S.lento, error: S.acc && S.acc.error,
-  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat });
+  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, hoy: diaChile(new Date()) });
 const visible = t => !t.permiso || perfil.puede(S.estado, t.permiso);
-const tabActual = () => TABS.find(t => t.id === S.tab && visible(t)) || TABS[0];
+const tabActual = () => TABS.find(t => t.id === S.tab && visible(t)) || TABS.find(visible);
 
 /* Registro de bloqueos de la política de contenido (se ve en «Diagnóstico»: debe quedar en 0) */
 window.__csp = [];
 document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI));
 
 function pintarPuerta(html) {
+  delete document.documentElement.dataset.escala;
   $('#appRoot').hidden = true; $('#view').innerHTML = ''; $('#nav').innerHTML = ''; $('#banner').innerHTML = '';   // fuera de la app no queda nada de la cuenta en la página
   const g = $('#gate'); g.hidden = false; g.innerHTML = html;
 }
@@ -42,6 +48,8 @@ function pintarIngreso(estado) { if (estado) S.gate = estado; pintarPuerta(ingre
 function pintarApp() {
   const g = $('#gate'); g.hidden = true; g.innerHTML = ''; $('#appRoot').hidden = false;
   const act = tabActual(), enBarra = act.oculta ? 'mas' : act.id;
+  vigilarDia();
+  if (act.grande || S.estado === 'pesaje') document.documentElement.dataset.escala = 'grande'; else delete document.documentElement.dataset.escala;
   $('#nav').innerHTML = TABS.filter(t => !t.oculta && visible(t)).map(t => '<button data-act="ir" data-tab="' + t.id + '"' + (t.id === enBarra ? ' aria-current="page"' : '') + '>' + svg(t.ic) + '<span>' + t.t + '</span></button>').join('');
   $('#banner').innerHTML = act.id === 'accesos' ? '' : accesos.aviso(ctx());
   const v = $('#view'); v.dataset.tab = act.id; v.innerHTML = act.mod.html(ctx());
@@ -62,7 +70,7 @@ function pintarRed() {
 
 /* ---------- Acceso por perfil ---------- */
 function soltar(lista) { lista.forEach(f => { try { f(); } catch (e) { /* */ } }); lista.length = 0; }
-function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
+function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); S.dia = null; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
 /* Al entrar: escucha quiénes son los dueños, la ficha de miembro y la solicitud de esta cuenta. Se actualiza solo. */
 function vigilarAcceso(u) {
   dejarDeVigilar();
@@ -110,9 +118,34 @@ function vigilarCatalogo() {
   for (const col of Object.keys(k).filter(c => k[c] === null))
     escuchasCat.push(nube.vigilarCol(col, l => { if (S.cat !== k) return; k[col] = l; S.errCat = ''; repintar(); }, cod => { if (S.cat !== k) return; S.errCat = cod; repintar(); }));
 }
-function cerrarSesion() {
-  ask({ title: '¿Cerrar sesión?', text: 'Para volver a entrar necesitarás internet y tu cuenta de Google.', ok: 'Cerrar sesión', danger: true })
-    .then(si => { if (si) nube.salir().then(recargar => { if (recargar) location.reload(); }, () => toast('No se pudo cerrar la sesión')); });
+/* Pesajes de un día y su entrega en curso, en vivo. El día lo decide la pantalla: «Hoy» puede mirar otro; el pesaje, siempre hoy.
+   Se piden con un filtro por fecha (la tablet solo puede leer lo de hoy). Al cambiar el día se escucha el nuevo. */
+function fechaQuerida() {
+  if (!perfil.esPerfil(S.estado) || !S.user) return '';
+  const t = tabActual();
+  return t && t.mod.fecha ? t.mod.fecha(ctx()) : diaChile(new Date());
+}
+function vigilarDia() {
+  const f = fechaQuerida();
+  if (S.dia && S.dia.fecha === f) return;
+  soltar(escuchasDia); S.dia = null;
+  if (!f) return;
+  const k = S.dia = { fecha: f, pesajes: null, dia: undefined, err: '' };
+  const repintar = () => { if (S.dia === k && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp(); };
+  escuchasDia.push(nube.vigilarDonde('pesajes', 'fecha', f, l => { if (S.dia !== k) return; k.pesajes = l; k.err = ''; repintar(); }, cod => { if (S.dia !== k) return; k.err = cod; repintar(); }));
+  escuchasDia.push(nube.vigilarDoc('dias/' + f, d => { if (S.dia !== k) return; k.dia = d; repintar(); }, cod => { if (S.dia !== k) return; k.err = cod; repintar(); }));
+}
+/* A medianoche cambia el día: la pantalla que muestra «hoy» pasa sola al día nuevo. */
+let ultimoDia = diaChile(new Date());
+setInterval(() => { const d = diaChile(new Date()); if (d !== ultimoDia) { ultimoDia = d; if (S.user && perfil.esPerfil(S.estado)) pintarApp(); } }, 30000);
+
+/* Cerrar sesión borra la copia del equipo: si hay pesajes sin enviar (sin internet), se perderían. Se avisa antes. */
+async function cerrarSesion() {
+  const pend = await nube.pendientes(1500);
+  const si = await ask(pend
+    ? { title: 'Hay datos sin enviar', text: 'Lo anotado sin internet se envía solo al volver la conexión. Si cierras sesión ahora, se pierde. Conecta el equipo y espera un momento.', ok: 'Cerrar igual y perderlos', cancel: 'Esperar', danger: true }
+    : { title: '¿Cerrar sesión?', text: 'Para volver a entrar necesitarás internet y tu cuenta de Google.', ok: 'Cerrar sesión', danger: true });
+  if (si) nube.salir().then(recargar => { if (recargar) location.reload(); }, () => toast('No se pudo cerrar la sesión'));
 }
 
 document.addEventListener('click', e => {
@@ -125,17 +158,25 @@ document.addEventListener('click', e => {
   if (act === 'salir') { cerrarSesion(); return; }
   if (!perfil.esPerfil(S.estado)) { espera.alActuar(act, el, ctx()); return; }
   if (act === 'ir') { const t = TABS.find(x => x.id === el.dataset.tab && visible(x)); if (t) { S.tab = t.id; pintarApp(); scrollTo(0, 0); } return; }
-  if (!tabActual().mod.alActuar(act, el, ctx())) mas.alActuar(act, el, ctx());
+  const r = tabActual().mod.alActuar(act, el, ctx());
+  if (r === 'repintar') pintarApp();          // la pantalla cambió algo que decide qué datos escuchar (por ejemplo, el día)
+  else if (!r) mas.alActuar(act, el, ctx());
 });
-/* «Enter» en un campo con data-enter="acción" equivale a tocar el botón de esa acción */
+/* «Enter» en un campo con data-enter="acción" equivale a tocar el botón de esa acción. Fuera de los campos, la pantalla actual
+   puede atender el teclado (el pesaje acepta números desde un teclado físico). */
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter' || !e.target.dataset || !e.target.dataset.enter) return;
+  if (!(e.target.dataset && e.target.dataset.enter)) {
+    const m = S.user && perfil.esPerfil(S.estado) ? tabActual().mod : null;
+    if (m && m.alTeclear && !document.querySelector('dialog[open]') && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) && m.alTeclear(e, ctx())) e.preventDefault();
+    return;
+  }
+  if (e.key !== 'Enter') return;
   const b = document.querySelector('[data-act="' + e.target.dataset.enter + '"]'); if (b) { e.preventDefault(); b.click(); }
 });
 /* Mientras se escribe en un campo: la pantalla actual puede reaccionar (vista previa, campos que dependen de otro) */
 document.addEventListener('input', e => {
   const m = S.user && perfil.esPerfil(S.estado) ? tabActual().mod : null;
-  if (m && m.alEscribir) m.alEscribir(e.target, ctx());
+  if (m && m.alEscribir && m.alEscribir(e.target, ctx()) === 'repintar') pintarApp();
 });
 addEventListener('online', pintarRed);
 addEventListener('offline', pintarRed);

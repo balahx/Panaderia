@@ -1,6 +1,6 @@
 # Guía paso a paso · Firebase, publicación y repositorio
 
-> Fases 1 y 2 de la App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
+> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
 > Tiempo estimado: 60 a 90 minutos la primera vez.
 > Los nombres de botones están en español; entre paréntesis va el nombre en inglés por si tu consola aparece en ese idioma. Google cambia a veces el texto de un botón: si no lo encuentras igual, busca el más parecido.
 
@@ -28,6 +28,7 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 16 | App Check en modo supervisar | reCAPTCHA, consola de Firebase y terminal |
 | 17 | Cierre de seguridad de la Fase 2 | Consolas |
 | 18 | **Fase 3:** publicar la versión 0.3.0 (catálogo) y cargar productos, precios y trabajadores | Terminal y la app |
+| 19 | **Fase 4:** publicar la versión 0.4.0 (pesaje y entregas) y empezar a usar la tablet | Terminal, la tablet y el teléfono del dueño |
 
 ---
 
@@ -484,6 +485,60 @@ Debe decir `released rules firestore.rules` y `Deploy complete!`. Si muestra un 
 
 ---
 
+## Paso 19 · Publicar la versión 0.4.0 (pesaje y entregas) y empezar a usar la tablet
+
+Esta versión trae la **pantalla de pesaje** (la tablet: quién pesa, pan, kilos o unidades, «Cerrar entrega», lo pesado hoy) y, para dueños y externo, la pestaña **Hoy** (lo pesado en el día, al momento, con la venta calculada con el precio vigente, las entregas y lo de cada trabajador). Cambian las **reglas** de pesajes, días y bitácora: hay que publicarlas junto con la app.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+npm test
+```
+
+Debe terminar con **«15 pruebas … todas bien»**.
+
+2. **Antes de publicar**, sube el código (`git add .`, `git commit -m "Fase 4: pesaje y entregas"`, `git push`) y mira en GitHub → **Actions** → **Pruebas** que el paso **«Reglas de Firestore (emulador)»** quede en verde. Ahora son **184 casos** (30 nuevos del pesaje) y **desde el chat no se pudieron ejecutar**: si queda en rojo, **no publiques** y lleva las líneas con ✗ al chat.
+
+3. Con ese paso en verde:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+Debe decir `released rules firestore.rules` y `Deploy complete!`.
+
+4. En **cada equipo** (tablet, teléfonos, computador): **Más → Buscar actualización → Actualizar ahora** (debe decir versión 0.4.0).
+
+5. **Prepara la tablet:**
+   - En los ajustes de la tablet, deja **la fecha y la hora automáticas** (el servidor rechaza canastos con una fecha que no sea la de hoy).
+   - Abre la app con la cuenta de la tablet (perfil **Pesaje**, paso 15). Debe abrir directo en **«Pesar pan»**, con letra grande.
+   - La primera vez pregunta **«¿Quién pesa?»**: toca un nombre. Queda elegido en la tablet; se cambia con **Cambiar**.
+   - **No cierres sesión en la tablet.** Si alguna vez hay canastos «Por enviar», la app avisa antes de cerrar sesión porque se perderían.
+
+6. **Prueba completa** (con el teléfono del dueño abierto en **Hoy** al lado):
+   - En la tablet: toca un pan, escribe un número y **Guardar canasto** (3 toques). En el teléfono debe aparecer **sin recargar**.
+   - Pon la tablet en **modo avión**, registra otro canasto: queda marcado **«Por enviar»**. Quita el modo avión: la marca desaparece y el canasto aparece en el teléfono.
+   - Toca **Cerrar entrega**: la tablet pasa a la **n.º 2** y en el teléfono la n.º 1 queda **Cerrada**.
+   - Toca un canasto de la lista → **Corregir** (cambia el número) y luego **Anular**. En **Hoy** los anulados quedan aparte y **no suman**.
+   - Los canastos de esta prueba **no se borran**: déjalos **anulados** (así no cuentan en las ventas).
+
+7. Verifica y marca:
+
+| Comprobación | ✓ / ✗ |
+|---|---|
+| La tablet abre directo en «Pesar pan», con letra grande, solo con **Pesaje** y **Más**, y sin ningún precio | |
+| Un canasto se registra con 3 toques (pan → número → Guardar) | |
+| El canasto aparece en **Hoy** del teléfono del dueño sin recargar | |
+| En **modo avión** el canasto queda «Por enviar» y llega al teléfono del dueño al volver internet | |
+| «Cerrar entrega» pasa a la n.º 2; en Hoy la n.º 1 queda «Cerrada» | |
+| Corregir y anular un canasto de hoy funciona; en Hoy los anulados no suman | |
+| **Pendiente del paso 18:** con la cuenta del externo, en Catálogo → Cliente e IVA **no** aparece el botón para cambiar el IVA (dice «Solo los dueños cambian el IVA») | |
+| Diagnóstico en la tablet: **Bloqueos de seguridad: 0** y **Versión 0.4.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde | |
+
+**Listo cuando:** las ocho casillas están marcadas. Desde aquí la panadería puede empezar a usar la tablet todos los días.
+
+---
+
 ## Problemas frecuentes
 
 | Qué ves | Causa y solución |
@@ -504,6 +559,9 @@ Debe decir `released rules firestore.rules` y `Deploy complete!`. Si muestra un 
 | `firebase deploy` muestra un error en `firestore.rules` | No se publicó nada. Copia el mensaje completo (con la línea) y llévalo al chat |
 | El Diagnóstico dice **«App Check: Falta el SDK»** | Ejecuta `node tools/vendor.js` y publica de nuevo (paso 13.1) |
 | Al guardar en el catálogo dice **«Esta cuenta no puede cambiar el catálogo»** | Las reglas nuevas no se publicaron (paso 18.3) o la cuenta es de Pesaje. Si es un dueño o el externo y las reglas están publicadas, anota qué estabas guardando y llévalo al chat |
+| La tablet dice **«No se guardó el canasto…: el servidor no lo aceptó»** | La fecha u hora de la tablet está mal (paso 19.5: fecha y hora automáticas), las reglas nuevas no se publicaron (paso 19.3) o la cuenta perdió el acceso. El canasto se deshace solo: anótalo de nuevo cuando esté resuelto |
+| Un canasto queda **«Por enviar»** mucho rato | La tablet no tiene internet. Se envía solo al volver la conexión; no cierres sesión mientras tanto |
+| La tablet pregunta **«¿Quién pesa?»** otra vez | Se desactivó a esa persona en el catálogo, o se borraron los datos del navegador. Toca el nombre de nuevo |
 | Después de publicar no veo los cambios | **Más → Buscar actualización → Actualizar ahora** |
 
 ## Qué queda fuera del repositorio

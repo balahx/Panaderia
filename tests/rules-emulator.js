@@ -14,10 +14,10 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
 (async () => {
   const env = await initializeTestEnvironment({ projectId: 'demo-panaderia', firestore: { rules: fs.readFileSync(path.join(__dirname, '..', 'firestore.rules'), 'utf8') } });
   await env.clearFirestore();
-  const AHORA = Date.now(), HOY = dia(AHORA), ANTES = dia(AHORA - 2 * 86400000);
+  const AHORA = Date.now(), HOY = dia(AHORA), AYER = dia(AHORA - 86400000), ANTES = dia(AHORA - 3 * 86400000);
   const con = (o, valor) => { const r = {}; for (const k in o) r[k] = o[k] === '@TS' ? valor : o[k]; return r; };
   await env.withSecurityRulesDisabled(async ctx => {
-    const db = ctx.firestore(), S = semilla(HOY, ANTES);
+    const db = ctx.firestore(), S = semilla(HOY, ANTES, AYER);
     for (const p in S) await db.doc(p).set(con(S[p], new Date()));
   });
   const dbs = {};
@@ -26,7 +26,7 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
     dbs[n] = (c ? env.authenticatedContext(c.uid, { email: c.email, email_verified: c.email_verified }) : env.unauthenticatedContext()).firestore();
   }
   const TS = () => firebase.firestore.FieldValue.serverTimestamp();
-  for (const c of casos(HOY, ANTES)) {
+  for (const c of casos(HOY, ANTES, AYER)) {
     if (c.t) { console.log(c.t); continue; }
     const db = dbs[c.q], d = c.d ? con(c.d, TS()) : null;
     let p;

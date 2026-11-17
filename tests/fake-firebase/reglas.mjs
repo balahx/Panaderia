@@ -14,6 +14,9 @@ const solo = (o, ks) => Object.keys(o).every(k => ks.includes(k));
 const todas = (o, ks) => ks.every(k => k in o);
 const dia = ms => new Date(ms).toISOString().slice(0, 10);
 export const esHoy = (fecha, ahora) => fecha === dia(ahora - 3 * 3600000) || fecha === dia(ahora - 4 * 3600000);
+export const esAyer = (fecha, ahora) => fecha === dia(ahora - 27 * 3600000) || fecha === dia(ahora - 28 * 3600000);
+const fechaValida = f => typeof f === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(f);
+const mapa = v => !!v && typeof v === 'object' && !Array.isArray(v) && !esTS(v);
 
 export function permitido(quien, op, ruta, datos, previo, leer, ahora) {
   try { return !!evaluar(quien, op, ruta, datos || {}, previo || null, leer, ahora); }
@@ -76,17 +79,26 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
     if (op === 'get') return gestion || (pesaje && esHoy(prev.fecha, ahora));
     if (op === 'list') return gestion || (pesaje && esHoy(d.fecha, ahora));   // d: el filtro de la consulta
     if (op === 'delete') return false;
+    const prod = leer('productos/' + d.productoId);
     const valido = solo(d, ['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'nota', 'anulado', 'creadoPor', 'en'])
-      && todas(d, ['fecha', 'productoId', 'cantidad', 'unidad', 'creadoPor', 'en']) && texto(d.fecha, 10, 10) && texto(d.productoId, 1, 60)
-      && num(d.cantidad) && d.cantidad > 0 && d.cantidad <= 100000 && ['kg', 'un'].includes(d.unidad)
-      && (!('nota' in d) || texto(d.nota, 0, 200)) && (!('anulado' in d) || typeof d.anulado === 'boolean') && esTS(d.en);
-    if (op === 'create') return valido && d.creadoPor === q.uid && (gestion || (pesaje && esHoy(d.fecha, ahora)));
+      && todas(d, ['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'anulado', 'creadoPor', 'en']) && fechaValida(d.fecha)
+      && typeof d.hora === 'string' && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(d.hora)
+      && Number.isInteger(d.entregaN) && d.entregaN >= 1 && d.entregaN <= 50
+      && texto(d.productoId, 1, 60) && texto(d.trabajadorId, 1, 60)
+      && num(d.cantidad) && d.cantidad > 0 && d.cantidad <= 100000 && ['kg', 'un'].includes(d.unidad) && (d.unidad === 'kg' || Number.isInteger(d.cantidad))
+      && (!('nota' in d) || texto(d.nota, 1, 200)) && typeof d.anulado === 'boolean' && esTS(d.en)
+      && !!prod && prod.unidad === d.unidad && !!leer('trabajadores/' + d.trabajadorId);
+    if (op === 'create') return valido && d.creadoPor === q.uid && (gestion || (pesaje && (esHoy(d.fecha, ahora) || esAyer(d.fecha, ahora))));
     return valido && d.creadoPor === prev.creadoPor && (gestion || (pesaje && esHoy(prev.fecha, ahora) && d.fecha === prev.fecha));
   }
   if (col === 'dias') {
-    const hoy = op === 'list' ? false : esHoy(id, ahora);
-    if (leerOp) return gestion || (pesaje && hoy);
-    return escribir && (gestion || (pesaje && hoy)) && esTS(d.en);
+    if (leerOp) return gestion || (pesaje && op === 'get' && esHoy(id, ahora));
+    if (!escribir) return false;
+    const valido = fechaValida(id) && solo(d, ['entregaN', 'por', 'en']) && todas(d, ['entregaN', 'por', 'en'])
+      && Number.isInteger(d.entregaN) && d.entregaN >= 1 && d.entregaN <= 50 && d.por === q.uid && esTS(d.en);
+    const suDia = pesaje && (esHoy(id, ahora) || esAyer(id, ahora));
+    if (op === 'create') return valido && (gestion || (suDia && d.entregaN <= 2));
+    return valido && (gestion || (suDia && (d.entregaN === prev.entregaN + 1 || d.entregaN === prev.entregaN - 1)));
   }
   if (col === 'cierres') {
     if (leerOp) return gestion;
@@ -101,7 +113,9 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
   }
   if (col === 'cambios') {
     if (leerOp) return gestion;
-    return op === 'create' && acceso && d.por === q.uid && esTS(d.en);
+    const K = ['tipo', 'pesajeId', 'fecha', 'antes', 'despues', 'por', 'en'];
+    return op === 'create' && acceso && solo(d, K) && todas(d, K) && ['corregir', 'anular', 'reactivar'].includes(d.tipo) && texto(d.pesajeId, 1, 60)
+      && fechaValida(d.fecha) && mapa(d.antes) && mapa(d.despues) && d.por === q.uid && esTS(d.en) && (gestion || esHoy(d.fecha, ahora));
   }
   return false;
 }

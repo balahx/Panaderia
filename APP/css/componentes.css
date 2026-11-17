@@ -166,3 +166,52 @@ dialog.cfm { margin: auto; max-width: min(380px, calc(100vw - 32px)); border-rad
 .sheet-b .eyebrow { margin-top: 18px; }
 
 .txt + .muted { margin-top: 6px; }
+
+/* ---------- Pesaje y Hoy (Fase 4). En la panadería la letra va grande (data-escala="grande": los tamaños en em crecen solos) ---------- */
+.pes-quien { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; }
+.pes-quien > span { display: inline-flex; align-items: center; gap: 8px; font-size: 1.05em; }
+.pes-quien .ic { color: var(--muted); }
+.pes-entrega-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pes-entrega-h .eyebrow { margin-bottom: 2px; }
+.pes-n { display: block; font: 700 2em/1 var(--font-display); }
+.pes-entrega small { display: block; color: var(--muted); font-size: .9em; margin-top: 2px; }
+.pes-entrega .lnk { margin-top: 6px; }
+.pes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr)); gap: 10px; }
+.pes-op { min-height: 3.6em; padding: 8px 12px; border-radius: 14px; border: 2px solid var(--line-strong); background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; justify-content: center; }
+.pes-op b { font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.pes-op small { color: var(--muted); font-size: .8em; }
+.pes-op[aria-pressed="true"] { border-color: var(--btn); background: var(--gold-bg); box-shadow: inset 0 0 0 2px var(--btn); }
+.pes-display { font: 700 3em/1.1 var(--font-display); text-align: right; padding: 10px 16px; margin: 0 0 10px; border-radius: 14px; background: var(--surface2); border: 1.5px solid var(--line-strong); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pes-teclas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pes-tecla { min-height: 3.2em; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--ink); font: 700 1.6em/1 var(--font-display); cursor: pointer; }
+.pes-tecla:active { background: var(--surface2); }
+.pes-guardar { margin-top: 12px; }
+#pesTeclado .actions { margin-top: 10px; }
+#pesTeclado .warn-t { margin: 0 0 10px; }
+.pes-fila .pes-hora { flex: none; min-width: 3.2em; color: var(--muted); font-variant-numeric: tabular-nums; font-size: .9em; }
+.pes-fila .pes-cant { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.pes-fila.anulado .mt b, .pes-fila.anulado .pes-cant { text-decoration: line-through; color: var(--muted); }
+.pes-tot { padding: 4px 14px; }
+.mrow.fija { cursor: default; }
+.mrow.fija:hover { background: none; }
+.dia-nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 16px; }
+.dia-nav .txt { flex: 1 1 150px; width: auto; min-height: 44px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5em, 1fr)); gap: 10px; margin: 0 0 14px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.stat b { display: block; font: 700 1.9em/1.05 var(--font-display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stat span { color: var(--muted); font-size: .87em; }
+.entrega-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 2px; }
+.entrega-h b { font: 700 1.35em/1.1 var(--font-display); }
+.entrega details { margin-top: 8px; }
+.entrega summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+.entrega details .mlist { margin: 6px 0 0; }
+.pes-guardar { scroll-margin-bottom: calc(var(--barh, 72px) + 12px); }
+.pes-vacio { display: none; }
+/* Tablet y computador: el pan a la izquierda y el teclado a la derecha, para no tener que bajar la pantalla */
+@media (min-width: 700px) {
+  .pes-trabajo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; align-items: start; }
+  .pes-trabajo .pes-grid { grid-template-columns: repeat(auto-fill, minmax(8em, 1fr)); }
+  .pes-vacio { display: grid; place-items: center; min-height: 12em; border: 1.5px dashed var(--line-strong); border-radius: 16px; text-align: center; padding: 16px; }
+  .pes-vacio p { margin: 0; }
+  .pes-tecla { min-height: 2.9em; }
+}

@@ -2,8 +2,9 @@
      tests/rules-emulator.js  → contra las reglas REALES (firestore.rules) en el emulador (GitHub Actions, o «npm run reglas»)
      tests/reglas-unit.js     → contra la copia a mano (tests/fake-firebase/reglas.mjs) que usan las pruebas de pantalla
    Así las dos se mantienen iguales. Los casos corren en orden y las escrituras permitidas quedan guardadas.
-   En los datos:  '@TS' = hora del servidor · HOY = día chileno de hoy · ANTES = anteayer (ayer no sirve: cerca de la medianoche
-   las reglas aceptan dos días, ver esHoy en firestore.rules). */
+   En los datos:  '@TS' = hora del servidor · HOY = día chileno de hoy · AYER = el día anterior · ANTES = hace tres días (no anteayer:
+   cerca de la medianoche las reglas aceptan dos días para «hoy» y dos para «ayer», ver esHoy y esAyer en firestore.rules).
+   Los casos de lectura con AYER se evitan por lo mismo: a esa hora AYER puede valer como «hoy». */
 const CUENTAS = {
   rosa: { uid: 'rosa', email: 'rosa@example.com', email_verified: true },       // dueña
   pedro: { uid: 'pedro', email: 'pedro@example.com', email_verified: true },    // dueño
@@ -15,9 +16,11 @@ const CUENTAS = {
   nadie: null                                                                    // sin iniciar sesión
 };
 const miembro = (nombre, perfil, activo) => ({ nombre, correo: nombre.toLowerCase() + '@example.com', perfil, activo, por: 'rosa', en: '@TS' });
-const pesaje = (fecha, por, mas) => Object.assign({ fecha, hora: '07:15', entregaN: 1, productoId: 'p1', cantidad: 18.5, unidad: 'kg', trabajadorId: 't1', creadoPor: por, en: '@TS' }, mas || {});
+const sinVacios = o => { for (const k in o) if (o[k] === undefined) delete o[k]; return o; };
+const pesaje = (fecha, por, mas) => sinVacios(Object.assign({ fecha, hora: '07:15', entregaN: 1, productoId: 'p1', cantidad: 18.5, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: por, en: '@TS' }, mas || {}));
+const cambio = (tipo, fecha, por, mas) => Object.assign({ tipo, pesajeId: 'hoy1', fecha, antes: { cantidad: 18.5 }, despues: { cantidad: 19 }, por, en: '@TS' }, mas || {});
 
-function semilla(HOY, ANTES) {
+function semilla(HOY, ANTES, AYER) {
   return {
     'config/negocio': { duenos: ['rosa', 'pedro'], nombre: 'Panadería', iva: 19 },
     'miembros/felipe': miembro('Felipe', 'externo', true),
@@ -29,8 +32,9 @@ function semilla(HOY, ANTES) {
     'clientes/c1': { nombre: 'Supermercado', activo: true, en: '@TS' },
     'pesajes/hoy1': pesaje(HOY, 'tablet'),
     'pesajes/viejo1': pesaje(ANTES, 'tablet'),
-    ['dias/' + HOY]: { totales: { p1: 18.5 }, en: '@TS' },
-    ['dias/' + ANTES]: { totales: { p1: 18.5 }, en: '@TS' },
+    'productos/u5': { nombre: 'Pan de completo', unidad: 'un', activo: true, en: '@TS' },
+    ['dias/' + HOY]: { entregaN: 1, por: 'tablet', en: '@TS' },
+    ['dias/' + ANTES]: { entregaN: 3, por: 'tablet', en: '@TS' },
     'cierres/2026-10': { totales: {}, origen: 'excel', cerrado: true, en: '@TS' },
     'cierres/2026-11': { totales: {}, origen: 'app', cerrado: false, en: '@TS' },
     'proyeccion/2027': { factor: 1.05, en: '@TS' },
@@ -38,7 +42,7 @@ function semilla(HOY, ANTES) {
   };
 }
 
-function casos(HOY, ANTES) {
+function casos(HOY, ANTES, AYER) {
   const C = []; const t = titulo => C.push({ t: titulo });
   const si = (q, op, r, m, d, f) => C.push({ q, op, r, d, f, ok: true, m });
   const no = (q, op, r, m, d, f) => C.push({ q, op, r, d, f, ok: false, m });
@@ -133,12 +137,12 @@ function casos(HOY, ANTES) {
   no('tablet', 'update', 'pesajes/viejo1', 'no corrige los de otros días', { cantidad: 19, en: '@TS' });
   no('tablet', 'update', 'pesajes/hoy1', 'no lo mueve a otra fecha', { fecha: ANTES, en: '@TS' });
   no('tablet', 'delete', 'pesajes/hoy1', 'los pesajes no se borran (se anulan)');
-  si('tablet', 'get', 'dias/' + HOY, 'lee los totales de hoy');
-  si('tablet', 'set', 'dias/' + HOY, 'y los actualiza', { totales: { p1: 37.5 }, en: '@TS' });
-  no('tablet', 'get', 'dias/' + ANTES, 'no los de otros días');
-  no('tablet', 'set', 'dias/' + ANTES, 'ni los cambia', { totales: {}, en: '@TS' });
-  si('tablet', 'set', 'cambios/x2', 'deja constancia de una corrección', { que: 'corrige hoy1', por: 'tablet', en: '@TS' });
-  no('tablet', 'set', 'cambios/x3', 'no a nombre de otra cuenta', { que: 'x', por: 'rosa', en: '@TS' });
+  si('tablet', 'get', 'dias/' + HOY, 'lee la entrega en curso de hoy');
+  si('tablet', 'set', 'dias/' + HOY, 'y cierra la entrega (pasa a la n.º 2)', { entregaN: 2, por: 'tablet', en: '@TS' });
+  no('tablet', 'get', 'dias/' + ANTES, 'no lee otros días');
+  no('tablet', 'set', 'dias/' + ANTES, 'ni los cambia', { entregaN: 4, por: 'tablet', en: '@TS' });
+  si('tablet', 'set', 'cambios/x2', 'deja constancia de una corrección', cambio('corregir', HOY, 'tablet'));
+  no('tablet', 'set', 'cambios/x3', 'no a nombre de otra cuenta', cambio('corregir', HOY, 'rosa'));
 
   t('7. Dueños y externo: todo, salvo accesos (el externo)');
   for (const q of ['rosa', 'felipe']) {
@@ -201,6 +205,38 @@ function casos(HOY, ANTES) {
   no('rosa', 'delete', 'clientes/c1', 'los clientes no se borran');
   no('felipe', 'update', 'config/negocio', 'el IVA solo lo cambian los dueños', { iva: 10 });
   si('pedro', 'update', 'config/negocio', 'un dueño cambia el IVA', { iva: 19 });
+
+  t('9. Pesaje y entregas: forma de los datos (Fase 4)');
+  si('tablet', 'set', 'pesajes/f1', 'un canasto por unidad, con nota', pesaje(HOY, 'tablet', { productoId: 'u5', unidad: 'un', cantidad: 120, nota: 'Canasto chico' }));
+  no('tablet', 'set', 'pesajes/f2', 'las unidades van sin decimales', pesaje(HOY, 'tablet', { productoId: 'u5', unidad: 'un', cantidad: 12.5 }));
+  no('tablet', 'set', 'pesajes/f2', 'la unidad debe ser la del producto', pesaje(HOY, 'tablet', { productoId: 'u5', unidad: 'kg' }));
+  no('tablet', 'set', 'pesajes/f2', 'el producto debe existir', pesaje(HOY, 'tablet', { productoId: 'no-existe' }));
+  no('tablet', 'set', 'pesajes/f2', 'el trabajador debe estar en la lista', pesaje(HOY, 'tablet', { trabajadorId: 'no-existe' }));
+  no('tablet', 'set', 'pesajes/f2', 'se dice quién pesó', pesaje(HOY, 'tablet', { trabajadorId: undefined }));
+  no('tablet', 'set', 'pesajes/f2', 'la entrega es un número entero desde 1', pesaje(HOY, 'tablet', { entregaN: 0 }));
+  no('tablet', 'set', 'pesajes/f2', 'y no un texto', pesaje(HOY, 'tablet', { entregaN: '1' }));
+  no('tablet', 'set', 'pesajes/f2', 'la hora va como HH:MM', pesaje(HOY, 'tablet', { hora: '7:15' }));
+  no('tablet', 'set', 'pesajes/f2', 'la fecha va como AAAA-MM-DD', pesaje(HOY.split('-').reverse().join('-'), 'tablet'));
+  no('tablet', 'set', 'pesajes/f2', 'la nota no pasa de 200 letras', pesaje(HOY, 'tablet', { nota: 'x'.repeat(201) }));
+  no('tablet', 'set', 'pesajes/f2', 'siempre dice si está anulado', pesaje(HOY, 'tablet', { anulado: undefined }));
+  si('tablet', 'set', 'pesajes/f3', 'lo anotado sin conexión antes de la medianoche se acepta con la fecha de ayer', pesaje(AYER, 'tablet'));
+  si('tablet', 'set', 'dias/' + AYER, 'y también el cierre de la entrega de ayer', { entregaN: 2, por: 'tablet', en: '@TS' });
+  no('tablet', 'set', 'dias/' + HOY, 'la tablet no salta entregas (de la 2 a la 4)', { entregaN: 4, por: 'tablet', en: '@TS' });
+  si('tablet', 'set', 'dias/' + HOY, 'pasa a la siguiente (n.º 3)', { entregaN: 3, por: 'tablet', en: '@TS' });
+  si('tablet', 'set', 'dias/' + HOY, 'o vuelve a abrir la anterior (n.º 2)', { entregaN: 2, por: 'tablet', en: '@TS' });
+  no('tablet', 'set', 'dias/' + HOY, 'a nombre de otra cuenta, no', { entregaN: 3, por: 'rosa', en: '@TS' });
+  no('tablet', 'set', 'dias/' + HOY, 'ni con campos de más (por ejemplo totales)', { entregaN: 3, por: 'tablet', totales: { p1: 1 }, en: '@TS' });
+  no('tablet', 'delete', 'dias/' + HOY, 'el día no se borra');
+  no('tablet', 'list', 'dias', 'la tablet no lista los días');
+  si('rosa', 'set', 'dias/' + ANTES, 'un dueño corrige el número de entrega de otro día', { entregaN: 1, por: 'rosa', en: '@TS' });
+  no('rosa', 'set', 'dias/' + HOY, 'con un número fuera de rango, no', { entregaN: 51, por: 'rosa', en: '@TS' });
+  si('felipe', 'update', 'pesajes/f1', 'el externo mueve un canasto a otra entrega', { entregaN: 2, en: '@TS' });
+  no('felipe', 'update', 'pesajes/f1', 'pero no cambia quién lo creó', { creadoPor: 'felipe', en: '@TS' });
+  si('rosa', 'set', 'cambios/x4', 'un dueño deja constancia de una anulación de otro día', cambio('anular', ANTES, 'rosa', { antes: { anulado: false }, despues: { anulado: true } }));
+  no('tablet', 'set', 'cambios/x5', 'la tablet no deja constancias de otros días', cambio('corregir', ANTES, 'tablet'));
+  no('rosa', 'set', 'cambios/x5', 'la constancia es de un tipo conocido', cambio('borrar', HOY, 'rosa'));
+  no('rosa', 'set', 'cambios/x5', 'y lleva lo de antes y lo de después', cambio('corregir', HOY, 'rosa', { despues: 'otra cosa' }));
+  no('rosa', 'set', 'cambios/x5', 'sin campos de más', cambio('corregir', HOY, 'rosa', { nota: 'x' }));
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

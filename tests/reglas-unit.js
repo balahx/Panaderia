@@ -8,13 +8,13 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
 
 (async () => {
   const R = await import('./fake-firebase/reglas.mjs');
-  const AHORA = Date.now(), HOY = dia(AHORA), ANTES = dia(AHORA - 2 * 86400000);
+  const AHORA = Date.now(), HOY = dia(AHORA), AYER = dia(AHORA - 86400000), ANTES = dia(AHORA - 3 * 86400000);
   const ts = o => { const r = {}; for (const k in o) r[k] = o[k] === '@TS' ? R.TS : o[k]; return r; };
   const guardar = o => { const r = {}; for (const k in o) r[k] = o[k] && o[k].__ts ? AHORA : o[k]; return r; };
-  const docs = {}; const S = semilla(HOY, ANTES); for (const p in S) docs[p] = guardar(ts(S[p]));
+  const docs = {}; const S = semilla(HOY, ANTES, AYER); for (const p in S) docs[p] = guardar(ts(S[p]));
   const leer = p => (p in docs ? docs[p] : null);
 
-  for (const c of casos(HOY, ANTES)) {
+  for (const c of casos(HOY, ANTES, AYER)) {
     if (c.t) { console.log(c.t); continue; }
     const q = CUENTAS[c.q], prev = leer(c.r);
     let op = c.op, datos = c.d ? ts(c.d) : null;
@@ -27,13 +27,16 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
     ok(res === c.ok, c.m + (res === c.ok ? '' : ' · ' + (res ? 'se permitió' : 'se rechazó')));
   }
 
-  console.log('9. El día según la hora del servidor');
+  console.log('10. El día según la hora del servidor');
   const t = Date.UTC(2026, 10, 15, 2, 30);   // 15-nov 02:30 UTC = 14-nov 23:30 en Chile (UTC-3)
   ok(R.esHoy('2026-11-14', t) && !R.esHoy('2026-11-15', t) && !R.esHoy('2026-11-13', t), 'a las 23:30 de Chile el día sigue siendo el 14');
   const t2 = Date.UTC(2026, 6, 15, 3, 30);   // en invierno (UTC-4): 14-jul 23:30
   ok(R.esHoy('2026-07-14', t2) && R.esHoy('2026-07-15', t2), 'en la hora dudosa de la medianoche se aceptan los dos días (verano e invierno)');
+  ok(R.esAyer('2026-11-13', t) && !R.esAyer('2026-11-14', t) && !R.esAyer('2026-11-12', t), 'a las 23:30 del 14, «ayer» es el 13 (lo anotado sin conexión se acepta un día después)');
+  const t3 = Date.UTC(2026, 10, 15, 3, 10);   // 15-nov 00:10 en Chile: lo pesado a las 23:50 del 14 llega a esta hora
+  ok(R.esAyer('2026-11-14', t3) || R.esHoy('2026-11-14', t3), 'un canasto del 14 que llega pasada la medianoche todavía se acepta');
 
-  console.log('10. firestore.rules');
+  console.log('11. firestore.rules');
   const rules = fs.readFileSync(path.join(__dirname, '..', 'firestore.rules'), 'utf8').replace(/\/\/.*$/gm, '');
   const cols = [...new Set((rules.match(/match \/([a-z]+)\//g) || []).map(x => x.slice(7, -1)))].filter(x => x !== 'databases').sort();
   const esperadas = ['cambios', 'cierres', 'clientes', 'config', 'dias', 'miembros', 'pesajes', 'precios', 'productos', 'proyeccion', 'solicitudes', 'trabajadores'];

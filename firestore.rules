@@ -1,10 +1,10 @@
 rules_version = '2';
 
-// Panadería · reglas por perfil (Fase 2) y forma de los datos del catálogo (Fase 3). Todo lo que no se permite aquí queda prohibido.
+// Panadería · reglas por perfil (Fase 2), forma de los datos del catálogo (Fase 3) y del pesaje (Fase 4). Todo lo que no se permite aquí queda prohibido.
 // Perfiles: DUEÑO (su UID figura en config/negocio, creado a mano en la consola), EXTERNO y PESAJE (miembros/{uid}, los crea un dueño).
 // «Gestión» = dueño o externo. La cuenta de pesaje nunca lee precios, clientes, cierres ni proyecciones.
 // Cada cambio se prueba con el emulador: tests/rules-emulator.js (casos en tests/reglas-casos.js).
-// La forma de los datos de pesajes, días y cierres se afina en la fase de cada pantalla (4 a 7); el acceso por perfil queda fijado aquí.
+// La forma de los datos de cierres y proyección se afina en su fase (6 y 7); el acceso por perfil queda fijado aquí.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -139,31 +139,56 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ---------- Pesajes (pantallas: Fase 4) ----------
-    // Gestión: todo. Pesaje (la tablet): crea, y lee y corrige solo lo del día según la hora del servidor. No se borran: se anulan.
+    // ---------- Pesajes y entregas del día (Fase 4) ----------
+    // Un documento por canasto. Gestión: todo (también fechas pasadas). Pesaje (la tablet): crea, y lee y corrige solo lo del día
+    // según la hora del servidor. No se borran: se anulan. Los totales no se guardan: la app los calcula con los pesajes.
+    // La unidad debe ser la del producto (kg o un) y el trabajador debe existir en la lista.
+    function fechaValida(f) { return f is string && f.size() == 10 && f.matches('[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'); }
+    // Lo anotado sin conexión cerca de la medianoche puede llegar al servidor al día siguiente: la tablet puede CREAR con la fecha de ayer.
+    function esAyer(fecha) {
+      return fecha == diaDe(request.time - duration.value(27, 'h')) || fecha == diaDe(request.time - duration.value(28, 'h'));
+    }
     function pesajeValido() {
       return nuevo().keys().hasOnly(['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'nota', 'anulado', 'creadoPor', 'en'])
-        && nuevo().keys().hasAll(['fecha', 'productoId', 'cantidad', 'unidad', 'creadoPor', 'en'])
-        && texto(nuevo().fecha, 10, 10)
+        && nuevo().keys().hasAll(['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'anulado', 'creadoPor', 'en'])
+        && fechaValida(nuevo().fecha)
+        && nuevo().hora is string && nuevo().hora.matches('([01][0-9]|2[0-3]):[0-5][0-9]')
+        && nuevo().entregaN is int && nuevo().entregaN >= 1 && nuevo().entregaN <= 50
         && texto(nuevo().productoId, 1, 60)
+        && texto(nuevo().trabajadorId, 1, 60)
         && nuevo().cantidad is number && nuevo().cantidad > 0 && nuevo().cantidad <= 100000
         && nuevo().unidad in ['kg', 'un']
-        && (!('nota' in nuevo()) || texto(nuevo().nota, 0, 200))
-        && (!('anulado' in nuevo()) || nuevo().anulado is bool)
-        && nuevo().en == request.time;
+        && (nuevo().unidad == 'kg' || nuevo().cantidad is int)
+        && (!('nota' in nuevo()) || texto(nuevo().nota, 1, 200))
+        && nuevo().anulado is bool
+        && nuevo().en == request.time
+        && get(/databases/$(database)/documents/productos/$(nuevo().productoId)).data.unidad == nuevo().unidad
+        && exists(/databases/$(database)/documents/trabajadores/$(nuevo().trabajadorId));
     }
     match /pesajes/{id} {
       allow read: if esGestion() || (esPesaje() && esHoy(resource.data.fecha));
       allow create: if pesajeValido() && nuevo().creadoPor == request.auth.uid
-        && (esGestion() || (esPesaje() && esHoy(nuevo().fecha)));
+        && (esGestion() || (esPesaje() && (esHoy(nuevo().fecha) || esAyer(nuevo().fecha))));
       allow update: if pesajeValido() && nuevo().creadoPor == resource.data.creadoPor
         && (esGestion() || (esPesaje() && esHoy(resource.data.fecha) && nuevo().fecha == resource.data.fecha));
       allow delete: if false;
     }
-    // Totales del día (se escriben junto con cada pesaje). La tablet solo toca el día de hoy.
+    // Entrega en curso del día: dias/{fecha} = { entregaN, por, en }. «Cerrar entrega» la sube en uno; «volver a abrir» la baja en uno.
+    // La tablet solo toca el día de hoy (o el de ayer, por lo anotado sin conexión) y de a un paso; gestión puede fijar cualquier número.
+    function diaValido(fecha) {
+      return fechaValida(fecha)
+        && nuevo().keys().hasOnly(['entregaN', 'por', 'en'])
+        && nuevo().keys().hasAll(['entregaN', 'por', 'en'])
+        && nuevo().entregaN is int && nuevo().entregaN >= 1 && nuevo().entregaN <= 50
+        && nuevo().por == request.auth.uid
+        && nuevo().en == request.time;
+    }
+    function tabletEnSuDia(fecha) { return esPesaje() && (esHoy(fecha) || esAyer(fecha)); }
     match /dias/{fecha} {
       allow read: if esGestion() || (esPesaje() && esHoy(fecha));
-      allow create, update: if (esGestion() || (esPesaje() && esHoy(fecha))) && nuevo().en == request.time;
+      allow create: if diaValido(fecha) && (esGestion() || (tabletEnSuDia(fecha) && nuevo().entregaN <= 2));
+      allow update: if diaValido(fecha) && (esGestion()
+        || (tabletEnSuDia(fecha) && (nuevo().entregaN == resource.data.entregaN + 1 || nuevo().entregaN == resource.data.entregaN - 1)));
       allow delete: if false;
     }
 
@@ -180,10 +205,20 @@ service cloud.firestore {
       allow create, update: if esGestion() && nuevo().en == request.time;
       allow delete: if false;
     }
-    // Bitácora de correcciones: se agrega, nunca se cambia ni se borra.
+    // Bitácora de correcciones: se agrega junto con cada corrección, anulación o reactivación de un pesaje; nunca se cambia ni se borra.
+    // La tablet deja constancia solo de lo del día.
     match /cambios/{id} {
       allow read: if esGestion();
-      allow create: if conAcceso() && nuevo().por == request.auth.uid && nuevo().en == request.time;
+      allow create: if conAcceso()
+        && nuevo().keys().hasOnly(['tipo', 'pesajeId', 'fecha', 'antes', 'despues', 'por', 'en'])
+        && nuevo().keys().hasAll(['tipo', 'pesajeId', 'fecha', 'antes', 'despues', 'por', 'en'])
+        && nuevo().tipo in ['corregir', 'anular', 'reactivar']
+        && texto(nuevo().pesajeId, 1, 60)
+        && fechaValida(nuevo().fecha)
+        && nuevo().antes is map && nuevo().despues is map
+        && nuevo().por == request.auth.uid
+        && nuevo().en == request.time
+        && (esGestion() || esHoy(nuevo().fecha));
       allow update, delete: if false;
     }
   }

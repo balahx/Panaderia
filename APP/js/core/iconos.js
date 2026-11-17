@@ -19,6 +19,7 @@ export const IC = {
   prog: '<path d="M3 18l5.5-6 4 3.5L21 6"/><path d="M15 6h6v6"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>',
   dot: '<circle cx="12" cy="12" r="3.5"/>',
+  pesa: '<path d="M7.6 9.2h8.8l2.6 10.3H5z"/><circle cx="12" cy="6.3" r="2.3"/>',
   warn: '<path d="M12 4l9 15.5H3z"/><path d="M12 10v4.5M12 17.2v.1"/>'
 };
 export function svg(n, c) {

@@ -29,7 +29,7 @@ const pngSize = f => { const b = fs.readFileSync(f); return b.toString('ascii', 
   await page.click('#btnGoogle'); await page.waitForSelector('#appRoot:not([hidden])');
   await ctx.setOffline(true);
   await page.reload(); await page.waitForSelector('#appRoot:not([hidden])');
-  ok((await page.textContent('#view h1')).trim() === 'Hola, Rosa', 'con sesión iniciada, en modo avión abre directo en la app');
+  ok(/^Hola, Rosa · /.test(await page.textContent('#hoySaludo')) && (await page.textContent('#view h1')).trim() === 'Pesado hoy', 'con sesión iniciada, en modo avión abre directo en la app');
   await page.waitForSelector('#netBar:not([hidden])'); ok(/Sin conexión/.test(await page.textContent('#netBar')), 'avisa que está sin conexión');
   ok(await page.evaluate(() => document.fonts.ready.then(() => document.fonts.check('700 20px "Barlow Condensed"') && document.fonts.check('400 15px Barlow'))), 'las tipografías cargan sin conexión');
   await ctx.setOffline(false); await page.waitForSelector('#netBar', { state: 'hidden' }); ok(true, 'al volver la conexión el aviso se quita');

@@ -31,7 +31,7 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   ok(visto.searchParams.get('state').length === 32 && visto.searchParams.get('nonce').length === 32 && visto.searchParams.get('state') !== visto.searchParams.get('nonce'), 'con state y nonce al azar');
   ok(page.url() === URL, 'al volver, el token no queda en la dirección: ' + page.url());
   ok((await page.evaluate(() => history.length)) >= 1 && (await page.evaluate(() => localStorage.getItem('pan.ingreso'))) === null, 'lo guardado para el ingreso se borra al usarlo');
-  ok((await page.textContent('#view h1')).trim() === 'Hola, Rosa', 'entra a Inicio y saluda por el nombre');
+  ok(/^Hola, Rosa · /.test(await page.textContent('#hoySaludo')) && (await page.textContent('#view h1')).trim() === 'Pesado hoy', 'entra a «Hoy» y saluda por el nombre');
   ok((await page.evaluate(() => window.__fakeAuth.opciones.popupRedirectResolver)) === undefined && (await page.evaluate(() => window.__fakeAuth.opciones.persistence.length)) === 2, 'Firebase se inicia sin ventanas emergentes ni marcos, con la sesión guardada en el equipo');
   await page.reload(); await page.waitForSelector('#appRoot:not([hidden])');
   ok(true, 'al recargar la sesión sigue iniciada');

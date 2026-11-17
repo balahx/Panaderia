@@ -47,7 +47,7 @@ const INTRUSO = { sub: '4004', email: 'intruso@example.com', name: 'Otra Persona
   await entrar({}, '#appRoot:not([hidden])');
   await page.waitForSelector('#avisoAccesos');
   ok(/3 solicitudes de acceso por revisar/.test(await page.textContent('#avisoAccesos')), 'en Inicio hay un aviso con las solicitudes por revisar');
-  ok(/Dueño/.test(await page.textContent('#inicioPerfil')), 'Inicio dice con qué perfil se entró');
+  ok((await page.getAttribute('#view', 'data-tab')) === 'inicio' && /Hola, Rosa/.test(await page.textContent('#hoySaludo')) && (await page.locator('#nav button').allTextContents()).join() === 'Hoy,Pesaje,Más', 'la dueña entra a «Hoy»; la barra tiene Hoy, Pesaje y Más');
   await tocar('#nav button[data-tab="mas"]');
   ok((await page.textContent('#miPerfil')) === 'Dueño' && /3 por revisar/.test(await page.textContent('#irAccesos')), '«Más» muestra el perfil y la entrada a Accesos con el número pendiente');
   await tocar('#irAccesos'); await page.waitForSelector('#secSolicitudes .persona');
@@ -85,7 +85,7 @@ const INTRUSO = { sub: '4004', email: 'intruso@example.com', name: 'Otra Persona
 
   console.log('5. Externo: todo salvo accesos');
   await entrar(FELIPE, '#appRoot:not([hidden])');
-  ok(/Externo/.test(await page.textContent('#inicioPerfil')) && !(await page.$('#avisoAccesos')), 'entra con perfil Externo y sin avisos de solicitudes');
+  ok((await page.getAttribute('#view', 'data-tab')) === 'inicio' && !(await page.$('#avisoAccesos')), 'el externo entra a «Hoy» y sin avisos de solicitudes');
   await tocar('#nav button[data-tab="mas"]');
   ok((await page.textContent('#miPerfil')) === 'Externo' && !(await page.$('#irAccesos')), '«Más» no le ofrece Accesos');
   await page.evaluate(() => { const b = document.createElement('button'); b.dataset.act = 'ir'; b.dataset.tab = 'accesos'; b.id = 'trampa'; document.getElementById('view').appendChild(b); b.click(); });
@@ -100,7 +100,7 @@ const INTRUSO = { sub: '4004', email: 'intruso@example.com', name: 'Otra Persona
 
   console.log('6. Sin conexión y cierre de sesión');
   await db('fuera', true); await page.reload(); await page.waitForSelector('#appRoot:not([hidden])');
-  ok(/Externo/.test(await page.textContent('#inicioPerfil')), 'sin conexión, la app abre con el perfil guardado en el equipo');
+  ok((await page.getAttribute('#view', 'data-tab')) === 'inicio' && !!(await page.$('#nav button[data-tab="pesaje"]')), 'sin conexión, la app abre con el perfil guardado en el equipo');
   await db('fuera', false);
   ok((await page.evaluate(() => JSON.parse(localStorage.getItem('fake.cache') || '[]').length)) > 0, 'hay copia de datos en el equipo');
   await tocar('#nav button[data-tab="mas"]'); await salir();
@@ -115,7 +115,7 @@ const INTRUSO = { sub: '4004', email: 'intruso@example.com', name: 'Otra Persona
   await tocar('[data-act="pedir"]'); await page.waitForSelector('#espera');
   await db('poner', 'miembros/u-5005', { nombre: 'Nora Paz', correo: 'nora@example.com', perfil: 'pesaje', activo: true, por: 'u-1001', en: 1 });
   await page.waitForSelector('#appRoot:not([hidden])'); await aviso(/Tu acceso fue aprobado/);
-  ok(/Pesaje/.test(await page.textContent('#inicioPerfil')) && /solo para registrar el pesaje/.test(await page.textContent('#inicioPerfil')), 'cuando un dueño aprueba, la pantalla de espera pasa sola a la app, con perfil Pesaje');
+  ok((await page.getAttribute('#view', 'data-tab')) === 'pesaje' && (await page.locator('#nav button').allTextContents()).join() === 'Pesaje,Más' && (await page.getAttribute('html', 'data-escala')) === 'grande', 'cuando un dueño aprueba, la espera pasa sola a la pantalla de pesaje (solo Pesaje y Más, letra grande)');
   await tocar('#nav button[data-tab="mas"]');
   ok((await page.textContent('#miPerfil')) === 'Pesaje' && !(await page.$('#irAccesos')), 'la cuenta de pesaje no ve Accesos');
   await db('poner', 'precios/pr1', { productoId: 'p1', clienteId: 'c1', neto: 1450, desde: '2026-01-01', en: 1 });
