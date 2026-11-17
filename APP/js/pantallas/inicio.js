@@ -9,6 +9,7 @@ import * as P from '../core/pesaje.js';
 import * as V from '../core/ventas.js';
 import * as canasto from './pesaje-hoja.js';
 import * as anotar from './anotar.js';
+import { cerradoEl, textoOrigen } from '../core/cierres.js';
 
 let sel = '';   // día elegido ('' = seguir el día de hoy, también pasada la medianoche)
 export const fecha = c => (sel && sel <= c.hoy ? sel : c.hoy);
@@ -60,7 +61,10 @@ function entregas(c, f, R, todos, M) {
     (todos.some(p => p.anulado) ? '<section class="sec" id="hoyAnulados"><h2>Anulados</h2><div class="mlist">' + P.recientes(todos.filter(p => p.anulado)).map(p => canasto.filaCanasto(p, c, true)).join('') + '</div></section>' : '');
 }
 
-const botonAnotar = (f, c, donde) => '<div class="actions ' + donde + '"><button class="btn ghost" id="hoyAnotar" data-act="anotar" data-fecha="' + f + '">' + svg('mas') + (f === c.hoy ? 'Anotar canasto' : 'Anotar canasto el ' + esc(fechaTexto(f).replace(/ \d{4}$/, ''))) + '</button></div>';
+/* Un día de un mes cerrado (Fase 6) no se anota ni se corrige: en vez del botón, el aviso. */
+const avisoCerrado = (f, c) => { const x = cerradoEl(c.cierres, f); return x ? '<p class="note" id="hoyCerrado">' + esc(cap(V.mesTexto(V.mesDe(f)))) + ' está cerrado (' + esc(textoOrigen(x)) + '): no se anota ni se corrige. Un dueño puede reabrirlo en Más → Cierres mensuales.</p>' : ''; };
+const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+const botonAnotar = (f, c, donde) => avisoCerrado(f, c) || '<div class="actions ' + donde + '"><button class="btn ghost" id="hoyAnotar" data-act="anotar" data-fecha="' + f + '">' + svg('mas') + (f === c.hoy ? 'Anotar canasto' : 'Anotar canasto el ' + esc(fechaTexto(f).replace(/ \d{4}$/, ''))) + '</button></div>';
 
 export function html(c) {
   const f = fecha(c), cab = cabecera(c, f), d = c.dia && c.dia.fecha === f ? c.dia : null;

@@ -14,6 +14,7 @@ import * as entregas from './pantallas/entregas.js';
 import * as pesaje from './pantallas/pesaje.js';
 import * as registro from './pantallas/registro.js';
 import * as datos from './pantallas/datos.js';
+import * as cierres from './pantallas/cierres.js';
 import * as avisos from './pantallas/avisos.js';
 import * as accesos from './pantallas/accesos.js';
 import * as catalogo from './pantallas/catalogo.js';
@@ -29,6 +30,7 @@ const TABS = [
   { id: 'pesaje', t: 'Pesaje', ic: 'pesa', mod: pesaje, permiso: 'pesaje', datos: true, grande: true },
   { id: 'registro', t: 'Registro', ic: 'lista', mod: registro, oculta: true, permiso: 'gestion', datos: true },
   { id: 'datos', t: 'Datos', ic: 'bajar', mod: datos, oculta: true, permiso: 'gestion', datos: true },
+  { id: 'cierres', t: 'Cierres', ic: 'file', mod: cierres, oculta: true, permiso: 'gestion', datos: true },
   { id: 'catalogo', t: 'Catálogo', ic: 'pan', mod: catalogo, oculta: true, permiso: 'gestion', datos: true },
   { id: 'accesos', t: 'Accesos', ic: 'team', mod: accesos, oculta: true, permiso: 'accesos' },
   { id: 'mas', t: 'Más', ic: 'more', mod: mas }
@@ -38,10 +40,11 @@ const S = { user: null, tab: 'inicio', gate: { tipo: 'cargando' }, estado: 'comp
   cat: null, errCat: '', nivel: '',     // cat: { productos, trabajadores, precios, clientes } (precios y clientes solo para gestión)
   dia: null,                            // dia: { fecha, pesajes, dia (entrega en curso), err } (core/pesaje.js)
   per: null,                            // per: { desde, hasta, pesajes, cambios, err } (Entregas y Registro; solo gestión)
-  respaldo: undefined };                // config/respaldo: undefined = aún no se sabe · null = nunca hubo (core/respaldo.js)
+  respaldo: undefined,                  // config/respaldo: undefined = aún no se sabe · null = nunca hubo (core/respaldo.js)
+  cierres: null };                      // cierres mensuales [{ id: 'AAAA-MM', … }] (Fase 6; solo gestión) · null = aún no llegan
 let escuchas = [], escuchasDueno = [], escuchasCat = [], escuchasDia = [], escuchasPer = [], escuchasGes = [], tLento = 0;
 const ctx = () => ({ user: S.user, perfil: S.estado, estado: S.estado, negocio: S.acc && S.acc.negocio, lento: S.lento, error: S.acc && S.acc.error,
-  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, per: S.per, respaldo: S.respaldo, hoy: diaChile(new Date()) });
+  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, per: S.per, respaldo: S.respaldo, cierres: S.cierres, hoy: diaChile(new Date()) });
 const visible = t => !t.permiso || perfil.puede(S.estado, t.permiso);
 const tabActual = () => TABS.find(t => t.id === S.tab && visible(t)) || TABS.find(visible);
 
@@ -82,7 +85,7 @@ function pintarRed() {
 
 /* ---------- Acceso por perfil ---------- */
 function soltar(lista) { lista.forEach(f => { try { f(); } catch (e) { /* */ } }); lista.length = 0; }
-function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); soltar(escuchasPer); soltar(escuchasGes); S.dia = null; S.per = null; S.respaldo = undefined; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
+function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); soltar(escuchasPer); soltar(escuchasGes); S.dia = null; S.per = null; S.respaldo = undefined; S.cierres = null; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
 /* Al entrar: escucha quiénes son los dueños, la ficha de miembro y la solicitud de esta cuenta. Se actualiza solo. */
 function vigilarAcceso(u) {
   dejarDeVigilar();
@@ -111,13 +114,16 @@ function evaluar(cambio) {
   if (S.estado !== 'dueno' && escuchasDueno.length) { soltar(escuchasDueno); S.sol = S.miem = null; }
   /* Dueños y externo: la marca del último respaldo (para la franja semanal). Cambia poco: se redibuja la franja, y la pantalla
      solo si es la de Datos (que la muestra). */
-  if (perfil.puede(S.estado, 'gestion') && !escuchasGes.length)
+  if (perfil.puede(S.estado, 'gestion') && !escuchasGes.length) {
     escuchasGes.push(nube.vigilarDoc('config/respaldo', (d, meta) => {
       if (d === null && meta.cache) return;
       S.respaldo = d; if (!perfil.puede(S.estado, 'gestion')) return;
       if (tabActual().id === 'datos') pintarApp(); else pintarBanner();
     }, () => { S.respaldo = undefined; }));
-  if (!perfil.puede(S.estado, 'gestion') && escuchasGes.length) { soltar(escuchasGes); S.respaldo = undefined; }
+    /* Cierres mensuales (Fase 6): unos pocos documentos al año. Deciden qué meses están cerrados (Hoy, Entregas, Registro y Cierres). */
+    escuchasGes.push(nube.vigilarCol('cierres', l => { S.cierres = l; if (perfil.puede(S.estado, 'gestion') && tabActual().datos) pintarApp(); }, () => { S.cierres = S.cierres || []; }));
+  }
+  if (!perfil.puede(S.estado, 'gestion') && escuchasGes.length) { soltar(escuchasGes); S.respaldo = undefined; S.cierres = null; }
   vigilarCatalogo();
   if (S.estado === antes) {         // misma pantalla: no se redibuja (no borra lo que se está escribiendo)…
     if (cambio === 'negocio' && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp();   // …salvo si cambió el IVA y la pantalla muestra precios
@@ -191,7 +197,7 @@ document.addEventListener('click', e => {
   if (!S.user) { ingreso.alActuar(act, el, pintarIngreso); return; }
   if (act === 'salir') { cerrarSesion(); return; }
   if (!perfil.esPerfil(S.estado)) { espera.alActuar(act, el, ctx()); return; }
-  if (act === 'ir') { const t = TABS.find(x => x.id === el.dataset.tab && visible(x)); if (t) { if (t.mod.abrir) t.mod.abrir(el.dataset, ctx()); S.tab = t.id; pintarApp(); scrollTo(0, 0); } return; }
+  if (act === 'ir') { const t = TABS.find(x => x.id === el.dataset.tab && visible(x)); if (t) { cerrarHoja(); if (t.mod.abrir) t.mod.abrir(el.dataset, ctx()); S.tab = t.id; pintarApp(); scrollTo(0, 0); } return; }
   if (avisos.alActuar(act, el, ctx())) { pintarBanner(); return; }
   const r = tabActual().mod.alActuar(act, el, ctx());
   if (r === 'repintar') pintarApp();          // la pantalla cambió algo que decide qué datos escuchar (por ejemplo, el día)
@@ -210,6 +216,13 @@ document.addEventListener('keydown', e => {
 });
 /* Mientras se escribe en un campo: la pantalla actual puede reaccionar (vista previa, campos que dependen de otro) */
 document.addEventListener('input', e => {
+  if (e.target.type === 'file') return;   // los archivos se atienden con «change» (abajo), una sola vez
+  const m = S.user && perfil.esPerfil(S.estado) ? tabActual().mod : null;
+  if (m && m.alEscribir && m.alEscribir(e.target, ctx()) === 'repintar') pintarApp();
+});
+/* Elegir archivos (importar cierres): «change» llega en todos los navegadores, también en iPhone. */
+document.addEventListener('change', e => {
+  if (e.target.type !== 'file') return;
   const m = S.user && perfil.esPerfil(S.estado) ? tabActual().mod : null;
   if (m && m.alEscribir && m.alEscribir(e.target, ctx()) === 'repintar') pintarApp();
 });

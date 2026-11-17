@@ -1,7 +1,8 @@
 /* Accesibilidad de las pantallas (portado de la app de muestra en la Fase 3): en 360 px y 390 px, claro y oscuro, recorre el ingreso,
    Hoy (con datos, otro día, las hojas de un canasto y la de anotar), Entregas con las franjas de aviso (sin precio y respaldo),
    Pesaje (con letra grande, teclado, nota y cierre de entrega), «Más» con sus grupos, Registro general (canastos y bitácora),
-   Datos (Excel y respaldo), Accesos y el Catálogo con sus hojas y formularios, y comprueba que no hay desborde lateral, que todo lo tocable
+   Datos (Excel y respaldo), Cierres mensuales (el año, el detalle de un mes, la revisión de una importación, Entregas de un mes cerrado
+   y de uno por cerrar, y Hoy en un mes cerrado), Accesos y el Catálogo con sus hojas y formularios, y comprueba que no hay desborde lateral, que todo lo tocable
    mide al menos 44 px, que todo botón tiene nombre y todo campo su etiqueta, y que el texto tiene contraste suficiente.
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
@@ -20,7 +21,12 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   'precios/p1_c1_2026-06-01': { productoId: 'p1', clienteId: 'c1', neto: 1512.61, desde: '2026-06-01', en: 1 },
   'precios/p1_c1_2099-01-01': { productoId: 'p1', clienteId: 'c1', neto: 1234567, desde: '2099-01-01', en: 1 },
   'precios/p2_c1_2026-01-01': { productoId: 'p2', clienteId: 'c1', neto: 250, desde: '2026-01-01', en: 1 },
-  'trabajadores/t1': { nombre: 'Luis Soto', activo: true, en: 1 }, 'trabajadores/t2': { nombre: 'Marta Díaz', activo: false, en: 1 } };
+  'trabajadores/t1': { nombre: 'Luis Soto', activo: true, en: 1 }, 'trabajadores/t2': { nombre: 'Marta Díaz', activo: false, en: 1 },
+  'cierres/2026-10': { mes: '2026-10', origen: 'excel', cerrado: true, iva: 19, lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', cantidad: 1234.5, precio: 1450, neto: 1790025, nombreExcel: 'MARRAQUETAS' },
+    { productoId: 'p2', nombre: 'Pan de completo con un nombre largo para probar', unidad: 'un', cantidad: 3200, precio: 120, neto: 384000 }], neto: 2174025, ivaMonto: 413065, total: 2587090, kg: 1234.5, un: 3200,
+    archivo: 'cierre-octubre-2026-con-un-nombre-de-archivo-largo.xlsx', hoja: 'Hoja1', por: 'u-1001', quien: 'Rosa Dueña', en: 1794600000000 },
+  'pesajes/s1': { fecha: '2026-09-15', hora: '06:00', entregaN: 1, productoId: 'p1', cantidad: 25, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: 'u-1001', en: 1790000000000 } };
+const path = require('path'), FX = n => path.join(__dirname, 'fixtures', n);
 const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
 const HOY = dia(Date.now()), pes = (id, hora, n, prod, cant, unidad, mas) => ['pesajes/' + id, Object.assign({ fecha: HOY, hora, entregaN: n, productoId: prod, cantidad: cant, unidad, trabajadorId: 't1', anulado: false, creadoPor: 'u-1001', en: 1794600000000 + Number(hora.replace(':', '')) }, mas || {})];
 Object.assign(SEMILLA, Object.fromEntries([pes('h1', '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', '05:20', 1, 'p2', 1200, 'un', { nota: 'Canasto con una nota bastante larga para ver cómo se corta en la lista' }),
@@ -103,6 +109,17 @@ const CHECK = () => {
     await tocar('#irDatos'); await page.waitForSelector('#datExcel'); await look('datos: excel y respaldo');
     await tocar('[data-act="dat-modo"][data-v="rango"]'); await page.fill('#datDesde', HOY); await page.dispatchEvent('#datDesde', 'input'); await page.fill('#datHasta', '2026-01-01'); await page.dispatchEvent('#datHasta', 'input');
     await page.waitForSelector('#secExcel .form-error'); await look('datos: otras fechas con error'); await tocar('[data-act="dat-modo"][data-v="mes"]'); await tocar('.volver');
+    await tocar('#irCierres'); await page.waitForSelector('#cieMeses');
+    while (!/2026/.test(await page.textContent('#view h1'))) await tocar('[data-act="cie-anio"][data-d="-1"]');
+    await look('cierres: el año');
+    await hoja('cierres: mes cerrado', '#cieMeses [data-mes="2026-10"]', '#cieDetalle'); await cerrar();
+    await hoja('cierres: mes sin cerrar', '#cieMeses [data-mes="2026-09"]', '#cieDetalle'); await cerrar();
+    await page.setInputFiles('#cieArchivo', [FX('cierre-octubre-2026.xlsx'), FX('marzo.xlsx')]); await page.waitForSelector('#impResumen'); await look('cierres: revisar la importación');
+    await tocar('.volver'); await page.waitForSelector('#cieMeses');
+    await tocar('#cieMeses [data-mes="2026-10"]'); await page.waitForSelector('#dlg[open] [data-tab="entregas"]'); await tocar('#dlg [data-tab="entregas"]'); await page.waitForSelector('#entCierre'); await look('entregas: mes cerrado');
+    await page.fill('#entMes', '2026-09'); await page.dispatchEvent('#entMes', 'input'); await page.waitForSelector('#entCerrar'); await look('entregas: mes por cerrar');
+    await tocar('#nav button[data-tab="inicio"]'); await page.fill('#hoyFecha', '2026-10-15'); await page.dispatchEvent('#hoyFecha', 'input'); await page.waitForSelector('#hoyCerrado'); await look('hoy: mes cerrado');
+    await tocar('[data-act="hoy-dia"][data-d="0"]'); await page.waitForSelector('#hoyTotales'); await tocar('#nav button[data-tab="mas"]');
     await tocar('#irAccesos'); await page.waitForSelector('#secSolicitudes .persona'); await look('accesos');
     await hoja('accesos: aprobar', '[data-act="acc-elegir"]', '.opcion'); await cerrar();
     await hoja('accesos: cambiar', '#secMiembros [data-act="acc-ver"]', '.opcion'); await cerrar();

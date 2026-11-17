@@ -8,6 +8,7 @@ import * as nube from '../core/nube.js';
 import * as cat from '../core/catalogo.js';
 import * as P from '../core/pesaje.js';
 import { puede } from '../core/perfil.js';
+import { cerradoEl } from '../core/cierres.js';
 
 const buscar = (lista, id) => (lista || []).find(x => x.id === id);
 const nombre = (lista, id) => { const x = buscar(lista, id); return x ? x.nombre : '(sin nombre)'; };
@@ -23,8 +24,8 @@ export function rechazo(que) {
   return e => toast('No se guardó ' + que + (String(e && e.code).includes('permission') ? ': el servidor no lo aceptó. Revisa la fecha y hora del equipo, o pide ayuda a un dueño.' : '. Inténtalo de nuevo.'), 9000);
 }
 const sinRed = () => (navigator.onLine === false ? ' · se enviará al volver internet' : '');
-/* ¿Esta cuenta puede corregir este canasto? La tablet, solo los del día. */
-export const corregible = (p, c) => puede(c.perfil, 'gestion') || p.fecha === c.hoy;
+/* ¿Esta cuenta puede corregir este canasto? La tablet, solo los del día; nadie, los de un mes cerrado (Fase 6). */
+export const corregible = (p, c) => (puede(c.perfil, 'gestion') || p.fecha === c.hoy) && !cerradoEl(c.cierres, p.fecha);
 /* Día en que se anotó en la nube, si es posterior al día del canasto (anotado en fecha pasada, o llegado tarde sin conexión). '' si no. */
 export function anotadoDespues(p) {
   if (typeof p.en !== 'number' || p._pend) return '';
@@ -53,7 +54,8 @@ function hojaCanasto(p, c) {
     (puedo ? '<div class="actions">' + (p.anulado ? '<button class="btn" data-act="can-reactivar"' + id + '>Reactivar</button>'
       : '<button class="btn" data-act="can-corregir"' + id + '>Corregir</button><button class="btn ghost" data-act="can-anular"' + id + '>Anular</button>') + '</div>' +
       '<p class="muted chico">Cada corrección queda anotada (qué cambió, quién y cuándo).</p>'
-      : '<p class="muted chico">Desde la panadería solo se corrige lo del día. Si hay un error, avisa a un dueño.</p>'));
+      : cerradoEl(c.cierres, p.fecha) ? '<p class="muted chico" id="canCerrado">Ese mes está cerrado: no se corrige. Un dueño puede reabrirlo en Más → Cierres mensuales.</p>'
+        : '<p class="muted chico">Desde la panadería solo se corrige lo del día. Si hay un error, avisa a un dueño.</p>'));
 }
 
 /* ---------- Corregir ---------- */

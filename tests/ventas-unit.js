@@ -1,5 +1,6 @@
 /* Ventas, Excel y respaldo (APP/js/core/ventas.js, excel.js, respaldo.js), sin navegador. Incluye el «Listo cuando» de la Fase 5:
-   el Excel de un mes cuadra con la suma de sus entregas (y con cada día, cada pan y el resumen). Uso: node tests/ventas-unit.js */
+   el Excel de un mes cuadra con la suma de sus entregas (y con cada día, cada pan y el resumen). Desde la Fase 6 el IVA de un total
+   es el IVA % de su neto (redondeado una vez): el neto cuadra exacto y el total puede diferir en unos pesos de sumar los totales de cada entrega. Uso: node tests/ventas-unit.js */
 const { leer, sumaCol } = require('./leer-xlsx.js');
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + m); };
 
@@ -74,7 +75,9 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   }
   const lib2 = E.libro({ desde: '2026-11-01', hasta: '2026-11-30', pesajes: muchos, productos: prods, precios: pr2, cliente: { id: 'c1', nombre: 'S' }, iva: 19 }), H2 = leer(E.bytes(lib2)).hojas;
   const nE2 = H2.Entregas.filas.length - 2, nV2 = H2.Ventas.filas.length - 2;
-  ok(sumaCol(H2.Entregas.filas, 7, 1, 1 + nE2) === sumaCol(H2.Ventas.filas, 9, 1, 1 + nV2) && sumaCol(H2.Entregas.filas, 9, 1, 1 + nE2) === lib2.totales.total && lib2.totales.total > 0, muchos.length + ' canastos, ' + nE2 + ' entregas: el Excel del mes cuadra con la suma de sus entregas ($' + lib2.totales.total + ')');
+  const netoE2 = sumaCol(H2.Entregas.filas, 7, 1, 1 + nE2), ivaMes2 = Math.round(lib2.totales.neto * 19 / 100);
+  ok(netoE2 === sumaCol(H2.Ventas.filas, 9, 1, 1 + nV2) && netoE2 === lib2.totales.neto && lib2.totales.iva === ivaMes2 && lib2.totales.total === netoE2 + ivaMes2 && lib2.totales.total > 0, muchos.length + ' canastos, ' + nE2 + ' entregas: el neto del Excel del mes es la suma del neto de sus entregas, y el IVA es el 19 % de ese neto ($' + lib2.totales.total + ')');
+  ok(Math.abs(sumaCol(H2.Entregas.filas, 9, 1, 1 + nE2) - lib2.totales.total) <= nE2 && H2.Entregas.filas[nE2 + 1][9] === lib2.totales.total && H2.Ventas.filas[nV2 + 1][11] === lib2.totales.total, 'la fila Total de cada hoja da el total del mes; sumar el total de cada entrega difiere a lo más en unos pesos (' + Math.abs(sumaCol(H2.Entregas.filas, 9, 1, 1 + nE2) - lib2.totales.total) + ')');
 
   console.log('8. Respaldo');
   const leidas = [], falso = { doc: async r => { leidas.push(r); return r === 'config/negocio' ? { duenos: ['u1'] } : null; }, col: async r => { leidas.push(r); return r === 'pesajes' ? pes : []; } };

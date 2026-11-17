@@ -17,6 +17,26 @@ export const esHoy = (fecha, ahora) => fecha === dia(ahora - 3 * 3600000) || fec
 export const esAyer = (fecha, ahora) => fecha === dia(ahora - 27 * 3600000) || fecha === dia(ahora - 28 * 3600000);
 const fechaValida = f => typeof f === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(f);
 const mapa = v => !!v && typeof v === 'object' && !Array.isArray(v) && !esTS(v);
+const entero = v => Number.isInteger(v);
+/* Fase 6: el mes de una fecha está cerrado si cierres/{AAAA-MM} tiene cerrado == true. */
+const mesAbierto = (f, leer) => { const c = leer('cierres/' + String(f).slice(0, 7)); return !c || c.cerrado !== true; };
+const mesTerminado = (mes, ahora) => mes + '-31' < dia(ahora - 3 * 3600000);
+const CIERRE = ['mes', 'origen', 'cerrado', 'clienteId', 'cliente', 'iva', 'lineas', 'neto', 'ivaMonto', 'total', 'kg', 'un', 'canastos', 'dias', 'sinPrecio', 'archivo', 'hoja',
+  'reabiertoPor', 'reabiertoQuien', 'reabiertoEn', 'por', 'quien', 'en'];
+function cierreValido(id, d, q, ahora) {
+  return /^20[0-9]{2}-(0[1-9]|1[0-2])$/.test(id) && mesTerminado(id, ahora) && solo(d, CIERRE)
+    && todas(d, ['mes', 'origen', 'cerrado', 'iva', 'lineas', 'neto', 'ivaMonto', 'total', 'kg', 'un', 'por', 'quien', 'en']) && d.mes === id
+    && ['excel', 'app'].includes(d.origen) && d.cerrado === true && num(d.iva) && d.iva >= 0 && d.iva <= 100
+    && Array.isArray(d.lineas) && d.lineas.length >= 1 && d.lineas.length <= 200 && entero(d.neto) && d.neto >= 0 && entero(d.ivaMonto) && d.ivaMonto >= 0
+    && d.total === d.neto + d.ivaMonto && num(d.kg) && d.kg >= 0 && entero(d.un) && d.un >= 0
+    && (!('clienteId' in d) || texto(d.clienteId, 1, 60)) && (!('cliente' in d) || texto(d.cliente, 1, 60))
+    && (!('archivo' in d) || texto(d.archivo, 1, 200)) && (!('hoja' in d) || texto(d.hoja, 1, 100)) && d.por === q.uid && texto(d.quien, 1, 60) && esTS(d.en);
+}
+function reapertura(d, prev, q) {
+  const cambiadas = [...new Set(Object.keys(d).concat(Object.keys(prev || {})))].filter(k => JSON.stringify(d[k]) !== JSON.stringify((prev || {})[k]));
+  return cambiadas.every(k => ['cerrado', 'reabiertoPor', 'reabiertoQuien', 'reabiertoEn', 'en'].includes(k)) && d.cerrado === false && d.reabiertoPor === q.uid
+    && texto(d.reabiertoQuien, 1, 60) && esTS(d.reabiertoEn) && esTS(d.en);
+}
 
 export function permitido(quien, op, ruta, datos, previo, leer, ahora) {
   try { return !!evaluar(quien, op, ruta, datos || {}, previo || null, leer, ahora); }
@@ -94,8 +114,8 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
       && num(d.cantidad) && d.cantidad > 0 && d.cantidad <= 100000 && ['kg', 'un'].includes(d.unidad) && (d.unidad === 'kg' || Number.isInteger(d.cantidad))
       && (!('nota' in d) || texto(d.nota, 1, 200)) && typeof d.anulado === 'boolean' && esTS(d.en)
       && !!prod && prod.unidad === d.unidad && !!leer('trabajadores/' + d.trabajadorId);
-    if (op === 'create') return valido && d.creadoPor === q.uid && (gestion || (pesaje && (esHoy(d.fecha, ahora) || esAyer(d.fecha, ahora))));
-    return valido && d.creadoPor === prev.creadoPor && (gestion || (pesaje && esHoy(prev.fecha, ahora) && d.fecha === prev.fecha));
+    if (op === 'create') return valido && d.creadoPor === q.uid && ((gestion && mesAbierto(d.fecha, leer)) || (pesaje && (esHoy(d.fecha, ahora) || esAyer(d.fecha, ahora))));
+    return valido && d.creadoPor === prev.creadoPor && ((gestion && mesAbierto(prev.fecha, leer) && mesAbierto(d.fecha, leer)) || (pesaje && esHoy(prev.fecha, ahora) && d.fecha === prev.fecha));
   }
   if (col === 'dias') {
     if (leerOp) return gestion || (pesaje && op === 'get' && esHoy(id, ahora));
@@ -109,9 +129,9 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
   if (col === 'cierres') {
     if (leerOp) return gestion;
     const cerrado = !!prev && prev.cerrado === true;
-    if (op === 'create') return gestion && esTS(d.en);
-    if (op === 'update') return gestion && !cerrado && esTS(d.en);
-    return gestion && !cerrado;
+    if (op === 'create') return gestion && cierreValido(id, d, q, ahora);
+    if (op === 'update') return (gestion && !cerrado && cierreValido(id, d, q, ahora)) || (dueno && cerrado && reapertura(d, prev, q));
+    return op === 'delete' && gestion && !cerrado;
   }
   if (col === 'proyeccion') {
     if (leerOp) return gestion;

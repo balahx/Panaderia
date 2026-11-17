@@ -4,7 +4,7 @@ rules_version = '2';
 // Perfiles: DUEÑO (su UID figura en config/negocio, creado a mano en la consola), EXTERNO y PESAJE (miembros/{uid}, los crea un dueño).
 // «Gestión» = dueño o externo. La cuenta de pesaje nunca lee precios, clientes, cierres ni proyecciones.
 // Cada cambio se prueba con el emulador: tests/rules-emulator.js (casos en tests/reglas-casos.js).
-// La forma de los datos de cierres y proyección se afina en su fase (6 y 7); el acceso por perfil queda fijado aquí.
+// La forma de los datos de la proyección se afina en la Fase 7; el acceso por perfil queda fijado aquí.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -178,12 +178,20 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/productos/$(nuevo().productoId)).data.unidad == nuevo().unidad
         && exists(/databases/$(database)/documents/trabajadores/$(nuevo().trabajadorId));
     }
+    // Fase 6: en un mes CERRADO (cierres/{AAAA-MM} con cerrado == true) dueños y externo ya no anotan ni corrigen.
+    // La tablet no se revisa: solo anota hoy o ayer, y el mes en curso no se puede cerrar (lo anotado sin conexión no se pierde).
+    function mesDeFecha(f) { return f.split('-')[0] + '-' + f.split('-')[1]; }
+    function mesAbierto(f) {
+      return !exists(/databases/$(database)/documents/cierres/$(mesDeFecha(f)))
+        || get(/databases/$(database)/documents/cierres/$(mesDeFecha(f))).data.get('cerrado', false) != true;
+    }
     match /pesajes/{id} {
       allow read: if esGestion() || (esPesaje() && esHoy(resource.data.fecha));
       allow create: if pesajeValido() && nuevo().creadoPor == request.auth.uid
-        && (esGestion() || (esPesaje() && (esHoy(nuevo().fecha) || esAyer(nuevo().fecha))));
+        && ((esGestion() && mesAbierto(nuevo().fecha)) || (esPesaje() && (esHoy(nuevo().fecha) || esAyer(nuevo().fecha))));
       allow update: if pesajeValido() && nuevo().creadoPor == resource.data.creadoPor
-        && (esGestion() || (esPesaje() && esHoy(resource.data.fecha) && nuevo().fecha == resource.data.fecha));
+        && ((esGestion() && mesAbierto(resource.data.fecha) && mesAbierto(nuevo().fecha))
+          || (esPesaje() && esHoy(resource.data.fecha) && nuevo().fecha == resource.data.fecha));
       allow delete: if false;
     }
     // Entrega en curso del día: dias/{fecha} = { entregaN, por, en }. «Cerrar entrega» la sube en uno; «volver a abrir» la baja en uno.
@@ -206,11 +214,48 @@ service cloud.firestore {
     }
 
     // ---------- Ventas, cierres y proyección (pantallas: Fases 5 a 7). Nada de esto lo ve la cuenta de pesaje ----------
+    // Cierre de un mes (Fase 6): cierres/{AAAA-MM}, importado desde Excel o calculado con los pesajes («Cerrar mes»).
+    // Siempre se guarda cerrado, completo y a nombre de quien cierra; solo meses ya terminados. El IVA del mes es ivaMonto
+    // (IVA % × neto del mes) y total = neto + ivaMonto. Un mes cerrado no se modifica: solo un DUEÑO puede reabrirlo
+    // (queda constancia de quién y cuándo); reabierto, se vuelve a cerrar (o a importar) o se borra.
+    function mesValido(mes) { return mes.matches('20[0-9][0-9]-(0[1-9]|1[0-2])'); }
+    function mesTerminado(mes) { return mes + '-31' < diaDe(request.time - duration.value(3, 'h')); }
+    function cierreValido(mes) {
+      return mesValido(mes) && mesTerminado(mes)
+        && nuevo().keys().hasOnly(['mes', 'origen', 'cerrado', 'clienteId', 'cliente', 'iva', 'lineas', 'neto', 'ivaMonto', 'total', 'kg', 'un',
+          'canastos', 'dias', 'sinPrecio', 'archivo', 'hoja', 'reabiertoPor', 'reabiertoQuien', 'reabiertoEn', 'por', 'quien', 'en'])
+        && nuevo().keys().hasAll(['mes', 'origen', 'cerrado', 'iva', 'lineas', 'neto', 'ivaMonto', 'total', 'kg', 'un', 'por', 'quien', 'en'])
+        && nuevo().mes == mes
+        && nuevo().origen in ['excel', 'app']
+        && nuevo().cerrado == true
+        && nuevo().iva is number && nuevo().iva >= 0 && nuevo().iva <= 100
+        && nuevo().lineas is list && nuevo().lineas.size() >= 1 && nuevo().lineas.size() <= 200
+        && nuevo().neto is int && nuevo().neto >= 0
+        && nuevo().ivaMonto is int && nuevo().ivaMonto >= 0
+        && nuevo().total == nuevo().neto + nuevo().ivaMonto
+        && nuevo().kg is number && nuevo().kg >= 0
+        && nuevo().un is int && nuevo().un >= 0
+        && (!('clienteId' in nuevo()) || texto(nuevo().clienteId, 1, 60))
+        && (!('cliente' in nuevo()) || texto(nuevo().cliente, 1, 60))
+        && (!('archivo' in nuevo()) || texto(nuevo().archivo, 1, 200))
+        && (!('hoja' in nuevo()) || texto(nuevo().hoja, 1, 100))
+        && nuevo().por == request.auth.uid
+        && texto(nuevo().quien, 1, 60)
+        && nuevo().en == request.time;
+    }
+    function reapertura() {
+      return nuevo().diff(resource.data).affectedKeys().hasOnly(['cerrado', 'reabiertoPor', 'reabiertoQuien', 'reabiertoEn', 'en'])
+        && nuevo().cerrado == false
+        && nuevo().reabiertoPor == request.auth.uid
+        && texto(nuevo().reabiertoQuien, 1, 60)
+        && nuevo().reabiertoEn == request.time
+        && nuevo().en == request.time;
+    }
     match /cierres/{mes} {
       allow read: if esGestion();
-      allow create: if esGestion() && nuevo().en == request.time;
-      // Un mes cerrado no se modifica.
-      allow update: if esGestion() && resource.data.get('cerrado', false) != true && nuevo().en == request.time;
+      allow create: if esGestion() && cierreValido(mes);
+      allow update: if (esGestion() && resource.data.get('cerrado', false) != true && cierreValido(mes))
+        || (esDueno() && resource.data.get('cerrado', false) == true && reapertura());
       allow delete: if esGestion() && resource.data.get('cerrado', false) != true;
     }
     match /proyeccion/{anio} {

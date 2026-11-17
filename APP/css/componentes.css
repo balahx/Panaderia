@@ -233,3 +233,20 @@ dialog.cfm { margin: auto; max-width: min(380px, calc(100vw - 32px)); border-rad
 .mas-grupo { margin: 18px 0 6px; }
 #hoyAnotar .ic { width: 18px; height: 18px; }
 .btn .ic { width: 18px; height: 18px; flex: none; }
+
+/* Fase 6: cierres mensuales e importación desde Excel */
+.txt.archivo { padding: 8px 10px; min-height: 48px; }
+.txt.archivo::file-selector-button { min-height: 32px; margin-right: 10px; padding: 4px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.imp-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.imp-cab h2 { margin: 2px 0 6px; }
+.imp-cab .btn { flex: none; }
+.imp-mes.quitado { border-style: dashed; }
+.imp-filas { margin: 12px 0; }
+.imp-fila { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--line); }
+.imp-fila:last-child { border-bottom: 1px solid var(--line); }
+.imp-fila .mt b { display: block; overflow-wrap: anywhere; }
+.imp-fila .mt small { display: block; color: var(--muted); font-size: .84em; }
+.imp-fila .warn-t { display: block; }
+.imp-avisos { margin: 8px 0 0; padding-left: 1.2em; font-size: .9em; }
+.imp-avisos li + li { margin-top: 4px; }
+.ok-t { padding: 8px 10px; border-radius: 10px; font-size: .94em; font-weight: 600; background: var(--surface); border: 1px solid var(--ok); }

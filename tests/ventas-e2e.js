@@ -130,18 +130,18 @@ Object.fromEntries([pes('h1', HOY, '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', HOY,
   let L = null; try { L = leer(x1.bytes); } catch (e) { console.log('    ' + e.message); }
   ok(!!L && L.orden.join() === 'Resumen,Ventas,Entregas,Por día,Por pan,Canastos', 'el archivo es un Excel válido con sus seis hojas');
   const T2 = await esperado(rMes.desde, hastaMes), H = L.hojas, nV = H.Ventas.filas.length - 2, nE = H.Entregas.filas.length - 2;
-  ok(sumaCol(H.Ventas.filas, 11, 1, 1 + nV) === T2.total && sumaCol(H.Entregas.filas, 9, 1, 1 + nE) === T2.total && sumaCol(H.Ventas.filas, 9, 1, 1 + nV) === sumaCol(H.Entregas.filas, 7, 1, 1 + nE), 'Ventas = suma de las entregas: total ' + C.pesos(T2.total));
+  ok(H.Ventas.filas[nV + 1][11] === T2.total && H.Entregas.filas[nE + 1][9] === T2.total && sumaCol(H.Ventas.filas, 9, 1, 1 + nV) === sumaCol(H.Entregas.filas, 7, 1, 1 + nE) && sumaCol(H.Ventas.filas, 9, 1, 1 + nV) === T2.neto && T2.iva === Math.round(T2.neto * 19 / 100), 'Ventas = suma de las entregas (neto) y el IVA es el 19 % del neto del mes: total ' + C.pesos(T2.total));
   ok(H.Ventas.filas.slice(1, 1 + nV).some(f => f[4] === 'Hallulla' && f[12] === 'Sin precio ese día: no suma') && H.Ventas.filas[1][3] === 'Supermercado', 'con cliente, y la Hallulla sin precio marcada');
   await tocar('#nav button[data-tab="entregas"]'); await page.waitForSelector('#entTotal');
   ok((await texto('#entTotal b')) === C.pesos(T2.total), 'y el Excel dice lo mismo que la pantalla Entregas (' + C.pesos(T2.total) + ')');
   const x2 = await descarga('#entExcel');
-  ok(x2.nombre === x1.nombre && sumaCol(leer(x2.bytes).hojas.Entregas.filas, 9, 1, 1 + nE) === T2.total, 'el botón de Entregas baja el mismo Excel');
+  ok(x2.nombre === x1.nombre && leer(x2.bytes).hojas.Entregas.filas[nE + 1][9] === T2.total, 'el botón de Entregas baja el mismo Excel');
   await tocar('#nav button[data-tab="mas"]'); await tocar('#irDatos'); await page.waitForSelector('#datExcel');
   await tocar('[data-act="dat-modo"][data-v="rango"]'); await escribir('#datDesde', HOY); await escribir('#datHasta', V5);
   ok(/antes/.test(await texto('#secExcel .form-error')) && await page.isDisabled('#datExcel'), 'otras fechas: si «desde» va después de «hasta», lo dice y no deja descargar');
   await escribir('#datDesde', V5); await escribir('#datHasta', HOY);
   const x3 = await descarga('#datExcel'), T3 = await esperado(V5, HOY);
-  ok(x3.nombre === (V5.slice(0, 7) === HOY.slice(0, 7) && V5.endsWith('-01') ? 'ventas-' + HOY.slice(0, 7) + '.xlsx' : 'ventas-' + V5 + '_a_' + HOY + '.xlsx') && sumaCol(leer(x3.bytes).hojas.Ventas.filas, 11, 1, leer(x3.bytes).hojas.Ventas.filas.length - 1) === T3.total, 'un período a elección: ' + x3.nombre);
+  ok(x3.nombre === (V5.slice(0, 7) === HOY.slice(0, 7) && V5.endsWith('-01') ? 'ventas-' + HOY.slice(0, 7) + '.xlsx' : 'ventas-' + V5 + '_a_' + HOY + '.xlsx') && (f => f[f.length - 1][11])(leer(x3.bytes).hojas.Ventas.filas) === T3.total, 'un período a elección: ' + x3.nombre);
 
   console.log('6. Respaldo');
   const r1 = await descarga('#datRespaldo'), arch = JSON.parse(r1.bytes.toString('utf8'));

@@ -1,5 +1,5 @@
 /* «Más»: la cuenta y su perfil; para dueños y externo, los submenús del PLAN §8: Catálogo, Registros (registro general y fecha pasada)
-   y Datos (Excel y respaldo); Accesos (dueños); la versión y actualización, y el diagnóstico de instalación.
+   y Datos (Excel y respaldo); Registros incluye los cierres mensuales (Fase 6); Accesos (dueños); la versión y actualización, y el diagnóstico de instalación.
    «Cerrar sesión» lo atiende app.js (vale también en las pantallas de espera). */
 import { esc, iniciales, fechaTexto } from '../core/formato.js';
 import { svg } from '../core/iconos.js';
@@ -39,7 +39,8 @@ function gestion(ctx) {
   const marca = R.textoMarca(ctx.respaldo);
   return '<p class="eyebrow mas-grupo">Catálogo</p><div class="mlist">' + fila('irCatalogo', 'pan', 'Catálogo', 'Productos, precios, trabajadores, cliente e IVA', 'data-tab="catalogo"') + '</div>' +
     '<p class="eyebrow mas-grupo">Registros</p><div class="mlist">' + fila('irRegistro', 'lista', 'Registro general', 'Todos los canastos con filtros, y las correcciones', 'data-tab="registro"') +
-    fila('irFechaPasada', 'mas', 'Anotar en fecha pasada', 'Abre «Hoy» en el día de ayer; con ‹ › eliges otro', 'data-tab="inicio" data-dia="' + sumarDias(ctx.hoy, -1) + '"') + '</div>' +
+    fila('irFechaPasada', 'mas', 'Anotar en fecha pasada', 'Abre «Hoy» en el día de ayer; con ‹ › eliges otro', 'data-tab="inicio" data-dia="' + sumarDias(ctx.hoy, -1) + '"') +
+    fila('irCierres', 'file', 'Cierres mensuales', 'Cerrar meses e importar los anteriores desde Excel', 'data-tab="cierres"') + '</div>' +
     '<p class="eyebrow mas-grupo">Datos</p><div class="mlist">' + fila('irDatos', 'bajar', 'Exportar a Excel y respaldo', marca || 'Ventas con neto, IVA y total; copia de todos los datos', 'data-tab="datos"') + '</div>' +
     '<p class="eyebrow mas-grupo">Cuenta</p>';
 }

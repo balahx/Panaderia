@@ -2,14 +2,18 @@
    Venta = lo pesado no anulado (kilos o unidades), confirmado por Felipe en la Fase 5: los dueños no ajustan nada aparte.
    Una LÍNEA de venta = un pan en una entrega de un día: cantidad (suma de sus canastos) × precio vigente ESE día.
      neto = precio × cantidad, en pesos · IVA = neto × IVA % , en pesos · total = neto + IVA   (catalogo.montos)
-   TODOS los totales (entrega, día, pan, mes, cada hoja del Excel) son sumas de líneas: por eso el Excel de un mes cuadra
-   con la suma de sus entregas (PLAN, Fase 5, «Listo cuando»), y «Hoy» muestra lo mismo que el Excel para ese día.
+   Todo NETO de un grupo (entrega, día, pan, mes, cada hoja del Excel) es la suma de los netos de sus líneas: por eso el Excel
+   de un mes cuadra con la suma de sus entregas (PLAN, Fase 5, «Listo cuando»), y «Hoy» muestra lo mismo que el Excel para ese día.
+   El IVA de un grupo es el IVA % de SU neto, redondeado una vez (decisión de Felipe en la Fase 6: «el IVA se calcula sobre el neto
+   del mes, o sobre el neto que se lleve»); el total es neto + IVA. El IVA de cada línea queda solo como referencia de esa fila.
    Una línea sin precio vigente ese día se registra igual (cantidad), sin montos: no suma pesos y se avisa (faltanPrecios). */
-import { precioVigente, montos } from './catalogo.js';
+import { precioVigente, montos, redondearPesos } from './catalogo.js';
 import { vigentes } from './pesaje.js';
 
 const nombreDe = (lista, id) => { const x = (lista || []).find(y => y.id === id); return x ? x.nombre : '(sin nombre)'; };
 const kg2 = n => Math.round(n * 100) / 100;
+/* IVA de un neto (de un grupo de líneas o de un mes): IVA % × neto, en pesos enteros. */
+export const ivaSobre = (neto, iva) => redondearPesos(neto * (typeof iva === 'number' ? iva : 0) / 100);
 
 /* Líneas de venta de un conjunto de pesajes (de un día o de un período), ordenadas por fecha, entrega y orden del catálogo. */
 export function lineas(pesajes, productos, precios, clienteId, iva) {
@@ -25,21 +29,25 @@ export function lineas(pesajes, productos, precios, clienteId, iva) {
   const o = id => (orden.has(id) ? orden.get(id) : 1e9);
   return [...m.values()].map(l => {
     const pr = clienteId ? precioVigente(precios, l.productoId, clienteId, l.fecha) : null;
-    if (!pr) return Object.assign(l, { precio: null, neto: null, iva: null, total: null });
-    return Object.assign(l, { precio: pr.neto }, montos(pr.neto, l.cantidad, iva));
+    if (!pr) return Object.assign(l, { pct: iva, precio: null, neto: null, iva: null, total: null });
+    return Object.assign(l, { pct: iva, precio: pr.neto }, montos(pr.neto, l.cantidad, iva));
   }).sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0) || a.entregaN - b.entregaN || o(a.productoId) - o(b.productoId) || a.nombre.localeCompare(b.nombre, 'es'));
 }
 
-/* Suma de líneas: canastos, kilos, unidades y pesos (solo las que tienen precio). */
+/* Suma de líneas: canastos, kilos, unidades y neto (solo las que tienen precio); IVA = IVA % de ese neto (ver arriba). */
 export function totales(ls) {
   const t = { lineas: 0, canastos: 0, kg: 0, un: 0, neto: 0, iva: 0, total: 0, sinPrecio: 0, desde: '', hasta: '' };
+  let pct = null;
   for (const l of ls || []) {
     t.lineas++; t.canastos += l.canastos;
+    if (typeof l.pct === 'number') pct = l.pct;
     if (l.unidad === 'un') t.un += l.cantidad; else t.kg = kg2(t.kg + l.cantidad);
-    if (l.neto == null) t.sinPrecio++; else { t.neto += l.neto; t.iva += l.iva; t.total += l.total; }
+    if (l.neto == null) t.sinPrecio++; else { t.neto += l.neto; t.iva += l.iva; }
     if (l.desde && (!t.desde || l.desde < t.desde)) t.desde = l.desde;
     if (l.hasta && l.hasta > t.hasta) t.hasta = l.hasta;
   }
+  if (pct != null) t.iva = ivaSobre(t.neto, pct);   // sin `pct` (líneas armadas a mano): la suma del IVA de las líneas
+  t.total = t.neto + t.iva;
   return t;
 }
 function agrupar(ls, clave, base) {

@@ -3,7 +3,7 @@
    Estado inicial: «Rosa» (u-1001, la cuenta por defecto de google.js) es dueña, para que las pruebas de la Fase 1 entren directo.
    Sin conexión (fuera(true)) las escrituras quedan PENDIENTES en el equipo: se ven al instante con hasPendingWrites (como en Firestore),
    y al volver la conexión (fuera(false)) se envían en orden y pasan por las reglas con la hora de ESE momento.
-   Consultas: igualdad (==) y rangos (>=, <=, >, <). Lecturas directas del servidor (getDocsFromServer, getDocFromServer): sin conexión fallan.
+   Consultas: igualdad (==), rangos (>=, <=, >, <) y limit (en las lecturas del servidor). Lecturas directas del servidor (getDocsFromServer, getDocFromServer): sin conexión fallan.
    Para las pruebas:  window.__fakeDb = { poner, borrar, leer, todo, fuera, pedir, pendientes, lecturas }  (poner y borrar NO pasan por las reglas). */
 import { permitido, TS } from './reglas.mjs';
 const L = localStorage, K = 'fake.db', KC = 'fake.cache', KF = 'fake.fuera', KP = 'fake.pend';
@@ -67,10 +67,12 @@ export const doc = (db, ruta) => ({ tipo: 'doc', ruta });
 export const collection = (db, ruta) => ({ tipo: 'col', ruta });
 /* Consultas: igualdad y rangos (lo que usa la app). Para las reglas solo cuentan las igualdades (un rango no prueba «solo hoy»). */
 export const where = (campo, op, valor) => ({ campo, op, valor });
+export const limit = n => ({ limite: n });
 export function query(ref, ...filtros) {
   const filtro = Object.assign({}, ref.filtro), rango = (ref.rango || []).slice();
-  filtros.forEach(f => { if (f.op === '==') filtro[f.campo] = f.valor; else if (['>=', '<=', '>', '<'].includes(f.op)) rango.push(f); else throw new Error('El doble de prueba no entiende «' + f.op + '»'); });
-  return Object.assign({}, ref, { filtro, rango });
+  let limite = ref.limite || 0;
+  filtros.forEach(f => { if (f.limite) limite = f.limite; else if (f.op === '==') filtro[f.campo] = f.valor; else if (['>=', '<=', '>', '<'].includes(f.op)) rango.push(f); else throw new Error('El doble de prueba no entiende «' + f.op + '»'); });
+  return Object.assign({}, ref, { filtro, rango, limite });
 }
 /* Lectura única desde el servidor: pasa por las reglas; sin conexión falla (no entrega la copia del equipo). */
 const sinRed = () => Object.assign(new Error('Failed to get documents from server.'), { code: 'unavailable' });
@@ -79,7 +81,7 @@ export function getDocsFromServer(ref) {
     if (fuera()) return rej(sinRed());
     const d = todo(), filtro = ref.filtro || {};
     if (!permitido(quien(), 'list', ref.ruta, filtro, null, leer, Date.now())) return rej(denegado());
-    const rutas = enCol(d, ref.ruta).filter(r => cumple(d[r], filtro, ref.rango)).sort(); lecturas += Math.max(1, rutas.length);
+    let rutas = enCol(d, ref.ruta).filter(r => cumple(d[r], filtro, ref.rango)).sort(); if (ref.limite) rutas = rutas.slice(0, ref.limite); lecturas += Math.max(1, rutas.length);
     res({ docs: rutas.map(r => ({ id: r.split('/').pop(), data: () => d[r], metadata: { hasPendingWrites: false, fromCache: false } })), metadata: { fromCache: false, hasPendingWrites: false } });
   }, 5));
 }

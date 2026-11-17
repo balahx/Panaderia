@@ -18,6 +18,10 @@ const CUENTAS = {
 const miembro = (nombre, perfil, activo) => ({ nombre, correo: nombre.toLowerCase() + '@example.com', perfil, activo, por: 'rosa', en: '@TS' });
 const sinVacios = o => { for (const k in o) if (o[k] === undefined) delete o[k]; return o; };
 const pesaje = (fecha, por, mas) => sinVacios(Object.assign({ fecha, hora: '07:15', entregaN: 1, productoId: 'p1', cantidad: 18.5, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: por, en: '@TS' }, mas || {}));
+const cierre = (mes, por, mas) => Object.assign({ mes, origen: 'excel', cerrado: true, iva: 19, lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', cantidad: 100, precio: 1450, neto: 145000 }],
+  neto: 145000, ivaMonto: 27550, total: 172550, kg: 100, un: 0, por, quien: 'Nombre', en: '@TS' }, mas || {});
+const reabrir = por => ({ cerrado: false, reabiertoPor: por, reabiertoQuien: 'Nombre', reabiertoEn: '@TS', en: '@TS' });
+const mesSiguiente = mes => { const [a, m] = mes.split('-').map(Number); return m === 12 ? (a + 1) + '-01' : a + '-' + String(m + 1).padStart(2, '0'); };
 const cambio = (tipo, fecha, por, mas) => Object.assign({ tipo, pesajeId: 'hoy1', fecha, antes: { cantidad: 18.5 }, despues: { cantidad: 19 }, por, en: '@TS' }, mas || {});
 
 function semilla(HOY, ANTES, AYER) {
@@ -35,8 +39,10 @@ function semilla(HOY, ANTES, AYER) {
     'productos/u5': { nombre: 'Pan de completo', unidad: 'un', activo: true, en: '@TS' },
     ['dias/' + HOY]: { entregaN: 1, por: 'tablet', en: '@TS' },
     ['dias/' + ANTES]: { entregaN: 3, por: 'tablet', en: '@TS' },
-    'cierres/2026-10': { totales: {}, origen: 'excel', cerrado: true, en: '@TS' },
-    'cierres/2026-11': { totales: {}, origen: 'app', cerrado: false, en: '@TS' },
+    'cierres/2026-10': cierre('2026-10', 'rosa'),                                                                           // cerrado
+    'cierres/2026-09': cierre('2026-09', 'rosa', { cerrado: false, reabiertoPor: 'rosa', reabiertoQuien: 'Rosa', reabiertoEn: '@TS' }),   // reabierto
+    'pesajes/oct1': pesaje('2026-10-15', 'rosa'),
+    'pesajes/sep1': pesaje('2026-09-15', 'rosa'),
     'proyeccion/2027': { factor: 1.05, en: '@TS' },
     'cambios/x1': { que: 'corrección', por: 'rosa', en: '@TS' }
   };
@@ -157,8 +163,9 @@ function casos(HOY, ANTES, AYER) {
     si(q, 'set', 'precios/p1_c1_2026-11-01', q + ' fija un precio', { productoId: 'p1', clienteId: 'c1', neto: 1500, desde: '2026-11-01', en: '@TS' });
     si(q, 'set', 'pesajes/pas-' + q, q + ' registra en una fecha pasada', pesaje(ANTES, q));
     si(q, 'update', 'pesajes/viejo1', q + ' corrige un pesaje de otro día', { cantidad: 20, en: '@TS' });
-    si(q, 'update', 'cierres/2026-11', q + ' modifica un mes abierto', { totales: { p1: 1 }, en: '@TS' });
-    no(q, 'update', 'cierres/2026-10', q + ' NO modifica un mes cerrado', { totales: { p1: 1 }, en: '@TS' });
+    si(q, 'set', 'cierres/' + (q === 'rosa' ? '2026-08' : '2026-07'), q + ' cierra un mes terminado', cierre(q === 'rosa' ? '2026-08' : '2026-07', q));
+    no(q, 'update', 'cierres/2026-10', q + ' NO modifica un mes cerrado', { neto: 1, total: 27551, en: '@TS' });
+    no(q, 'set', 'cierres/2026-10', q + ' ni lo reemplaza', cierre('2026-10', q));
     no(q, 'delete', 'cierres/2026-10', q + ' ni lo borra');
     no(q, 'delete', 'pesajes/viejo1', q + ' no borra pesajes');
     no(q, 'delete', 'productos/p1', q + ' no borra productos (se desactivan)');
@@ -259,6 +266,38 @@ function casos(HOY, ANTES, AYER) {
   no('tablet', 'set', 'config/respaldo', 'la tablet no anota respaldos', { por: 'tablet', quien: 'Tablet', conteos: {}, lecturas: 1, en: '@TS' });
   no('rosa', 'delete', 'config/respaldo', 'la marca del respaldo no se borra');
   no('rosa', 'set', 'config/ajustes', 'otros documentos de config siguen cerrados', { x: 1, en: '@TS' });
+
+  t('11. Cierres mensuales y meses cerrados (Fase 6)');
+  const MES = HOY.slice(0, 7), SIG = mesSiguiente(MES);
+  no('rosa', 'set', 'cierres/' + MES, 'el mes en curso no se cierra', cierre(MES, 'rosa'));
+  no('rosa', 'set', 'cierres/' + SIG, 'ni uno que no ha llegado', cierre(SIG, 'rosa'));
+  no('rosa', 'set', 'cierres/2026-06', 'un cierre se guarda cerrado', cierre('2026-06', 'rosa', { cerrado: false }));
+  no('rosa', 'set', 'cierres/2026-06', 'el mes del documento es el de su nombre', cierre('2026-05', 'rosa'));
+  no('rosa', 'set', 'cierres/2026-6', 'el nombre es AAAA-MM', cierre('2026-6', 'rosa'));
+  no('rosa', 'set', 'cierres/2026-06', 'el total es neto + IVA', cierre('2026-06', 'rosa', { total: 1 }));
+  no('rosa', 'set', 'cierres/2026-06', 'los montos van en pesos enteros', cierre('2026-06', 'rosa', { neto: 145000.5, total: 172550.5 }));
+  no('rosa', 'set', 'cierres/2026-06', 'lleva al menos un pan', cierre('2026-06', 'rosa', { lineas: [] }));
+  no('rosa', 'set', 'cierres/2026-06', 'de un origen conocido (excel o app)', cierre('2026-06', 'rosa', { origen: 'otro' }));
+  no('rosa', 'set', 'cierres/2026-06', 'sin campos de más', cierre('2026-06', 'rosa', { nota: 'x' }));
+  no('rosa', 'set', 'cierres/2026-06', 'a nombre de quien cierra', cierre('2026-06', 'felipe'));
+  no('rosa', 'set', 'cierres/2026-06', 'con el nombre de quien cierra', cierre('2026-06', 'rosa', { quien: '' }));
+  no('tablet', 'set', 'cierres/2026-06', 'la tablet no cierra meses', cierre('2026-06', 'tablet'));
+  no('carla', 'set', 'cierres/2026-06', 'ni una cuenta sin acceso', cierre('2026-06', 'carla'));
+  si('felipe', 'set', 'cierres/2026-06', 'el externo importa un mes desde Excel', cierre('2026-06', 'felipe', { archivo: 'cierre-junio.xlsx', hoja: 'Hoja1', cliente: 'Supermercado', clienteId: 'c1' }));
+  no('felipe', 'update', 'cierres/2026-06', 'el externo no reabre un mes cerrado', reabrir('felipe'));
+  no('rosa', 'update', 'cierres/2026-06', 'al reabrir no se cambian los montos', Object.assign(reabrir('rosa'), { neto: 1, total: 27551 }));
+  no('rosa', 'update', 'cierres/2026-06', 'ni se reabre a nombre de otro', reabrir('felipe'));
+  si('rosa', 'update', 'cierres/2026-06', 'un dueño reabre un mes cerrado (queda quién y cuándo)', reabrir('rosa'));
+  si('felipe', 'set', 'cierres/2026-06', 'reabierto, el externo lo vuelve a cerrar con los datos de la app', cierre('2026-06', 'felipe', { origen: 'app', canastos: 3, dias: 1, reabiertoPor: 'rosa', reabiertoQuien: 'Rosa' }));
+  si('rosa', 'update', 'cierres/2026-06', 'se puede reabrir otra vez', reabrir('rosa'));
+  si('felipe', 'delete', 'cierres/2026-06', 'reabierto, se puede borrar (vuelve a contar lo de la app)');
+  no('rosa', 'set', 'pesajes/oct2', 'en un mes cerrado no se anota en fecha pasada', pesaje('2026-10-20', 'rosa'));
+  no('felipe', 'update', 'pesajes/oct1', 'ni se corrige un canasto', { cantidad: 20, en: '@TS' });
+  no('rosa', 'update', 'pesajes/oct1', 'ni se anula', { anulado: true, en: '@TS' });
+  no('rosa', 'update', 'pesajes/sep1', 'ni se mueve un canasto a un mes cerrado', { fecha: '2026-10-20', en: '@TS' });
+  si('rosa', 'update', 'pesajes/sep1', 'en un mes reabierto sí se corrige', { cantidad: 21, en: '@TS' });
+  si('felipe', 'set', 'pesajes/sep2', 'y se anota en fecha pasada', pesaje('2026-09-20', 'felipe'));
+  si('tablet', 'set', 'pesajes/hoy9', 'la tablet sigue anotando hoy', pesaje(HOY, 'tablet'));
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

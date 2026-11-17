@@ -128,7 +128,7 @@ D:\APP Panaderia\            (raíz del repositorio público «Panaderia»)
 | `clientes/{id}` | nombre (inicial: el supermercado) | Dueños y externo | Dueños y externo |
 | `pesajes/{id}` | fecha, hora, entregaN, productoId, cantidad, unidad, trabajadorId, nota, anulado, creadoPor, en (un documento por canasto) | Todos (pesaje: solo del día) | Pesaje: crear (hoy, o ayer por lo anotado sin conexión), y corregir/anular solo del día; dueños y externo: todo |
 | `dias/{fecha}` | entregaN (entrega en curso), por, en. **Los totales no se guardan**: se calculan con los pesajes (Fase 4) | Todos (pesaje: solo hoy) | Pesaje: de a un paso (cerrar o volver a abrir); dueños y externo: cualquier número |
-| `cierres/{aaaa-mm}` | totales del mes por producto (cantidad, precio, neto), origen (`excel`/`app`), cerrado | Dueños y externo | Dueños y externo; un mes cerrado no se modifica |
+| `cierres/{aaaa-mm}` | `mes`, `origen` (`excel`/`app`), `cerrado`, `iva` (%), `lineas` (por pan: productoId, nombre, unidad, cantidad, precio, neto), `neto`, `ivaMonto` (IVA % × neto del mes), `total`, `kg`, `un`, `por`, `quien`, `en` (+ cliente, archivo y hoja, o canastos y días; constancia de reapertura) (Fase 6) | Dueños y externo | Dueños y externo, solo meses terminados; un mes cerrado no se modifica y en él no se anota ni se corrige; **solo un dueño lo reabre** |
 | `proyeccion/{año}` | factores y metas mensuales | Dueños y externo | Dueños y externo |
 | `cambios/{id}` | bitácora: tipo (`corregir`/`anular`/`reactivar`), pesajeId, fecha, antes, despues, por, `quien` (nombre de la cuenta, opcional, Fase 5), en | Dueños y externo | Se crea con cada corrección (la tablet, solo de lo del día) |
 
@@ -185,7 +185,7 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 - **Listo cuando:** el Excel de un mes cuadra con la suma de sus entregas.
 - Hecho (16-nov-2026, versión 0.5.0): pestaña **Entregas**, «＋ Anotar canasto» en **Hoy** (fecha pasada), **Registro general** con filtros y bitácora, **Excel** propio (sin librerías) y **respaldo** con franja semanal. Venta = lo pesado no anulado; un pan sin precio se registra y avisa. Montos por **línea** (un pan en una entrega): todos los totales son sumas de líneas (ESTADO.md, decisiones de la Fase 5).
 
-### Fase 6 · Cierres mensuales — chat 7
+### Fase 6 · Cierres mensuales — chat 7 ◐
 - Importar los Excel de enero a octubre de 2026 (subir, revisar, confirmar; emparejar nombres de pan con el catálogo).
 - «Cerrar mes» desde los datos de la app.
 - **Requiere:** los archivos de cierre en `privado/`. **Listo cuando:** los 10 meses importados coinciden con los totales de los Excel.

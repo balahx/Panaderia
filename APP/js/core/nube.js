@@ -2,7 +2,8 @@
    nada viene de otros sitios. Fase 1: sesión. Fase 2: Firestore con caché sin conexión, accesos y App Check (opcional).
    Fase 3: escrituras del catálogo (guardar, guardarVarios, borrar, ajustarNegocio).
    Fase 4: consulta de los pesajes de un día (vigilarDonde) y aviso de datos sin enviar (pendientes).
-   Fase 5: pesajes y bitácora de un período (vigilarRango) y lecturas directas del servidor para el Excel y el respaldo (leerCol, leerRango, leerDoc). */
+   Fase 5: pesajes y bitácora de un período (vigilarRango) y lecturas directas del servidor para el Excel y el respaldo (leerCol, leerRango, leerDoc).
+   Fase 6: ¿hay pesajes en un mes? (hayEnRango, una lectura) y reabrir un mes cerrado (reabrir, solo dueños). */
 import * as cfg from '../../firebase-config.js';
 
 const SDK = '../../vendor/firebase/';
@@ -96,6 +97,8 @@ const unaVez = s => s.docs.map(d => Object.assign({ id: d.id }, plano(d.data()))
 export const leerCol = ruta => F.getDocsFromServer(F.collection(db, ruta)).then(unaVez);
 export const leerRango = (col, campo, desde, hasta) => F.getDocsFromServer(F.query(F.collection(db, col), F.where(campo, '>=', desde), F.where(campo, '<=', hasta))).then(unaVez);
 export const leerDoc = ruta => F.getDocFromServer(F.doc(db, ruta)).then(s => (s.exists() ? plano(s.data()) : null));
+/* ¿Hay al menos un documento con el campo en ese rango? Cuesta una lectura (del servidor). */
+export const hayEnRango = (col, campo, desde, hasta) => F.getDocsFromServer(F.query(F.collection(db, col), F.where(campo, '>=', desde), F.where(campo, '<=', hasta), F.limit(1))).then(s => s.docs.length > 0);
 /* ¿Quedan escrituras de este equipo sin llegar al servidor? Si en `ms` no se confirman, se responde que sí (sin internet no llegan). */
 export function pendientes(ms) {
   if (!db) return Promise.resolve(false);
@@ -133,3 +136,5 @@ export function guardarVarios(lista) {
 }
 /* Ajustes del negocio que un dueño cambia desde la app (hoy: el IVA). La lista de dueños no se toca desde aquí. */
 export const ajustarNegocio = cambios => F.updateDoc(F.doc(db, 'config/negocio'), cambios);
+/* Reabrir un mes cerrado (Fase 6, solo dueños): cambia solo `cerrado` y deja constancia de quién y cuándo. Los montos quedan. */
+export const reabrir = (mes, quien) => F.updateDoc(F.doc(db, 'cierres/' + mes), { cerrado: false, reabiertoPor: usuario().uid, reabiertoQuien: quien, reabiertoEn: F.serverTimestamp(), en: F.serverTimestamp() });

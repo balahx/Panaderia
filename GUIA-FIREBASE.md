@@ -590,6 +590,52 @@ firebase deploy --only hosting,firestore:rules
 
 ---
 
+## Paso 21 · Publicar la versión 0.6.0 (cierres mensuales) e importar enero a octubre
+
+Esta versión trae **Más → Registros → Cierres mensuales**: el estado de cada mes del año, **importar desde Excel** los meses anteriores (con revisión antes de guardar) y **«Cerrar mes»** en **Entregas** para los meses que se anotaron en la app. Un mes cerrado queda fijo: **ya no se anota ni se corrige** en él (tampoco en **Hoy**); solo un **dueño** puede **reabrirlo** (queda constancia). El **IVA** de un mes (y de cualquier total) es ahora el **19 % del neto** de ese total, calculado una vez. Cambian las **reglas** (forma de los cierres y bloqueo de los meses cerrados): hay que publicarlas junto con la app.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+npm test
+```
+
+Debe terminar con **«20 pruebas … todas bien»**.
+
+2. **Antes de publicar**, sube el código (`git add .`, `git commit -m "Fase 6: cierres mensuales"`, `git push`) y mira en GitHub → **Actions** → **Pruebas** que **«Reglas de Firestore (emulador)»** quede en verde. Ahora son **235 casos** (31 nuevos) y **desde el chat no se pudieron ejecutar** (las reglas usan `split` para sacar el mes de una fecha): si queda en rojo, **no publiques** y lleva las líneas con ✗ al chat.
+
+3. Con ese paso en verde:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+4. En **cada equipo**: **Más → Buscar actualización → Actualizar ahora** (debe decir versión 0.6.0).
+
+5. **Importar los cierres** (teléfono del dueño o computador; mejor en el computador):
+   - Deja los Excel de enero a octubre de 2026 en `D:\APP Panaderia\privado\` (no se sube a GitHub).
+   - **Más → Cierres mensuales → Archivos de Excel**: elige **todos** a la vez (o de a uno). Deben ser **.xlsx**; si alguno es **.xls**, ábrelo en Excel y guárdalo como «Libro de Excel (.xlsx)».
+   - En **Revisar la importación** cada tabla es un mes. Revisa: el **mes** (si no lo adivinó, elígelo), que cada nombre del Excel tenga su **pan del catálogo** (los que no reconoce quedan en «— Elegir pan —»; también puedes **crear** el pan, queda desactivado), y que diga **«✓ La suma de las filas … es igual al total del Excel»**.
+   - Si el Excel no se entiende (dice que no encontró la fila de títulos), usa **Descargar una plantilla**, copia los números ahí y súbela.
+   - Toca **Importar N meses** y confirma. Cada mes queda **cerrado**.
+
+6. **Cerrar mes desde la app** (noviembre, cuando termine): en **Entregas**, ve al mes, revisa y toca **«Cerrar noviembre 2026»** (se puede desde el 1 de diciembre).
+
+7. Verifica y marca:
+
+| Comprobación | ✓ / ✗ |
+|---|---|
+| Los 10 meses (enero a octubre) aparecen **Cerrados · desde Excel** en Más → Cierres mensuales | |
+| En cada mes, el **neto** del cierre (toca el mes) es igual al **total** del Excel de ese mes | |
+| En la revisión, cada mes decía «✓ … es igual al total del Excel» (si alguno decía ✗, anota cuál) | |
+| En **Hoy**, un día de octubre dice «Octubre 2026 está cerrado» y no deja anotar | |
+| El externo ve los cierres pero **no** tiene «Reabrir el mes»; la tablet no ve Cierres | |
+| Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.6.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde | |
+
+**Listo cuando:** las seis casillas están marcadas (es el «Listo cuando» de la Fase 6: los 10 meses importados coinciden con los totales de los Excel).
+
+---
+
 ## Problemas frecuentes
 
 | Qué ves | Causa y solución |
