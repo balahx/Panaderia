@@ -4,20 +4,24 @@
    Fase 4: consulta de los pesajes de un día (vigilarDonde) y aviso de datos sin enviar (pendientes).
    Fase 5: pesajes y bitácora de un período (vigilarRango) y lecturas directas del servidor para el Excel y el respaldo (leerCol, leerRango, leerDoc).
    Fase 6: ¿hay pesajes en un mes? (hayEnRango, una lectura) y reabrir un mes cerrado (reabrir, solo dueños).
-   Fase 7: pesajes de otro mes, una vez, para los indicadores y la proyección (consultarRango: del servidor o, sin conexión, de la copia del equipo). */
+   Fase 7: pesajes de otro mes, una vez, para los indicadores y la proyección (consultarRango: del servidor o, sin conexión, de la copia del equipo).
+   Fase 8: App Check comprueba al iniciar que reCAPTCHA entrega su comprobante (estado().appCheckToken, para el Diagnóstico). */
 import * as cfg from '../../firebase-config.js';
 
 const SDK = '../../vendor/firebase/';
 const firebaseConfig = cfg.firebaseConfig || {}, googleClientId = cfg.googleClientId || '';
 let app = null, auth = null, A = null, db = null, F = null;
-const E = { datos: 'sin-iniciar', appCheck: 'sin-configurar' };
+const E = { datos: 'sin-iniciar', appCheck: 'sin-configurar', appCheckToken: '', appCheckError: '' };
 
 const lleno = v => typeof v === 'string' && v.length > 0 && !/^PEGAR/i.test(v);
 /* ¿Ya se pegaron los datos del proyecto en firebase-config.js? */
 export const configurada = () => lleno(firebaseConfig.apiKey) && lleno(firebaseConfig.projectId) && lleno(firebaseConfig.appId) && lleno(googleClientId);
 export const clienteGoogle = () => googleClientId;
 export const proyecto = () => lleno(firebaseConfig.projectId) ? firebaseConfig.projectId : '';
-/* Para «Diagnóstico»: datos = 'cache' (guarda copia sin conexión) | 'memoria' | 'sin-sdk' · appCheck = 'activo' | 'sin-configurar' | 'sin-sdk' | 'error' */
+/* ¿Hay clave de reCAPTCHA para App Check? (el aviso de privacidad y el ingreso lo mencionan) */
+export const appCheckConfigurado = () => lleno(cfg.appCheckSiteKey);
+/* Para «Diagnóstico»: datos = 'cache' (guarda copia sin conexión) | 'memoria' | 'sin-sdk' · appCheck = 'activo' | 'sin-configurar' | 'sin-sdk' | 'error'
+   · appCheckToken (solo con App Check activo) = 'esperando' | 'ok' | 'lento' (15 s sin respuesta) | 'error' (con appCheckError) */
 export const estado = () => Object.assign({}, E);
 
 /* Carga el SDK y prepara la sesión. La sesión se guarda en el equipo: al reabrir (también sin internet) sigue iniciada. */
@@ -38,8 +42,17 @@ async function appCheck() {
   if (!lleno(cfg.appCheckSiteKey)) return;
   let C;
   try { C = await import(SDK + 'firebase-app-check.js'); } catch (e) { E.appCheck = 'sin-sdk'; return; }
-  try { C.initializeAppCheck(app, { provider: new C.ReCaptchaV3Provider(cfg.appCheckSiteKey), isTokenAutoRefreshEnabled: true }); E.appCheck = 'activo'; }
-  catch (e) { E.appCheck = 'error'; }
+  let ac;
+  try { ac = C.initializeAppCheck(app, { provider: new C.ReCaptchaV3Provider(cfg.appCheckSiteKey), isTokenAutoRefreshEnabled: true }); E.appCheck = 'activo'; }
+  catch (e) { E.appCheck = 'error'; return; }
+  /* Con App Check obligatorio, sin comprobante Firebase rechaza todo: se pide uno al iniciar (sin esperarlo) para que el Diagnóstico
+     diga si llega. Firebase lo renueva solo; este pedido no cuesta nada extra (queda guardado y lo usan las peticiones). */
+  E.appCheckToken = 'esperando';
+  setTimeout(() => { if (E.appCheckToken === 'esperando') E.appCheckToken = 'lento'; }, 15000);
+  try {
+    Promise.resolve(C.getToken(ac, false)).then(r => { E.appCheckToken = r && r.token ? 'ok' : 'error'; if (!(r && r.token)) E.appCheckError = 'sin comprobante'; },
+      e => { E.appCheckToken = 'error'; E.appCheckError = String(e && (e.code || e.message) || 'error').slice(0, 80); });
+  } catch (e) { E.appCheckToken = 'error'; E.appCheckError = String(e && (e.code || e.message) || 'error').slice(0, 80); }
 }
 /* Firestore con su caché propia sin conexión (decisión del plan): lo leído queda en el equipo y lo escrito sin internet
    se envía solo al volver la conexión. Si el navegador no deja guardar (modo privado), funciona en memoria. */

@@ -3,7 +3,7 @@
 import { esc } from '../core/formato.js';
 import { svg, errorHTML } from '../core/iconos.js';
 import { $, ask, toast } from '../core/ui.js';
-import { hero } from './ingreso.js';
+import { hero, enlacePrivacidad } from './ingreso.js';
 import * as nube from '../core/nube.js';
 import * as perfil from '../core/perfil.js';
 import { versionText } from '../core/actualizar.js';
@@ -26,13 +26,17 @@ function cuerpo(c) {
   if (c.estado === 'sin-acceso') return '<div class="card" id="sinAcceso">' + errorHTML('Esta cuenta ya no tiene acceso a la app. Si crees que es un error, habla con los dueños.', { title: 'Acceso quitado' }) + '</div>';
   if (c.estado === 'sin-negocio') return '<div class="card" id="sinNegocio"><div class="note warn"><b>Falta el primer paso de configuración.</b> Aún no existe el documento que dice quiénes son los dueños ' +
     '(<code>config/negocio</code>). Se crea una sola vez, a mano, en la consola de Firebase: GUIA-FIREBASE.md, paso 14.</div>' + uidHTML(u) + '</div>';
-  if (c.estado === 'error') return '<div class="card" id="sinDatos">' + errorHTML(sinRed() ? 'Sin conexión: conéctate a internet para comprobar tu acceso.'
-    : 'No se pudo comprobar tu acceso (' + (c.error || 'error') + '). Si se repite, revisa que las reglas estén publicadas (GUIA-FIREBASE.md, paso 13).', { title: 'No se pudo comprobar', retry: 'recargar' }) + '</div>';
+  if (c.estado === 'error') {
+    const ac = nube.estado(), sinComprobante = ac.appCheck === 'activo' && ac.appCheckToken === 'error';
+    return '<div class="card" id="sinDatos">' + errorHTML(sinRed() ? 'Sin conexión: conéctate a internet para comprobar tu acceso.'
+      : 'No se pudo comprobar tu acceso (' + (c.error || 'error') + '). ' + (sinComprobante ? 'App Check no entregó su comprobante (' + ac.appCheckError + '): sin él, Firebase rechaza la app (GUIA-FIREBASE.md, paso 23).'
+        : 'Si se repite, revisa que las reglas estén publicadas (GUIA-FIREBASE.md, paso 13).'), { title: 'No se pudo comprobar', retry: 'recargar' }) + '</div>';
+  }
   return '<div id="comprobando"><div class="spin" role="status" aria-label="Cargando"></div><p class="lead">Comprobando tu acceso…</p>' +
     (c.lento || sinRed() ? '<div class="card"><div class="note warn">' + (sinRed() ? '<b>Sin conexión.</b> La primera vez se necesita internet para comprobar el acceso de esta cuenta.'
       : '<b>Está tardando.</b> Revisa la conexión a internet.') + '</div><button class="btn ghost block" data-act="recargar">Reintentar</button></div>' : '') + '</div>';
 }
-export function html(c) { return hero + cuerpo(c) + cuenta(c.user) + '<p class="ver-line">' + esc(versionText()) + '</p>'; }
+export function html(c) { return hero + cuerpo(c) + cuenta(c.user) + enlacePrivacidad + '<p class="ver-line">' + esc(versionText()) + '</p>'; }
 
 function error(msg) { const e = $('#solError'); if (e) { e.textContent = msg; e.hidden = !msg; } }
 export function alActuar(act, el, c) {

@@ -24,7 +24,9 @@ export const IC = {
   camion: '<path d="M3 6.5h11V16H3z"/><path d="M14 9.5h3.8l3.2 3.4V16h-7z"/><circle cx="7" cy="17.3" r="1.8"/><circle cx="17.2" cy="17.3" r="1.8"/>',
   lista: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.6" cy="6.5" r="1" fill="currentColor"/><circle cx="4.6" cy="12" r="1" fill="currentColor"/><circle cx="4.6" cy="17.5" r="1" fill="currentColor"/>',
   bajar: '<path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/>',
-  mas: '<path d="M12 5v14M5 12h14"/>'
+  mas: '<path d="M12 5v14M5 12h14"/>',
+  ayuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 114 2c-.9.6-1.6 1.1-1.6 2.2"/><path d="M12 16.9v.1"/>',
+  candado: '<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/>'
 };
 export function svg(n, c) {
   return '<svg class="ic ' + (c || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (IC[n] || IC.dot) + '</svg>';

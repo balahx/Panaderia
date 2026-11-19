@@ -13,20 +13,20 @@
 | 4 | Pesaje y entregas del día (tablet) | 5 | ✔ Hecha. Paso 19 verificado por Felipe (16-nov-2026): 7 de 8 casillas, Diagnóstico con 0 bloqueos y versión 0.4.0, emulador en verde. La casilla **modo avión** quedó sin marcar: se repite en el paso 20.5 (las pruebas lo cubren) |
 | 5 | Ventas para dueños: Entregas, registro, fecha pasada, Excel, respaldo | 6 | ✔ Hecha. Paso 20 verificado por Felipe (17-nov-2026): las 8 casillas (incluida la de **modo avión** pendiente del paso 19), Diagnóstico con 0 bloqueos y versión 0.5.0, emulador en verde |
 | 6 | Cierres mensuales (importar ene–oct 2026, cerrar mes) | 7 | ✔ Hecha. Paso 21 verificado por Felipe (18-nov-2026): las 6 casillas (10 meses cerrados desde Excel, cada neto = total del Excel), Diagnóstico con 0 bloqueos y versión 0.6.0, emulador en verde con los 235 casos |
-| 7 | Indicadores, proyección y metas | 8 | ◐ Código, reglas, pruebas y guía hechos (18-nov-2026). Falta que Felipe ejecute `GUIA-FIREBASE.md`, paso 22 (publicar, importar 2025 y verificar) |
-| 8 | Cierre y entrega (incluye App Check obligatorio) | 9 | Pendiente |
+| 7 | Indicadores, proyección y metas | 8 | ✔ Hecha. Paso 22 verificado por Felipe (19-nov-2026): las 6 casillas (octubre = su cierre, noviembre = Entregas, 2025 importado y comparado, metas fijadas y a mano, externo sí y tablet no), Diagnóstico con 0 bloqueos y versión 0.7.0, emulador en verde con los 261 casos |
+| 8 | Cierre y entrega (incluye App Check obligatorio) | 9 | ◐ Código, pruebas, guía y documentos hechos (19-nov-2026). Falta que Felipe ejecute `GUIA-FIREBASE.md`, paso 23 (publicar, App Check supervisar → obligatorio, revisión de consolas) |
 | 9 | Costos y margen por pan | 10 | Después |
 | 10 | Plan de producción diario | 11 | Después |
 
-Versión de la app: **0.7.0** (caché 2026.11.18.1) · 22 pruebas, todas bien (18-nov-2026, con Firebase, Google y Firestore simulados) · 261 casos de reglas
+Versión de la app: **0.8.0** (caché 2026.11.19.1) · 24 pruebas, todas bien (19-nov-2026, con Firebase, Google y Firestore simulados) · 261 casos de reglas (sin cambios en la Fase 8)
 
-## Qué falta para cerrar la Fase 7 (lo hace Felipe, con `GUIA-FIREBASE.md`, paso 22)
+## Qué falta para cerrar la Fase 8 (lo hace Felipe, con `GUIA-FIREBASE.md`, paso 23)
 
-1. `npm test` (22 pruebas).
-2. **Subir a GitHub antes de publicar** y mirar Actions → «Reglas de Firestore (emulador)»: hay 26 casos nuevos (261 en total, de la proyección) y **desde el chat no se pudieron probar contra el emulador** (sin red). Si queda en rojo, no publicar y traer las líneas con ✗.
-3. `firebase deploy --only hosting,firestore:rules` y actualizar cada equipo a 0.7.0.
-4. **Recomendado:** importar `Privado\Cierres 2025.xlsx` (marzo a diciembre de 2025; en el chat 8 se comprobó que el importador lo lee como 10 meses, con el formato de la plantilla). Sin 2025 no hay comparación con el año anterior ni proyección de 2026.
-5. Ajustar la proyección, fijar las metas y marcar la tabla de 6 casillas del paso 22.
+1. `npm test` (24 pruebas), subir a GitHub y ver **Actions** en verde. Las **reglas no cambiaron** (siguen los 261 casos).
+2. `firebase deploy --only hosting` y actualizar cada equipo a 0.8.0.
+3. **App Check en modo supervisar** (paso 16, nunca se hizo): clave reCAPTCHA v3, clave secreta en la consola, clave del sitio en `firebase-config.js`, `node tools/appcheck.js activar`, publicar, y **Firebase App Check API** en la clave web. En cada equipo el Diagnóstico debe decir «App Check: Activo · comprobante recibido» y 0 bloqueos. **Desde el chat no se pudo probar con el reCAPTCHA real** (sin red): si hay bloqueos, el Diagnóstico ahora dice «Qué se bloqueó»; traerlo.
+4. Esperar 1 a 2 días y mirar App Check → APIs → Cloud Firestore (casi todo «verificadas», «clientes desactualizados» en 0). Luego **Aplicar** en Cloud Firestore (y Authentication si aparece), esperar 15 min y probar en cada equipo. Reversible con «Desaplicar».
+5. Revisión final de las consolas (tabla F del paso 23), imprimir o enviar `GUIA-FAMILIA.md`, y marcar la tabla G (6 casillas).
 
 ## Decisiones tomadas
 
@@ -56,6 +56,18 @@ Versión de la app: **0.7.0** (caché 2026.11.18.1) · 22 pruebas, todas bien (1
 - Firestore creado en modo producción con reglas **todo cerrado** hasta la Fase 2.
 - CI: acciones fijadas por hash (checkout v4.1.7, setup-node v4.0.3) y Dependabot mensual para actualizarlas. **gitleaks no se incluyó** (no se pudo verificar su hash desde el chat); lo cubren `tests/repo-unit.js` y Secret scanning + Push protection de GitHub.
 - Letra grande para la panadería: `data-escala="grande"` en `<html>` (los tamaños usan `em`); desde la Fase 4 la activa `app.js` en la cuenta de pesaje y en la pestaña Pesaje.
+
+### Decisiones de la Fase 8 (19-nov-2026)
+
+- **Aviso de privacidad** (`pantallas/privacidad.js`, una hoja): quién responde (los dueños), qué datos (cuenta de Google: nombre, correo, identificador; trabajo: quién pesa y qué; negocio), dónde (Firebase, servidores que pueden estar fuera de Chile; copia en el equipo que se borra al cerrar sesión), quién ve qué, qué no se hace (vender, compartir, publicidad, medir uso) y cuánto tiempo. Vigente desde el 19-nov-2026. Se abre con `data-act="privacidad"` desde el **ingreso** (sin sesión), la **espera** de aprobación y **Más** (todos los perfiles); `app.js` lo atiende antes de mirar la sesión. No cita leyes: es informativo (no es asesoría legal). **Si cambia lo que la app guarda, actualizarlo.**
+- **reCAPTCHA (App Check):** su insignia flotante taparía la barra de abajo → se oculta con CSS (`.grecaptcha-badge`), que Google permite si la app muestra su aviso: con clave de sitio puesta, el ingreso dice «protegida por reCAPTCHA» con enlaces a la Política de Privacidad y las Condiciones de Google, y el aviso de privacidad explica qué revisa. Son los únicos enlaces externos nuevos (`tests/csp.js` los admite solo como enlaces y solo en `privacidad.js`; `rel="noopener noreferrer"`).
+- **Ayuda en la app** (`pantallas/ayuda.js`, pestaña oculta `ayuda` sin permiso, desde Más): temas en `<details>` (parten cerrados). La tablet ve pesar, corregir, cerrar la entrega, sin internet, actualizar y problemas; gestión además Hoy y fecha pasada, Entregas y Excel, cerrar el mes, Números y metas, precios y respaldo; los dueños además accesos. **La «guía breve para la familia» es esta** (la usan en el teléfono); `GUIA-FAMILIA.md` es la versión para imprimir, con la instalación (si cambia una, cambiar la otra).
+- **App Check obligatorio = tarea de consola** (paso 23: supervisar → medir 1-2 días → Aplicar en Firestore y Authentication → probar; «Desaplicar» si falla). En el código: `nube.js` pide un comprobante al iniciar (`getToken`, sin esperarlo) y el Diagnóstico dice «Activo · comprobante recibido / esperando / el comprobante no llega / sin comprobante (código)»; la espera con `permission-denied` lo nombra si el comprobante falló. Se mantiene **reCAPTCHA v3** (gratis, ya preparado en la Fase 2); reCAPTCHA Enterprise sería la alternativa si Google retira v3.
+- **Diagnóstico:** «Qué se bloqueó» (hasta 4 bloqueos distintos de la política, para copiarlos al chat), «Apertura de la app» y «Pantalla más lenta» (`window.__pan`, lo mide `app.js`: solo el dibujo, sin la espera de datos).
+- **Accesibilidad:** `document.title` = nombre de la pantalla · Panadería; al cambiar de pantalla el foco pasa al `h1` (`tabIndex = -1`, sin contorno) para que el lector de pantalla anuncie dónde se llegó; al redibujar por datos nuevos, el foco vuelve al título o al control con el mismo `id` (antes se perdía). `a11y.js` agrega una pasada a **320 px** (equivale a ampliar al 400 %, WCAG «reflow»), el aviso y la Ayuda: 64 vistas × 4.
+- **Rendimiento:** medido con datos de tamaño real (40 canastas al día): un año entero de líneas de venta o los indicadores de 12 meses toman ~30 ms en Node y cada pantalla se dibuja en ~10 ms con dos meses de canastos; **no hizo falta optimizar código**. El riesgo real era la **cuota de lecturas del respaldo** (crece ~15 mil por año) → **respaldo por año**: por omisión canastos y bitácora del año actual (consulta por `fecha`, no se pagan los otros años), días de entrega del año, y lo demás completo; «Todos los años» sigue. El archivo lleva `anio` (null = todo) y se llama `respaldo-panaderia-AAAA-MM-DD-de-AAAA.json`. `tests/rendimiento.js` fija límites holgados (descarga < 550 KB de código propio, cada módulo en la caché, archivos ≤ ~300 líneas, cálculos del año, dibujo < 400 ms). **Queda como mejora posible:** el Excel se escribe sin comprimir (un mes ~1 MB, un año ~13 MB); comprimirlo exige volver asíncrono `xlsx.crear` (no se hizo: un mes es lo habitual).
+- **Revisión final de seguridad:** cabecera nueva `Cross-Origin-Resource-Policy: same-origin`; `repo-unit.js` revisa además que el service worker no toque otros sitios, que el token de Google no se guarde en el equipo y se borre de la dirección, que `firebase-config.js` no tenga secretos y que los enlaces externos lleven `noopener`. Lo que solo se ve en las consolas quedó como lista en el paso 23.F. **Riesgo residual aceptado:** cualquier cuenta de Google puede ingresar, crear su solicitud (una por cuenta) y leer `config/negocio` (UID de los dueños, que no dan acceso); App Check obligatorio lo limita a la app publicada. No se cambiaron las reglas.
+- **`LEEME.md`** (raíz): qué es, perfiles, estructura, cómo probar y publicar, seguridad (tabla de medidas y dónde se prueba cada una), privacidad, **consumo del plan gratuito** y mantención. GitHub muestra en la portada solo un `README.md`: si se quiere verlo ahí, renombrarlo (o copiarlo) con ese nombre.
 
 ### Decisiones de la Fase 7 (18-nov-2026)
 
@@ -155,8 +167,7 @@ Versión de la app: **0.7.0** (caché 2026.11.18.1) · 22 pruebas, todas bien (1
 
 ## Pendientes de información (PLAN §13)
 
-- Resultado del paso 22 de la guía (tabla de 6 casillas y si el emulador quedó en verde con los 261 casos) y si se importó 2025.
-- App Check (paso 16) sigue sin configurar: es obligatorio recién en la Fase 8.
+- Resultado del paso 23 de la guía (tabla G de 6 casillas, tabla F de consolas, Diagnóstico de la tablet con su apertura y pantalla más lenta, y si App Check quedó **aplicado**).
 - Noviembre de 2026 se cierra desde Entregas a partir del 1 de diciembre; con noviembre y diciembre cerrados se puede proyectar todo 2027.
 - «Ajustes» del plan (§8) aún no existe como pantalla: el IVA quedó dentro de Catálogo → Cliente e IVA.
 
@@ -164,8 +175,10 @@ Versión de la app: **0.7.0** (caché 2026.11.18.1) · 22 pruebas, todas bien (1
 
 | Archivo | Qué contiene |
 |---|---|
-| `GUIA-FIREBASE.md` | Paso a paso: consola, publicación, instalación, repositorio, seguridad, problemas frecuentes |
-| `firebase.json` | Hosting publica `APP\`; cabeceras de seguridad (CSP, antimarcos) y de caché |
+| `LEEME.md` | Presentación del proyecto: qué es, perfiles, estructura, probar y publicar, seguridad, privacidad, consumo del plan gratuito, mantención |
+| `GUIA-FIREBASE.md` | Paso a paso: consola, publicación, instalación, repositorio, seguridad (paso 23: App Check obligatorio y revisión final), problemas frecuentes |
+| `GUIA-FAMILIA.md` | Guía breve para la familia, para imprimir (instalar, tablet, dueños, si algo falla). La misma está en la app: Más → Ayuda |
+| `firebase.json` | Hosting publica `APP\`; cabeceras de seguridad (CSP, antimarcos, COOP, CORP) y de caché |
 | `firestore.rules` | Reglas por perfil de las 12 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días, bitácora (con `quien`), `config/respaldo`, cierres (meses cerrados) y proyección con metas; todo lo demás cerrado |
 | `package.json` · `.gitignore` · `.gitattributes` | Scripts npm, exclusiones, finales de línea |
 | `tools\plantillas-github\` · `.github\` | `ci.yml` (pruebas y reglas con emulador en GitHub Actions) y `dependabot.yml`. Las dos copias de `ci.yml` deben ser iguales |
@@ -178,14 +191,14 @@ Versión de la app: **0.7.0** (caché 2026.11.18.1) · 22 pruebas, todas bien (1
 | `APP\css\base.css` | Página, títulos, cabecera, barra de navegación, escritorio |
 | `APP\css\componentes.css` | Tarjetas, botones, campos, hojas, ingreso, listas, estados, avisos, accesos, catálogo (`.seg`, `.precio-hoy`, `.hist`, `.radios`), pesaje (`.pes-*`, dos columnas desde 700 px) y Hoy (`.stats`, `.entrega`, `.dia-nav`) |
 | `APP\js\app.js` | Arranque, sesión, acceso por perfil (escuchas en vivo), catálogo en vivo (`vigilarCatalogo` → `ctx.cat`), pesajes del día en vivo (`vigilarDia` → `ctx.dia`), del período (`vigilarPeriodo` → `ctx.per`), marca del respaldo (`ctx.respaldo`), franjas (`pintarBanner`), pestañas (`TABS`, con `oculta`, `permiso`, `datos` y `grande`), reparto de acciones (`alActuar`), escritura (`alEscribir`) y teclado (`alTeclear`), cambio de día, cerrar sesión con aviso de datos sin enviar |
-| `APP\js\core\nube.js` | Único contacto con Firebase: sesión, Firestore con caché sin conexión (`vigilarDoc`, `vigilarCol`, `vigilarDonde` con `_pend`, `vigilarRango`), lecturas del servidor (`leerCol`, `leerRango`, `leerDoc`), lectura única con copia del equipo (`consultarRango`, Fase 7), accesos, escrituras generales (`guardar`, `guardarVarios`, `borrar`, `ajustarNegocio`), `pendientes()`, App Check opcional, `estado()` |
+| `APP\js\core\nube.js` | Único contacto con Firebase: sesión, Firestore con caché sin conexión (`vigilarDoc`, `vigilarCol`, `vigilarDonde` con `_pend`, `vigilarRango`), lecturas del servidor (`leerCol`, `leerRango`, `leerDoc`), lectura única con copia del equipo (`consultarRango`, Fase 7), accesos, escrituras generales (`guardar`, `guardarVarios`, `borrar`, `ajustarNegocio`), `pendientes()`, App Check opcional con comprobante al iniciar (`estado().appCheckToken`, `appCheckConfigurado`), `estado()` |
 | `APP\js\core\perfil.js` | Perfiles, permisos (`puede`) y `resolver` (qué pantalla corresponde). Lógica pura |
 | `APP\js\core\pesaje.js` | Pesaje, lógica pura: teclado (`teclear`), `validarCantidad` (aviso 20 kg, confirmar 50 kg), `nuevoPesaje`, `soloPesaje`, `diferencia`, `constancia` (bitácora, con `quien`) y `describirCambio` (bitácora legible), `entregaEnCurso`, `entregaActual`, **`resumen`** (totales por pan, entrega y trabajador), `horaChile`, `sumarDias` |
 | `APP\js\core\ventas.js` | Ventas, lógica pura: **`lineas`** (un pan en una entrega, con el precio vigente ese día), `totales`, `porEntrega`, `porDia`, `porPan`, `faltanPrecios`, meses (`rangoMes`, `sumarMeses`, `mesTexto`), `validarPeriodo`, `filtrar` y `ordenRegistro` (registro general) |
 | `APP\js\core\excel.js` · `xlsx.js` | Excel de ventas: las seis hojas (`libro`) · escritor .xlsx propio sin librerías (`crear`, ZIP sin comprimir, estilos, fórmulas) |
 | `APP\js\core\xlsx-leer.js` · `cierres.js` | Lector .xlsx propio (ZIP comprimido con `DecompressionStream`, textos compartidos, fechas, límites) · cierres, lógica pura: `interpretar` (formatos de Excel), `clave`/`emparejar`/`preparar` (nombres con el catálogo, cuadre con el total del Excel), `documento`, `desdeApp` («Cerrar mes»), `cerradoEl`, `estadoMes`, `plantilla` |
 | `APP\js\core\indicadores.js` | Indicadores, proyección y metas, lógica pura: `resumenMes` (cierre o pesajes; por pan, por día, semana, trabajador, promedio, ritmo), `comparar`, `variacion`, `pctTexto`, `leerProyeccion`, `validarPct`, `proyectarMes`, `objetivo`, `avance`, `metasDesde`, `tablaAnio`, `documentoProyeccion`, `validarMeta` |
-| `APP\js\core\respaldo.js` | Respaldo: qué se lee por perfil (`reunir`), archivo (`armar`), marca (`marcaNueva`) y franja semanal (`toca`, `textoMarca`) |
+| `APP\js\core\respaldo.js` | Respaldo: qué se lee por perfil y año (`reunir`, `anios`, `POR_FECHA`), archivo (`armar`, con `anio`), nombre, marca (`marcaNueva`) y franja semanal (`toca`, `textoMarca`) |
 | `APP\js\core\catalogo.js` | Catálogo, lógica pura: `numero`, `pesos`, `montos` (con `redondearPesos`), `ivaDe`, validaciones, orden (`mover`), **`precioVigente`**, `historial`, `idPrecio`, `clientePrincipal`, `nuevoId` |
 | `APP\js\core\acceso.js` | Ingreso con Google por redirección: `comenzar`, `terminar`, `validar` |
 | `APP\js\core\actualizar.js` | Versión, «Buscar actualización», aviso de versión nueva |
@@ -207,7 +220,8 @@ Versión de la app: **0.7.0** (caché 2026.11.18.1) · 22 pruebas, todas bien (1
 | `APP\js\pantallas\avisos.js` | Franjas: accesos por revisar, vendido sin precio, respaldo semanal («Más tarde») |
 | `APP\js\pantallas\pesaje.js` | **Pesaje** (tablet, letra grande): quién pesa, entrega en curso con «Cerrar entrega» / «Volver a abrir», panes, teclado propio y físico, nota, «Pesado hoy» con «Por enviar» |
 | `APP\js\pantallas\pesaje-hoja.js` | Hojas comunes de un canasto (del día o del período): ficha, corregir, anular, reactivar (con constancia en `cambios`); nota del próximo canasto; `filaCanasto` («anotado el …»), `anotadoDespues`, `rechazo` |
-| `APP\js\pantallas\mas.js` | Cuenta y perfil, grupos Catálogo · Registros · Datos · Cuenta (Accesos), diagnóstico (perfil, UID, datos, App Check), actualización |
+| `APP\js\pantallas\mas.js` | Cuenta y perfil, grupos Catálogo · Registros · Datos · Cuenta (Accesos, Ayuda, Aviso de privacidad), diagnóstico (perfil, UID, datos, App Check con comprobante, qué se bloqueó, apertura y pantalla más lenta), actualización |
+| `APP\js\pantallas\ayuda.js` · `privacidad.js` | **Ayuda** por perfil (temas que se abren de a uno) · **Aviso de privacidad** (hoja; `abrir`, `texto`, `lineaRecaptcha` para el ingreso) |
 | `APP\vendor\firebase\` | SDK local (lo crea `tools/vendor.js`) |
 | `tools\servidor.js` · `servir.js` | Servidor local con las cabeceras de Hosting · `node tools/servir.js` |
 | `tools\bump.js` · `run-tests.js` · `vendor.js` | Subir versión · correr pruebas · descargar SDK (app, auth, firestore, app-check) |
@@ -219,17 +233,18 @@ Versión de la app: **0.7.0** (caché 2026.11.18.1) · 22 pruebas, todas bien (1
 | `tests\indicadores-unit.js` · `indicadores-e2e.js` | Sin navegador: indicadores = Entregas = cierres (también 300 meses al azar), ritmo, comparaciones, proyección, metas, año y documento con la copia de las reglas · con navegador: Números de punta a punta (mes, cerrado, año, proyección, metas, externo, tablet) |
 | `tests\ventas-e2e.js` | Con navegador: Entregas, sin precio con franja, anotar en fecha pasada, registro con filtros y bitácora, corrección con nombre, Excel = Entregas, respaldo y su franja, sin conexión, externo y tablet |
 | `tests\reglas-casos.js` · `rules-emulator.js` | Casos de reglas compartidos · prueba contra las reglas reales con el emulador (CI o `npm run reglas`) |
-| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 60 vistas |
-| `tests\fake-firebase\` | Dobles de prueba de Firebase, Google, Firestore (`window.__fakeDb`; con `setDoc`, `updateDoc`, `deleteDoc`, lotes, consultas `where` de igualdad y de rango, lecturas del servidor, escrituras pendientes sin conexión y conteo de lecturas), App Check y la copia a mano de las reglas (`reglas.mjs`) |
+| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 64 vistas en 320, 360 (claro y oscuro) y 390 px |
+| `tests\privacidad-e2e.js` · `rendimiento.js` | Con navegador: aviso de privacidad (ingreso, espera, Más, cada perfil), Ayuda por perfil, títulos y foco, App Check (aviso de reCAPTCHA, insignia oculta, comprobante y su falla) y «Qué se bloqueó» · tamaño de la descarga, cálculos de un año y dibujo de cada pantalla con datos reales |
+| `tests\fake-firebase\` | Dobles de prueba de Firebase, Google, Firestore (`window.__fakeDb`; con `setDoc`, `updateDoc`, `deleteDoc`, lotes, consultas `where` de igualdad y de rango, lecturas del servidor, escrituras pendientes sin conexión y conteo de lecturas), App Check (con `getToken`; falla con `localStorage['fake.appCheckFalla']`) y la copia a mano de las reglas (`reglas.mjs`) |
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
 
 ```
-Proyecto App Panadería, Fase 8. Lee D:\APP Panaderia\ESTADO.md y de PLAN.md solo
-las secciones 2, 9, 12 y "Fase 8". De APP lee: index.html, sw.js, js/app.js, js/core/nube.js,
-js/core/acceso.js, js/pantallas/mas.js, js/pantallas/ingreso.js, css/base.css, firestore.rules,
-firebase.json, tools/appcheck.js, tests/csp.js, tests/a11y.js y tests/repo-unit.js.
-Resultado del paso 22 de GUIA-FIREBASE.md: [pegar la tabla de 6 casillas, el Diagnóstico,
-si «Reglas de Firestore (emulador)» quedó en verde o los ✗, y si se importó 2025].
-Desarrolla la Fase 8 completa. Al terminar: pruebas, versión 0.8.0 y ESTADO.md actualizado.
+Proyecto App Panadería, Fase 9 (costos y margen por pan). Lee D:\APP Panaderia\ESTADO.md y de
+PLAN.md solo las secciones 3, 7, 9, 12 y "Fase 9". De APP lee: js/app.js, js/core/catalogo.js,
+js/core/ventas.js, js/core/indicadores.js, js/pantallas/catalogo.js, js/pantallas/catalogo-producto.js,
+js/pantallas/indicadores.js, firestore.rules, tests/reglas-casos.js y tests/a11y.js.
+Resultado del paso 23 de GUIA-FIREBASE.md: [pegar la tabla G de 6 casillas, la tabla F de consolas,
+el Diagnóstico de la tablet y si App Check quedó aplicado].
+Planifica la Fase 9 con preguntas primero (qué costos, por kilo o por tanda, cómo se cargan).
 ```

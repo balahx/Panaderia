@@ -20,6 +20,8 @@ import * as avisos from './pantallas/avisos.js';
 import * as accesos from './pantallas/accesos.js';
 import * as catalogo from './pantallas/catalogo.js';
 import * as mas from './pantallas/mas.js';
+import * as ayuda from './pantallas/ayuda.js';
+import * as privacidad from './pantallas/privacidad.js';
 
 /* Secciones. `oculta`: no va en la barra (se llega desde «Más»). `permiso`: qué perfil la ve (core/perfil.js).
    `datos`: se vuelve a dibujar cuando cambia el catálogo (S.cat), lo pesado (S.dia) o el período (S.per). `grande`: letra grande (la panadería).
@@ -35,6 +37,7 @@ const TABS = [
   { id: 'cierres', t: 'Cierres', ic: 'file', mod: cierres, oculta: true, permiso: 'gestion', datos: true },
   { id: 'catalogo', t: 'Catálogo', ic: 'pan', mod: catalogo, oculta: true, permiso: 'gestion', datos: true },
   { id: 'accesos', t: 'Accesos', ic: 'team', mod: accesos, oculta: true, permiso: 'accesos' },
+  { id: 'ayuda', t: 'Ayuda', ic: 'ayuda', mod: ayuda, oculta: true },
   { id: 'mas', t: 'Más', ic: 'more', mod: mas }
 ];
 /* S.estado: un perfil ('dueno' | 'externo' | 'pesaje') o lo que falta para tenerlo (ver perfil.resolver). */
@@ -53,10 +56,13 @@ const tabActual = () => TABS.find(t => t.id === S.tab && visible(t)) || TABS.fin
 
 /* Registro de bloqueos de la política de contenido (se ve en «Diagnóstico»: debe quedar en 0) */
 window.__csp = [];
+/* Rendimiento en este equipo (Fase 8, se ve en «Diagnóstico»): ms desde que se pidió la página hasta ver la app, y lo que más tardó
+   en dibujarse cada pantalla (solo el dibujo: no cuenta la espera de los datos). */
+window.__pan = { apertura: 0, dibujo: {}, nombres: {} };
 document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI));
 
 function pintarPuerta(html) {
-  delete document.documentElement.dataset.escala;
+  delete document.documentElement.dataset.escala; document.title = 'Panadería';
   $('#appRoot').hidden = true; $('#view').innerHTML = ''; $('#nav').innerHTML = ''; $('#banner').innerHTML = '';   // fuera de la app no queda nada de la cuenta en la página
   const g = $('#gate'); g.hidden = false; g.innerHTML = html;
 }
@@ -68,9 +74,17 @@ function pintarApp() {
   if (act.grande || S.estado === 'pesaje') document.documentElement.dataset.escala = 'grande'; else delete document.documentElement.dataset.escala;
   $('#nav').innerHTML = TABS.filter(t => !t.oculta && visible(t)).map(t => '<button data-act="ir" data-tab="' + t.id + '"' + (t.id === enBarra ? ' aria-current="page"' : '') + '>' + svg(t.ic) + '<span>' + t.t + '</span></button>').join('');
   pintarBanner();
-  const v = $('#view'); v.dataset.tab = act.id; v.innerHTML = act.mod.html(ctx());
+  /* Si el foco estaba en la pantalla (su título o un control con id), se devuelve tras redibujar: llegan datos y no se pierde el lugar. */
+  const v = $('#view'), a = document.activeElement, foco = a && a !== document.body && v.contains(a) ? (a.tagName === 'H1' ? 'h1' : a.id ? '#' + CSS.escape(a.id) : '') : '';
+  const t0 = performance.now(); v.dataset.tab = act.id; v.innerHTML = act.mod.html(ctx());
+  const P = window.__pan, ms = performance.now() - t0;
+  P.dibujo[act.id] = Math.max(P.dibujo[act.id] || 0, ms); P.nombres[act.id] = act.t; if (!P.apertura) P.apertura = performance.now();
+  document.title = act.t + ' · Panadería';   // cada pantalla con su nombre (lectores de pantalla, pestañas del navegador)
+  if (foco) { const n = v.querySelector(foco); if (n) { if (foco === 'h1') n.tabIndex = -1; n.focus({ preventScroll: true }); } }
   medirBarra(); pintarRed();
 }
+/* Al cambiar de pantalla, el foco pasa a su título: un lector de pantalla anuncia dónde se llegó (y el teclado sigue desde ahí). */
+function enfocarTitulo() { const h = $('#view h1'); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); } }
 /* Dibuja lo que corresponde a la sesión y al perfil. */
 function pintar() {
   if (!S.user) { pintarIngreso(); return; }
@@ -199,10 +213,11 @@ document.addEventListener('click', e => {
   const act = el.dataset.act;
   if (act === 'cerrar-hoja') { cerrarHoja(); return; }
   if (actualizar.onAct(act)) return;
+  if (act === 'privacidad') { privacidad.abrir(); return; }   // aviso de privacidad: con o sin sesión, cualquier perfil
   if (!S.user) { ingreso.alActuar(act, el, pintarIngreso); return; }
   if (act === 'salir') { cerrarSesion(); return; }
   if (!perfil.esPerfil(S.estado)) { espera.alActuar(act, el, ctx()); return; }
-  if (act === 'ir') { const t = TABS.find(x => x.id === el.dataset.tab && visible(x)); if (t) { cerrarHoja(); if (t.mod.abrir) t.mod.abrir(el.dataset, ctx()); S.tab = t.id; pintarApp(); scrollTo(0, 0); } return; }
+  if (act === 'ir') { const t = TABS.find(x => x.id === el.dataset.tab && visible(x)); if (t) { cerrarHoja(); if (t.mod.abrir) t.mod.abrir(el.dataset, ctx()); S.tab = t.id; pintarApp(); scrollTo(0, 0); enfocarTitulo(); } return; }
   if (avisos.alActuar(act, el, ctx())) { pintarBanner(); return; }
   const r = tabActual().mod.alActuar(act, el, ctx());
   if (r === 'repintar') pintarApp();          // la pantalla cambió algo que decide qué datos escuchar (por ejemplo, el día)

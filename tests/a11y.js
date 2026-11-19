@@ -1,10 +1,11 @@
-/* Accesibilidad de las pantallas (portado de la app de muestra en la Fase 3): en 360 px y 390 px, claro y oscuro, recorre el ingreso,
+/* Accesibilidad de las pantallas (portado de la app de muestra en la Fase 3): en 320, 360 y 390 px, claro y oscuro, recorre el ingreso,
    Hoy (con datos, otro día, las hojas de un canasto y la de anotar), Entregas con las franjas de aviso (sin precio y respaldo),
    Números (indicadores del mes en curso y de uno cerrado desde Excel, «Año y metas», ajustar la proyección y la meta de un mes),
    Pesaje (con letra grande, teclado, nota y cierre de entrega), «Más» con sus grupos, Registro general (canastos y bitácora),
    Datos (Excel y respaldo), Cierres mensuales (el año, el detalle de un mes, la revisión de una importación, Entregas de un mes cerrado
    y de uno por cerrar, y Hoy en un mes cerrado), Accesos y el Catálogo con sus hojas y formularios, y comprueba que no hay desborde lateral, que todo lo tocable
    mide al menos 44 px, que todo botón tiene nombre y todo campo su etiqueta, y que el texto tiene contraste suficiente.
+   Fase 8: el aviso de privacidad (desde el ingreso y desde «Más»), la Ayuda (temas cerrados y abiertos) y una pasada a 320 px.
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
 const { crear } = require('../tools/servidor.js'), { fakeGoogle } = require('./fake-firebase/google.js');
@@ -65,7 +66,7 @@ const CHECK = () => {
 
 (async () => {
   const br = await chromium.launch(), srv = crear({ fake: true }), URL = await srv.abrir(), errors = [];
-  for (const [w, scheme] of [[360, 'light'], [360, 'dark'], [390, 'light']]) {
+  for (const [w, scheme] of [[320, 'light'], [360, 'light'], [360, 'dark'], [390, 'light']]) {   // 320 px (Fase 8): equivale a ampliar al 400 % (WCAG, «reflow»)
     console.log('Pantalla de ' + w + ' px · ' + (scheme === 'dark' ? 'oscuro' : 'claro'));
     const ctx = await br.newContext({ viewport: { width: w, height: 780 }, serviceWorkers: 'block', colorScheme: scheme }), page = await ctx.newPage();
     page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/net::ERR/.test(m.text())) errors.push(m.text()); });
@@ -85,6 +86,7 @@ const CHECK = () => {
     await page.goto(URL); await page.waitForSelector('#btnGoogle');
     await page.evaluate(s => localStorage.setItem('fake.db', s), JSON.stringify(SEMILLA));
     await look('ingreso');
+    await hoja('ingreso: aviso de privacidad', '#lnkPrivacidad', '#privacidad'); await cerrar();
     await fakeGoogle(page, {}); await tocar('#btnGoogle'); await page.waitForSelector('#appRoot:not([hidden])'); await page.waitForSelector('#avisoAccesos');
     await page.waitForSelector('#hoyTotales'); await look('hoy: con datos');
     await tocar('#hoyEntregas .entrega[data-n="1"] summary'); await look('hoy: canastos de una entrega');
@@ -110,6 +112,9 @@ const CHECK = () => {
     await tocar('[data-act="pes-cerrar-entrega"]'); await page.waitForSelector('dialog.cfm[open]'); await look('pesaje: confirmar cierre de entrega'); await tocar('dialog.cfm [data-r="0"]');
     await hoja('pesaje: canasto del día', '#listaPesajes .pes-fila', '#canDetalle'); await cerrar();
     await tocar('#nav button[data-tab="mas"]'); await look('más');
+    await hoja('más: aviso de privacidad', '#irPrivacidad', '#privacidad'); await cerrar();
+    await tocar('#irAyuda'); await page.waitForSelector('#ayudaTemas'); await look('ayuda: temas cerrados');
+    await tocar('#ay-pesar summary'); await tocar('#ay-cerrar summary'); await look('ayuda: temas abiertos'); await tocar('.volver'); await page.waitForSelector('#irAyuda');
     await hoja('diagnóstico', '[data-act="diag"]', '#diag'); await cerrar();
     await tocar('#irRegistro'); await page.waitForSelector('#regResumen'); await look('registro: canastos');
     await tocar('[data-act="reg-ver"][data-v="bitacora"]'); await page.waitForSelector('#regBitacora'); await look('registro: bitácora'); await tocar('.volver');

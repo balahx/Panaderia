@@ -31,6 +31,7 @@ const rel = f => path.relative(APP, f).split(path.sep).join('/');
   fj.hosting.headers.find(h => h.source === '**').headers.forEach(h => { hs[h.key] = h.value; });
   ok(hs['Content-Security-Policy'] === m[1] + "; frame-ancestors 'none'", "la cabecera de Hosting es la misma política más frame-ancestors 'none'");
   ok(hs['X-Frame-Options'] === 'DENY' && hs['X-Content-Type-Options'] === 'nosniff' && /strict-origin/.test(hs['Referrer-Policy']) && /camera=\(\)/.test(hs['Permissions-Policy']), 'cabeceras: antimarcos, nosniff, referrer y permisos');
+  ok(hs['Cross-Origin-Opener-Policy'] === 'same-origin' && hs['Cross-Origin-Resource-Policy'] === 'same-origin', 'cabeceras: ninguna otra página puede abrir la app con acceso a ella ni usar sus archivos (Fase 8)');
   ok(fj.hosting.public === 'APP' && fj.firestore.rules === 'firestore.rules', 'Hosting publica solo la carpeta APP');
   ok(!/<script(?![^>]*\ssrc=)[^>]*>/i.test(html) && !/<style/i.test(html), 'index.html no tiene scripts ni estilos en línea');
   ok(!/\son[a-z]+\s*=/i.test(html) && !/\sstyle\s*=/i.test(html), 'index.html no tiene manejadores (onclick=…) ni atributos style');
@@ -38,13 +39,18 @@ const rel = f => path.relative(APP, f).split(path.sep).join('/');
   const code = walk(APP).filter(f => /\.(js|css)$/.test(f) && !rel(f).startsWith('vendor/'));
   const bad = code.filter(f => /\son(click|change|input|submit|load|error)=["']|\beval\(|new Function\(|\sstyle=["']|document\.write|insertAdjacentHTML\(|<script/.test(fs.readFileSync(f, 'utf8'))).map(rel);
   ok(bad.length === 0, 'el código no genera manejadores ni estilos en línea, ni usa eval' + (bad.length ? ': ' + bad.join(', ') : ''));
-  const PERMITIDOS = ['https://accounts.google.com/o/oauth2/v2/auth'];
+  /* Además del ingreso, solo dos ENLACES (no cargas): la Política de Privacidad y las Condiciones de Google, que el aviso de reCAPTCHA
+     debe nombrar (pantallas/privacidad.js). Se abren aparte, en el navegador. */
+  const PERMITIDOS = ['https://accounts.google.com/o/oauth2/v2/auth', 'https://policies.google.com/privacy', 'https://policies.google.com/terms'];
+  const ENLACES = PERMITIDOS.slice(1);
   /* El formato Excel (.xlsx) exige NOMBRAR sus esquemas (espacios de nombres XML); no son direcciones que se carguen (connect-src lo impediría).
      Se admiten solo en core/xlsx.js y solo esos tres. */
   const ESQUEMAS = ['http://schemas.openxmlformats.org/spreadsheetml/2006/main', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'http://schemas.openxmlformats.org/package/2006/'];
   const sinComentarios = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const ext = code.flatMap(f => (sinComentarios(fs.readFileSync(f, 'utf8')).match(/https?:\/\/[^\s'"`)]+/g) || []).filter(u => !PERMITIDOS.includes(u) && !(rel(f) === 'js/core/xlsx.js' && ESQUEMAS.includes(u))).map(u => rel(f) + ' → ' + u));
-  ok(ext.length === 0, 'el único sitio externo nombrado en el código es el ingreso de Google (más los nombres de esquema del formato Excel)' + (ext.length ? ': ' + ext.join(', ') : ''));
+  ok(ext.length === 0, 'los únicos sitios externos nombrados en el código son el ingreso de Google y los enlaces a sus políticas (más los nombres de esquema del formato Excel)' + (ext.length ? ': ' + ext.join(', ') : ''));
+  const usos = code.flatMap(f => { const t = sinComentarios(fs.readFileSync(f, 'utf8')); return ENLACES.filter(u => t.includes(u)).map(u => ({ f: rel(f), u, t })); });
+  ok(usos.length > 0 && usos.every(x => x.f === 'js/pantallas/privacidad.js') && usos.every(x => !new RegExp('(src|fetch|import)\\W[^;\\n]*' + x.u.replace(/[./]/g, '\\$&')).test(x.t)), 'las políticas de Google solo se nombran como enlaces, en el aviso de privacidad');
   const css = fs.readFileSync(path.join(APP, 'css', 'tokens.css'), 'utf8');
   ok(['Barlow-Regular', 'Barlow-Medium', 'Barlow-SemiBold', 'BarlowCondensed-Medium', 'BarlowCondensed-SemiBold', 'BarlowCondensed-Bold'].every(n => fs.existsSync(path.join(APP, 'fonts', n + '.woff')) && css.includes('fonts/' + n + '.woff')) && fs.existsSync(path.join(APP, 'fonts', 'OFL-Barlow.txt')), 'las seis tipografías están en la app, declaradas, y con su licencia');
   ok(/'\.\/guard\.js'/.test(fs.readFileSync(path.join(APP, 'sw.js'), 'utf8')) && html.indexOf('guard.js') < html.indexOf('js/app.js'), 'guard.js se carga primero y está en la caché sin conexión');

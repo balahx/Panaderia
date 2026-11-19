@@ -60,4 +60,15 @@ if (!fs.existsSync(path.join(vdir, 'VERSION.json'))) {
     ok(t !== null && info.archivos[a] && crypto.createHash('sha256').update(t).digest('hex') === info.archivos[a].sha256, a + ' coincide con la huella anotada al descargarlo');
   }
 }
+console.log('6. Revisión final de seguridad (Fase 8)');
+const APPD = path.join(ROOT, 'APP'), sw = fs.readFileSync(path.join(APPD, 'sw.js'), 'utf8');
+ok(/u\.origin !== self\.location\.origin\) return/.test(sw) && /startsWith\('\/__\/'\)\) return/.test(sw), 'el service worker no toca nada de otros sitios ni las direcciones reservadas de Firebase');
+const codigo = walk(APPD).filter(f => /\.js$/.test(f) && !rel(f).startsWith('APP/vendor/')).map(f => [rel(f), fs.readFileSync(f, 'utf8')]);
+const guardaToken = codigo.filter(([r, t]) => /(localStorage|sessionStorage)\.setItem\([^)]*(id_?token|idToken|token)/i.test(t)).map(x => x[0]);
+ok(guardaToken.length === 0, 'el token de Google no se guarda en el equipo (solo state y nonce del ingreso)' + (guardaToken.length ? ': ' + guardaToken.join(', ') : ''));
+ok(/history\.replaceState\(null, '', location\.pathname \+ location\.search\)/.test(fs.readFileSync(path.join(APPD, 'js', 'core', 'acceso.js'), 'utf8')), 'al volver de Google, el token se borra de la dirección y del historial');
+const cfgTxt = fs.readFileSync(path.join(APPD, 'firebase-config.js'), 'utf8');
+ok(!/secret|privateKey|private_key/i.test(cfgTxt.replace(/\/\*[\s\S]*?\*\//g, '')), 'firebase-config.js solo tiene datos públicos (la clave secreta de reCAPTCHA va solo en la consola)');
+const enlacesBlank = codigo.flatMap(([r, t]) => (t.match(/target="_blank"[^>]*/g) || []).filter(x => !/rel="noopener/.test(x)).map(() => r));
+ok(enlacesBlank.length === 0, 'todo enlace que abre aparte lleva rel="noopener"' + (enlacesBlank.length ? ': ' + enlacesBlank.join(', ') : ''));
 console.log(fails ? '\nFALLAS: ' + fails : '\nTodo bien'); process.exit(fails ? 1 : 0);

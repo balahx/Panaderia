@@ -86,6 +86,18 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   ok(dueno.lecturas === 2 + 6 + 10 && ext.lecturas === 2 + 6 + 8, 'cuenta las lecturas (al menos una por consulta, como cobra Firestore)');
   const arch = R.armar(dueno.datos, { por: { uid: 'u1' }, perfil: 'dueno', lecturas: dueno.lecturas, creado: '2026-11-16T10:00:00Z' });
   ok(R.esRespaldo(arch) && arch.conteos.pesajes === 6 && arch.conteos.miembros === 0 && R.nombreArchivo('2026-11-16') === 'respaldo-panaderia-2026-11-16.json', 'el archivo tiene cabecera, conteos y nombre con la fecha');
+  /* Por año (Fase 8): canastos y bitácora con una consulta por fecha; días de entrega del año; lo demás completo */
+  const multi = [{ id: 'a', fecha: '2025-12-31' }, { id: 'b', fecha: '2026-01-01' }, { id: 'c', fecha: '2026-12-31' }, { id: 'd', fecha: '2027-01-01' }], pedidos = [];
+  const porRango = { doc: async () => null, col: async r => { pedidos.push('col ' + r); return r === 'dias' ? [{ id: '2025-12-31' }, { id: '2026-03-02' }] : r === 'pesajes' || r === 'cambios' ? multi : [{ id: r }]; },
+    rango: async (c, campo, d, h) => { pedidos.push('rango ' + c + ' ' + campo + ' ' + d + ' ' + h); return multi.filter(x => x[campo] >= d && x[campo] <= h); } };
+  const delAnio = await R.reunir(porRango, 'externo', null, 2026);
+  ok(delAnio.datos.pesajes.map(x => x.id).join() === 'b,c' && delAnio.datos.cambios.map(x => x.id).join() === 'b,c' && delAnio.datos.dias.map(x => x.id).join() === '2026-03-02' && delAnio.datos.precios.length === 1 && delAnio.datos.cierres.length === 1,
+    'respaldo de un año: canastos, correcciones y días de ese año; catálogo, precios y cierres completos');
+  ok(pedidos.includes('rango pesajes fecha 2026-01-01 2026-12-31') && pedidos.includes('rango cambios fecha 2026-01-01 2026-12-31') && !pedidos.includes('col pesajes') && delAnio.lecturas === 2 + 2 + 2 + 2 + 6,
+    'los canastos de otros años ni se leen (consulta por fecha): solo se pagan las lecturas del año');
+  const arA = R.armar(delAnio.datos, { anio: 2026 });
+  ok(arA.anio === 2026 && R.armar(dueno.datos, {}).anio === null && R.nombreArchivo('2026-11-19', 2026) === 'respaldo-panaderia-2026-11-19-de-2026.json' && R.esRespaldo(arA), 'el archivo dice de qué año es (null = todo) y lo lleva en el nombre');
+  ok(R.anios('2026-11-19').join() === '2026' && R.anios('2028-01-05').join() === '2028,2027,2026', 'años para elegir: del actual hacia atrás hasta 2026');
   let corto = null; try { await R.reunir({ doc: async () => null, col: async r => { if (r === 'pesajes') throw new Error('sin red'); return []; } }, 'externo'); } catch (e) { corto = e.message; }
   ok(corto === 'sin red', 'si una lectura falla, el respaldo se corta (no entrega uno incompleto)');
   const dia = 86400000, ahora = Date.parse('2026-11-16T12:00:00Z');

@@ -13,7 +13,7 @@ import * as R from '../core/respaldo.js';
 import * as actualizar from '../core/actualizar.js';
 
 const X = { modo: 'mes', mes: '', desde: '', hasta: '', ocupado: false, msg: '', err: '', ultimo: '' };   // Excel
-const B = { ocupado: false, msg: '', err: '', ultimo: '' };                                             // respaldo
+const B = { ocupado: false, msg: '', err: '', ultimo: '', anio: '' };                                   // respaldo · anio: '' = el actual · 'todo'
 export const ocupado = () => X.ocupado;
 const mesDe = c => (X.mes && X.mes <= V.mesDe(c.hoy) ? X.mes : V.mesDe(c.hoy));
 const motivo = e => { const m = String(e && (e.code || e.message) || e); return /unavailable|offline|network/i.test(m) ? 'sin conexión con el servidor' : /permission/.test(m) ? 'el servidor no lo permitió' : m; };
@@ -41,9 +41,10 @@ async function respaldar(c) {
   if (navigator.onLine === false) { toast('Para el respaldo hace falta internet: así sale completo.'); return; }
   B.ocupado = true; B.err = ''; B.msg = 'Preparando…'; repintar();
   try {
-    const got = await R.reunir({ doc: nube.leerDoc, col: nube.leerCol }, c.perfil, t => { B.msg = t; repintar(); });
-    const hoy = diaChile(new Date()), arch = R.armar(got.datos, { por: { uid: c.user.uid, nombre: c.user.nombre, correo: c.user.correo }, perfil: c.perfil, lecturas: got.lecturas, version: actualizar.current().n, proyecto: nube.proyecto() });
-    await descargar(R.nombreArchivo(hoy), JSON.stringify(arch, null, 1), 'application/json');
+    const anio = anioRespaldo(c);
+    const got = await R.reunir({ doc: nube.leerDoc, col: nube.leerCol, rango: nube.leerRango }, c.perfil, t => { B.msg = t; repintar(); }, anio);
+    const hoy = diaChile(new Date()), arch = R.armar(got.datos, { por: { uid: c.user.uid, nombre: c.user.nombre, correo: c.user.correo }, perfil: c.perfil, lecturas: got.lecturas, version: actualizar.current().n, proyecto: nube.proyecto(), anio });
+    await descargar(R.nombreArchivo(hoy, anio), JSON.stringify(arch, null, 1), 'application/json');
     B.ultimo = 'Esta descarga: ' + R.resumen(arch.conteos) + ' · ' + got.lecturas + ' lecturas.';
     nube.guardar('config/respaldo', R.marcaNueva(c.user.uid, c.user.nombre, arch.conteos, got.lecturas)).catch(() => { /* la marca es un recordatorio: el archivo ya está descargado */ });
     toast('Respaldo descargado');
@@ -51,6 +52,8 @@ async function respaldar(c) {
   B.ocupado = false; B.msg = ''; repintar();
 }
 
+/* Año del respaldo: null = todo. Por omisión, el año actual. */
+const anioRespaldo = c => (B.anio === 'todo' ? null : Number(B.anio) || R.anios(c.hoy)[0]);
 function periodoElegido(c) {
   if (X.modo === 'mes') { const r = V.rangoMes(mesDe(c)); return { desde: r.desde, hasta: r.hasta > c.hoy ? c.hoy : r.hasta }; }
   return V.validarPeriodo(X.desde || V.rangoMes(V.mesDe(c.hoy)).desde, X.hasta || c.hoy, c.hoy);
@@ -72,6 +75,10 @@ function tarjetaRespaldo(c) {
   return '<section class="card sec" id="secRespaldo"><span class="eyebrow">Copia de seguridad</span><h2>Respaldo</h2>' +
     '<p class="muted">Un archivo con todos los datos: catálogo, precios, canastos, entregas y correcciones' + (c.perfil === 'dueno' ? ', y los accesos' : '') + '. ' +
     'Firebase gratis no guarda copias solo: descárgalo cada semana y guárdalo en un lugar privado (tiene precios y ventas). Cada descarga usa una lectura por registro de la cuota diaria gratuita.</p>' +
+    '<label class="lab" for="datBkAnio">Canastos y correcciones de</label><select class="txt" id="datBkAnio">' +
+    R.anios(c.hoy).map((a, i) => '<option value="' + a + '"' + (anioRespaldo(c) === a ? ' selected' : '') + '>' + a + (i === 0 ? ' (este año, lo recomendado)' : '') + '</option>').join('') +
+    '<option value="todo"' + (anioRespaldo(c) === null ? ' selected' : '') + '>Todos los años (usa más lecturas)</option></select>' +
+    '<p class="muted chico" id="datBkAlcance">El catálogo, los precios, los cierres y las metas van siempre completos. Los años anteriores ya quedaron en sus respaldos.</p>' +
     (marca !== undefined ? '<p class="' + (viejo ? 'note warn' : 'muted') + '" id="datMarca">' + esc(R.textoMarca(marca)) + '</p>' : '') +
     (B.err ? '<p class="form-error" role="alert">' + esc(B.err) + '</p>' : '') + (B.ocupado ? '<p class="muted" role="status">' + esc(B.msg) + '</p>' : B.ultimo ? '<p class="muted chico" id="datBkUltimo">' + esc(B.ultimo) + '</p>' : '') +
     '<div class="actions"><button class="btn" id="datRespaldo" data-act="dat-respaldo"' + (B.ocupado ? ' disabled' : '') + '>' + svg('bajar') + (B.ocupado ? 'Descargando…' : 'Descargar respaldo') + '</button></div></section>';
@@ -90,4 +97,5 @@ export function alActuar(act, el, c) {
 export function alEscribir(el, c) {
   if (el.id === 'datMes' && V.esMes(el.value)) { X.mes = el.value >= V.mesDe(c.hoy) ? '' : el.value; return 'repintar'; }
   if (el.id === 'datDesde' || el.id === 'datHasta') { X[el.id === 'datDesde' ? 'desde' : 'hasta'] = el.value; return 'repintar'; }
+  if (el.id === 'datBkAnio') { B.anio = el.value; return 'repintar'; }
 }

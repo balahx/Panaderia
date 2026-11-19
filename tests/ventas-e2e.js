@@ -144,8 +144,13 @@ Object.fromEntries([pes('h1', HOY, '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', HOY,
   ok(x3.nombre === (V5.slice(0, 7) === HOY.slice(0, 7) && V5.endsWith('-01') ? 'ventas-' + HOY.slice(0, 7) + '.xlsx' : 'ventas-' + V5 + '_a_' + HOY + '.xlsx') && (f => f[f.length - 1][11])(leer(x3.bytes).hojas.Ventas.filas) === T3.total, 'un período a elección: ' + x3.nombre);
 
   console.log('6. Respaldo');
+  const ANIO = HOY.slice(0, 4), delAnio = l => l.filter(x => String(x.fecha).startsWith(ANIO));
+  ok((await page.inputValue('#datBkAnio')) === ANIO, 'por omisión, el respaldo es de este año (Fase 8: menos lecturas)');
+  const r0 = await descarga('#datRespaldo'), a0 = JSON.parse(r0.bytes.toString('utf8'));
+  ok(r0.nombre === 'respaldo-panaderia-' + HOY + '-de-' + ANIO + '.json' && a0.anio === Number(ANIO) && a0.datos.pesajes.length === delAnio(await docs('pesajes')).length && a0.datos.precios.length === 2, 'respaldo del año: su nombre lo dice y trae los canastos de ' + ANIO + ' y el catálogo completo');
+  await page.selectOption('#datBkAnio', 'todo'); await page.waitForFunction(() => document.getElementById('datBkAnio').value === 'todo');
   const r1 = await descarga('#datRespaldo'), arch = JSON.parse(r1.bytes.toString('utf8'));
-  ok(r1.nombre === 'respaldo-panaderia-' + HOY + '.json' && arch.formato === 'panaderia-respaldo' && arch.v === 1, 'baja el respaldo con su fecha');
+  ok(r1.nombre === 'respaldo-panaderia-' + HOY + '.json' && arch.formato === 'panaderia-respaldo' && arch.v === 1 && arch.anio === null, 'con «Todos los años» baja el respaldo completo, con su fecha');
   ok(arch.datos.pesajes.length === (await docs('pesajes')).length && arch.datos.cambios.length === (await docs('cambios')).length && arch.datos.precios.length === 2 && !!arch.datos['config/negocio'], 'trae todo: canastos, correcciones, precios, negocio…');
   ok(Array.isArray(arch.datos.miembros) && arch.datos.miembros.length === 2, '…y, por ser dueña, los accesos');
   await page.waitForSelector('#datMarca'); await page.waitForFunction(() => /hoy/.test(document.getElementById('datMarca').textContent));

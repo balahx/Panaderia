@@ -3,6 +3,12 @@
    por eso es un botón, y la app avisa con una franja si pasó una semana sin respaldo (config/respaldo guarda el último).
    Parte pura (sin pantalla): se prueba con Node (tests/ventas-unit.js). Leer de la nube lo hace pantallas/datos.js. */
 export const FORMATO = 'panaderia-respaldo', VERSION = 1, AVISO_DIAS = 7;
+/* Respaldo por año (Fase 8, rendimiento): los canastos y la bitácora crecen unos 15 mil documentos al año, y cada uno es una lectura de la
+   cuota gratuita diaria (50 mil). Por eso, por omisión, se respaldan solo los del AÑO ACTUAL (los años anteriores ya quedaron en sus
+   respaldos y no cambian); lo demás (catálogo, precios, cierres, metas, accesos) va siempre completo. «Todo» sigue disponible. */
+export const POR_FECHA = ['pesajes', 'cambios'], ANIO_INICIO = 2026;
+/* Años que se pueden elegir: del actual hacia atrás, hasta el primero de la app. */
+export const anios = hoy => { const a = Number(String(hoy).slice(0, 4)), l = []; for (let y = a; y >= ANIO_INICIO; y--) l.push(y); return l; };
 
 /* Qué se respalda. Los dueños además guardan los accesos (el externo no puede leerlos: las reglas se lo niegan). */
 export const DOCUMENTOS = ['config/negocio', 'config/respaldo'];
@@ -10,12 +16,19 @@ export const COLECCIONES = ['productos', 'precios', 'trabajadores', 'clientes', 
 export const DE_DUENOS = ['miembros', 'solicitudes'];
 export const colecciones = perfil => COLECCIONES.concat(perfil === 'dueno' ? DE_DUENOS : []);
 
-/* Lee todo con `leer` = { doc(ruta), col(ruta) } (del servidor). `avance(texto)` informa. Si algo falla, se corta con el error:
-   un respaldo incompleto no debe parecer completo. Devuelve { datos, lecturas }. */
-export async function reunir(leer, perfil, avance) {
+/* Lee todo con `leer` = { doc(ruta), col(ruta), rango(col, campo, desde, hasta) } (del servidor). `avance(texto)` informa.
+   `anio` (número): canastos y bitácora solo de ese año, y los días de entrega de ese año; sin `anio`, todo. Si algo falla, se corta con
+   el error: un respaldo incompleto no debe parecer completo. Devuelve { datos, lecturas }. */
+export async function reunir(leer, perfil, avance, anio) {
   const di = avance || (() => {}), datos = {}; let lecturas = 0;
   for (const r of DOCUMENTOS) { datos[r] = await leer.doc(r); lecturas++; }
-  for (const c of colecciones(perfil)) { di('Leyendo ' + c + '…'); const l = await leer.col(c); datos[c] = l; lecturas += Math.max(1, l.length); }
+  for (const c of colecciones(perfil)) {
+    di('Leyendo ' + c + '…');
+    let l = anio && POR_FECHA.includes(c) ? await leer.rango(c, 'fecha', anio + '-01-01', anio + '-12-31') : await leer.col(c);
+    lecturas += Math.max(1, l.length);
+    if (anio && c === 'dias') l = l.filter(d => String(d.id).slice(0, 4) === String(anio));   // pocos al año: se leen todos y se dejan los del año
+    datos[c] = l;
+  }
   return { datos, lecturas };
 }
 export function conteos(datos) {
@@ -26,10 +39,11 @@ export function conteos(datos) {
 export function armar(datos, meta) {
   meta = meta || {};
   return { formato: FORMATO, v: VERSION, creado: meta.creado || new Date().toISOString(), por: meta.por || null, perfil: meta.perfil || '',
-    version: meta.version || '', proyecto: meta.proyecto || '', lecturas: meta.lecturas || 0, conteos: conteos(datos), datos };
+    version: meta.version || '', proyecto: meta.proyecto || '', lecturas: meta.lecturas || 0, anio: meta.anio || null, conteos: conteos(datos), datos };
 }
 export const esRespaldo = o => !!o && o.formato === FORMATO && o.v === VERSION && !!o.datos && Array.isArray(o.datos.pesajes);
-export const nombreArchivo = fecha => 'respaldo-panaderia-' + fecha + '.json';
+/* Completo: respaldo-panaderia-AAAA-MM-DD.json · de un año: respaldo-panaderia-AAAA-MM-DD-de-AAAA.json */
+export const nombreArchivo = (fecha, anio) => 'respaldo-panaderia-' + fecha + (anio ? '-de-' + anio : '') + '.json';
 export const resumen = c => [c.pesajes + ' canastos', c.productos + ' productos', c.precios + ' precios', c.cambios + ' correcciones'].join(' · ');
 
 /* ---------- Aviso semanal ---------- */

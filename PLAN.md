@@ -190,13 +190,14 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 - «Cerrar mes» desde los datos de la app.
 - **Requiere:** los archivos de cierre en `privado/`. **Listo cuando:** los 10 meses importados coinciden con los totales de los Excel.
 
-### Fase 7 · Indicadores, proyección y metas — chat 8 ◐
+### Fase 7 · Indicadores, proyección y metas — chat 8 ✔
 - Los nueve indicadores elegidos; proyección con factores; año 1 contra año 2; metas y seguimiento.
 - **Listo cuando:** los totales de indicadores cuadran con cierres y entregas.
 - Hecho (18-nov-2026, versión 0.7.0): pestaña **Números** con «El mes» (los nueve indicadores; el mes en curso se compara a su ritmo) y «Año y metas» (año contra año, proyección por pan con crecimiento y precio, metas fijas editables). Meses cerrados = su cierre; los demás = lo de Entregas (ESTADO.md, decisiones de la Fase 7).
 
-### Fase 8 · Cierre y entrega — chat 9
+### Fase 8 · Cierre y entrega — chat 9 ◐
 - Aviso de privacidad, accesibilidad, rendimiento, App Check obligatorio, revisión final de seguridad, `LEEME.md` y guía breve para la familia.
+- Hecho (19-nov-2026, versión 0.8.0): aviso de privacidad (ingreso, espera y Más), Ayuda por perfil en la app y `GUIA-FAMILIA.md` para imprimir, títulos y foco por pantalla y revisión a 320 px, respaldo por año (cuota de lecturas), Diagnóstico con comprobante de App Check, bloqueos y tiempos, cabecera CORP y pruebas de higiene, `LEEME.md`. App Check obligatorio y la revisión de consolas: `GUIA-FIREBASE.md`, paso 23 (ESTADO.md, decisiones de la Fase 8).
 
 ### Fase 9 · Costos y margen por pan — chat 10
 ### Fase 10 · Plan de producción diario — chat 11

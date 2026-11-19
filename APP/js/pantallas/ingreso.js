@@ -5,6 +5,7 @@ import { svg, errorHTML } from '../core/iconos.js';
 import * as acceso from '../core/acceso.js';
 import * as nube from '../core/nube.js';
 import { versionText } from '../core/actualizar.js';
+import { lineaRecaptcha } from './privacidad.js';
 
 export const hero = '<div class="hero"><span class="mk" aria-hidden="true">' + svg('pan') + '</span><h1 class="nm">Panadería</h1><span class="sl">Pesaje, entregas y ventas</span></div>';
 
@@ -16,9 +17,10 @@ function cuerpo(e) {
   return '<div class="card"><p class="lead">Entra con tu cuenta de Google.</p>' +
     '<button class="btn lg block" id="btnGoogle" data-act="entrar">' + svg('user') + 'Ingresar con Google</button>' +
     (e.error ? '<p class="form-error" role="alert">' + esc(e.error) + '</p>' : '') + '</div>' +
-    '<p class="legal">Solo se usa tu nombre y tu correo de Google para identificarte. El acceso a la información lo aprueban los dueños.</p>';
+    '<p class="legal">Solo se usa tu nombre y tu correo de Google para identificarte. El acceso a la información lo aprueban los dueños.</p>' + lineaRecaptcha();
 }
-export function html(e) { return hero + cuerpo(e || { tipo: 'cargando' }) + '<p class="ver-line">' + esc(versionText()) + '</p>'; }
+export const enlacePrivacidad = '<p class="legal"><button class="lnk" data-act="privacidad" id="lnkPrivacidad">Aviso de privacidad</button></p>';
+export function html(e) { return hero + cuerpo(e || { tipo: 'cargando' }) + enlacePrivacidad + '<p class="ver-line">' + esc(versionText()) + '</p>'; }
 
 /* Devuelve true si atendió la acción. `pintar(estado)` vuelve a dibujar la pantalla. */
 export function alActuar(act, el, pintar) {
