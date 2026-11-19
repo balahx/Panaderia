@@ -1,5 +1,6 @@
 # Nunca al repositorio (PLAN §6 y §9)
 privado/
+Privado/
 app de muestra/
 .env*
 serviceAccount*.json

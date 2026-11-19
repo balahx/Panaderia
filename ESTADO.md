@@ -12,21 +12,21 @@
 | 3 | Catálogo: productos, precios, trabajadores | 4 | ✔ Hecha. Paso 18 verificado por Felipe (16-nov-2026): 6 de 7 casillas y el emulador en verde. La casilla «el externo no tiene el botón del IVA» se verificó en el paso 19 (✓) |
 | 4 | Pesaje y entregas del día (tablet) | 5 | ✔ Hecha. Paso 19 verificado por Felipe (16-nov-2026): 7 de 8 casillas, Diagnóstico con 0 bloqueos y versión 0.4.0, emulador en verde. La casilla **modo avión** quedó sin marcar: se repite en el paso 20.5 (las pruebas lo cubren) |
 | 5 | Ventas para dueños: Entregas, registro, fecha pasada, Excel, respaldo | 6 | ✔ Hecha. Paso 20 verificado por Felipe (17-nov-2026): las 8 casillas (incluida la de **modo avión** pendiente del paso 19), Diagnóstico con 0 bloqueos y versión 0.5.0, emulador en verde |
-| 6 | Cierres mensuales (importar ene–oct 2026, cerrar mes) | 7 | ◐ Código, reglas, pruebas y guía hechos (17-nov-2026). **Faltan los Excel reales** (la carpeta `privado\` no existía) y que Felipe ejecute `GUIA-FIREBASE.md`, paso 21 (publicar, importar y verificar) |
-| 7 | Indicadores, proyección y metas | 8 | Pendiente |
+| 6 | Cierres mensuales (importar ene–oct 2026, cerrar mes) | 7 | ✔ Hecha. Paso 21 verificado por Felipe (18-nov-2026): las 6 casillas (10 meses cerrados desde Excel, cada neto = total del Excel), Diagnóstico con 0 bloqueos y versión 0.6.0, emulador en verde con los 235 casos |
+| 7 | Indicadores, proyección y metas | 8 | ◐ Código, reglas, pruebas y guía hechos (18-nov-2026). Falta que Felipe ejecute `GUIA-FIREBASE.md`, paso 22 (publicar, importar 2025 y verificar) |
 | 8 | Cierre y entrega (incluye App Check obligatorio) | 9 | Pendiente |
 | 9 | Costos y margen por pan | 10 | Después |
 | 10 | Plan de producción diario | 11 | Después |
 
-Versión de la app: **0.6.0** (caché 2026.11.17.1) · 20 pruebas, todas bien (17-nov-2026, con Firebase, Google y Firestore simulados) · 235 casos de reglas
+Versión de la app: **0.7.0** (caché 2026.11.18.1) · 22 pruebas, todas bien (18-nov-2026, con Firebase, Google y Firestore simulados) · 261 casos de reglas
 
-## Qué falta para cerrar la Fase 6 (lo hace Felipe, con `GUIA-FIREBASE.md`, paso 21)
+## Qué falta para cerrar la Fase 7 (lo hace Felipe, con `GUIA-FIREBASE.md`, paso 22)
 
-1. Dejar los Excel de cierres de enero a octubre de 2026 en `D:\APP Panaderia\privado\` (**en este chat la carpeta no existía**: el importador se hizo tolerante a varios formatos y se probó con Excel de ejemplo; con los reales puede hacer falta un ajuste).
-2. `npm test` (20 pruebas).
-3. **Subir a GitHub antes de publicar** y mirar Actions → «Reglas de Firestore (emulador)»: hay 31 casos nuevos (235 en total) y **desde el chat no se pudieron probar contra el emulador** (sin red). Si queda en rojo, no publicar y traer las líneas con ✗.
-4. `firebase deploy --only hosting,firestore:rules` y actualizar cada equipo a 0.6.0.
-5. Importar los 10 meses (Más → Cierres mensuales) y marcar la tabla de 6 casillas del paso 21. Si un Excel no se entiende o algún mes dice ✗, traer al chat **qué dice la pantalla** (o el archivo, si se puede compartir).
+1. `npm test` (22 pruebas).
+2. **Subir a GitHub antes de publicar** y mirar Actions → «Reglas de Firestore (emulador)»: hay 26 casos nuevos (261 en total, de la proyección) y **desde el chat no se pudieron probar contra el emulador** (sin red). Si queda en rojo, no publicar y traer las líneas con ✗.
+3. `firebase deploy --only hosting,firestore:rules` y actualizar cada equipo a 0.7.0.
+4. **Recomendado:** importar `Privado\Cierres 2025.xlsx` (marzo a diciembre de 2025; en el chat 8 se comprobó que el importador lo lee como 10 meses, con el formato de la plantilla). Sin 2025 no hay comparación con el año anterior ni proyección de 2026.
+5. Ajustar la proyección, fijar las metas y marcar la tabla de 6 casillas del paso 22.
 
 ## Decisiones tomadas
 
@@ -56,6 +56,21 @@ Versión de la app: **0.6.0** (caché 2026.11.17.1) · 20 pruebas, todas bien (1
 - Firestore creado en modo producción con reglas **todo cerrado** hasta la Fase 2.
 - CI: acciones fijadas por hash (checkout v4.1.7, setup-node v4.0.3) y Dependabot mensual para actualizarlas. **gitleaks no se incluyó** (no se pudo verificar su hash desde el chat); lo cubren `tests/repo-unit.js` y Secret scanning + Push protection de GitHub.
 - Letra grande para la panadería: `data-escala="grande"` en `<html>` (los tamaños usan `em`); desde la Fase 4 la activa `app.js` en la cuenta de pesaje y en la pestaña Pesaje.
+
+### Decisiones de la Fase 7 (18-nov-2026)
+
+- **Pestaña «Números»** (dueños y externo) entre Entregas y Pesaje: el nombre corto cabe en la barra de 360 px («Indicadores» se cortaba); la pantalla se titula «Indicadores». Dos partes (`.seg`): **El mes** y **Año y metas**.
+- **De dónde sale cada mes** (regla de la Fase 6): mes **cerrado** → totales y panes del **cierre** (no se recalculan); sin cerrar o reabierto → `ventas.lineas` de sus pesajes, igual que Entregas. Un mes cerrado con la app usa además sus pesajes para el detalle por día y por trabajador (si un precio cambió después, valen los totales del cierre y se avisa); uno importado desde **Excel no trae días ni trabajadores** (esos indicadores lo dicen). Lógica pura en `core/indicadores.js` (`resumenMes`).
+- **Los nueve indicadores** (El mes): venta neta por pan, cantidad por pan y participación (una lista ordenada por venta, con la variación de cada pan contra el mes anterior), comparación con el mes anterior y con el mismo mes del año anterior (neto, kilos, unidades), promedio diario (por día con entregas; en meses de Excel, por día del mes), días de la semana (promedio por día con entregas, de lunes a domingo, los dos más fuertes marcados), kilos por trabajador (canastos no anulados) y real contra la meta o la proyección. Todo **neto** (sin IVA).
+- **Mes en curso (mejora):** se compara **a su ritmo** = lo de los días ya terminados (sin hoy) llevado a los días del mes (`ritmo`); compararlo a medias con un mes completo engañaba. Contra la meta dice cuánto falta y cuánto por día (contando hoy) y adónde llegaría a ese ritmo. En el año, su variación contra el año anterior no se calcula (está a medias) y el acumulado usa solo meses terminados.
+- **Proyección** de un año A = mismo mes de A − 1 × crecimiento (general o el de cada pan, que **reemplaza** al general) × factor de precio, **por pan** (cantidad × crecimiento; neto × crecimiento × precio, en pesos). Los porcentajes se escriben con signo (5, −3). No se proyecta un mes sin base o con la base en curso (se escribe la meta a mano). Se puede mirar hasta el año siguiente al actual.
+- **Metas = fijas:** `proyeccion/{AAAA}.metas` (12 montos netos o null). «Usar la proyección como metas» copia la proyección de cada mes con base (los sin base conservan la suya); tocando un mes se escribe o se quita su meta. Cambiar los factores **no** mueve las metas ya fijadas. Mientras un mes no tenga meta, se compara con su proyección («Real contra proyectado»).
+- **Reglas de `proyeccion/{AAAA}`:** `anio` (entero = el nombre), `factor` y `factorPrecio` (> 0 y ≤ 10), `panes` (mapa, ≤ 200), `metas` (lista de 12: entero ≥ 0 o null, revisadas una por una), `por` (quien guarda), `quien`, `en` (hora del servidor); dueños y externo; no se borra. Las escrituras exigen conexión (como el catálogo).
+- **Lecturas:** el mes que se mira se escucha en vivo (`periodo`); los otros meses sin cerrar que hacen falta (mes anterior, el del año pasado, los del año) se leen **una vez** con `nube.consultarRango` (`getDocs`: sin conexión entrega la copia del equipo y la pantalla lo avisa) y se guardan 10 minutos en `pantallas/meses-datos.js`. Los meses cerrados no cuestan lecturas: **conviene cerrar cada mes**.
+- **Gráficos sin librerías y sin `style`:** barras y el gráfico del año en SVG con atributos (CSP), un solo tono (dorado) para la magnitud, el año anterior en gris y la meta como raya; los valores siempre escritos al lado (la lista del año es la tabla del gráfico; cada barra tiene su `<title>`).
+- `app.js`: escucha `proyeccion` para gestión (`ctx.proy`). Indicadores acepta `abrir({ mes, vista })`. El Firestore simulado entiende `getDocs`.
+- `.gitignore`: se agregó `Privado/` (la carpeta real tiene mayúscula; con `privado/` dependía de que Git ignore mayúsculas).
+- Pruebas: `indicadores-unit.js` (mes abierto = Entregas; cerrados = cierre; 300 meses al azar donde por pan, por día de la semana, por trabajador, por entrega y el cierre cuadran; ritmo; comparaciones; proyección, metas y año; documento contra la copia de las reglas) e `indicadores-e2e.js` (barra, mes en curso = Entregas, mes de Excel y mes cerrado con la app = su cierre, año, ajustar con vista previa, fijar metas, meta a mano, real contra meta, sin conexión, externo y tablet). `a11y.js` recorre 60 vistas.
 
 ### Decisiones de la Fase 6 (17-nov-2026)
 
@@ -140,10 +155,9 @@ Versión de la app: **0.6.0** (caché 2026.11.17.1) · 20 pruebas, todas bien (1
 
 ## Pendientes de información (PLAN §13)
 
-- Excel de cierres: Felipe los dejará en `privado\` (en el chat 7 la carpeta no existía). Con ellos: importar y, si alguno no se entiende, ajustar `core/cierres.js`.
-- Resultado del paso 21 de la guía (tabla de 6 casillas y si el emulador quedó en verde con los 235 casos).
+- Resultado del paso 22 de la guía (tabla de 6 casillas y si el emulador quedó en verde con los 261 casos) y si se importó 2025.
 - App Check (paso 16) sigue sin configurar: es obligatorio recién en la Fase 8.
-- Fase 7: los indicadores deben tomar los meses cerrados de `cierres` (por pan: `lineas`) y los demás de los pesajes (`ventas.lineas`); el año anterior a 2026 no tiene datos (la proyección parte con los cierres de 2026).
+- Noviembre de 2026 se cierra desde Entregas a partir del 1 de diciembre; con noviembre y diciembre cerrados se puede proyectar todo 2027.
 - «Ajustes» del plan (§8) aún no existe como pantalla: el IVA quedó dentro de Catálogo → Cliente e IVA.
 
 ## Mapa de archivos
@@ -152,7 +166,7 @@ Versión de la app: **0.6.0** (caché 2026.11.17.1) · 20 pruebas, todas bien (1
 |---|---|
 | `GUIA-FIREBASE.md` | Paso a paso: consola, publicación, instalación, repositorio, seguridad, problemas frecuentes |
 | `firebase.json` | Hosting publica `APP\`; cabeceras de seguridad (CSP, antimarcos) y de caché |
-| `firestore.rules` | Reglas por perfil de las 12 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días, bitácora (con `quien`) y `config/respaldo`; todo lo demás cerrado |
+| `firestore.rules` | Reglas por perfil de las 12 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días, bitácora (con `quien`), `config/respaldo`, cierres (meses cerrados) y proyección con metas; todo lo demás cerrado |
 | `package.json` · `.gitignore` · `.gitattributes` | Scripts npm, exclusiones, finales de línea |
 | `tools\plantillas-github\` · `.github\` | `ci.yml` (pruebas y reglas con emulador en GitHub Actions) y `dependabot.yml`. Las dos copias de `ci.yml` deben ser iguales |
 | `APP\index.html` | Cáscara: CSP, `#gate` (ingreso), `#appRoot` (app), `#dlg`, `#toast` |
@@ -164,12 +178,13 @@ Versión de la app: **0.6.0** (caché 2026.11.17.1) · 20 pruebas, todas bien (1
 | `APP\css\base.css` | Página, títulos, cabecera, barra de navegación, escritorio |
 | `APP\css\componentes.css` | Tarjetas, botones, campos, hojas, ingreso, listas, estados, avisos, accesos, catálogo (`.seg`, `.precio-hoy`, `.hist`, `.radios`), pesaje (`.pes-*`, dos columnas desde 700 px) y Hoy (`.stats`, `.entrega`, `.dia-nav`) |
 | `APP\js\app.js` | Arranque, sesión, acceso por perfil (escuchas en vivo), catálogo en vivo (`vigilarCatalogo` → `ctx.cat`), pesajes del día en vivo (`vigilarDia` → `ctx.dia`), del período (`vigilarPeriodo` → `ctx.per`), marca del respaldo (`ctx.respaldo`), franjas (`pintarBanner`), pestañas (`TABS`, con `oculta`, `permiso`, `datos` y `grande`), reparto de acciones (`alActuar`), escritura (`alEscribir`) y teclado (`alTeclear`), cambio de día, cerrar sesión con aviso de datos sin enviar |
-| `APP\js\core\nube.js` | Único contacto con Firebase: sesión, Firestore con caché sin conexión (`vigilarDoc`, `vigilarCol`, `vigilarDonde` con `_pend`, `vigilarRango`), lecturas del servidor (`leerCol`, `leerRango`, `leerDoc`), accesos, escrituras generales (`guardar`, `guardarVarios`, `borrar`, `ajustarNegocio`), `pendientes()`, App Check opcional, `estado()` |
+| `APP\js\core\nube.js` | Único contacto con Firebase: sesión, Firestore con caché sin conexión (`vigilarDoc`, `vigilarCol`, `vigilarDonde` con `_pend`, `vigilarRango`), lecturas del servidor (`leerCol`, `leerRango`, `leerDoc`), lectura única con copia del equipo (`consultarRango`, Fase 7), accesos, escrituras generales (`guardar`, `guardarVarios`, `borrar`, `ajustarNegocio`), `pendientes()`, App Check opcional, `estado()` |
 | `APP\js\core\perfil.js` | Perfiles, permisos (`puede`) y `resolver` (qué pantalla corresponde). Lógica pura |
 | `APP\js\core\pesaje.js` | Pesaje, lógica pura: teclado (`teclear`), `validarCantidad` (aviso 20 kg, confirmar 50 kg), `nuevoPesaje`, `soloPesaje`, `diferencia`, `constancia` (bitácora, con `quien`) y `describirCambio` (bitácora legible), `entregaEnCurso`, `entregaActual`, **`resumen`** (totales por pan, entrega y trabajador), `horaChile`, `sumarDias` |
 | `APP\js\core\ventas.js` | Ventas, lógica pura: **`lineas`** (un pan en una entrega, con el precio vigente ese día), `totales`, `porEntrega`, `porDia`, `porPan`, `faltanPrecios`, meses (`rangoMes`, `sumarMeses`, `mesTexto`), `validarPeriodo`, `filtrar` y `ordenRegistro` (registro general) |
 | `APP\js\core\excel.js` · `xlsx.js` | Excel de ventas: las seis hojas (`libro`) · escritor .xlsx propio sin librerías (`crear`, ZIP sin comprimir, estilos, fórmulas) |
 | `APP\js\core\xlsx-leer.js` · `cierres.js` | Lector .xlsx propio (ZIP comprimido con `DecompressionStream`, textos compartidos, fechas, límites) · cierres, lógica pura: `interpretar` (formatos de Excel), `clave`/`emparejar`/`preparar` (nombres con el catálogo, cuadre con el total del Excel), `documento`, `desdeApp` («Cerrar mes»), `cerradoEl`, `estadoMes`, `plantilla` |
+| `APP\js\core\indicadores.js` | Indicadores, proyección y metas, lógica pura: `resumenMes` (cierre o pesajes; por pan, por día, semana, trabajador, promedio, ritmo), `comparar`, `variacion`, `pctTexto`, `leerProyeccion`, `validarPct`, `proyectarMes`, `objetivo`, `avance`, `metasDesde`, `tablaAnio`, `documentoProyeccion`, `validarMeta` |
 | `APP\js\core\respaldo.js` | Respaldo: qué se lee por perfil (`reunir`), archivo (`armar`), marca (`marcaNueva`) y franja semanal (`toca`, `textoMarca`) |
 | `APP\js\core\catalogo.js` | Catálogo, lógica pura: `numero`, `pesos`, `montos` (con `redondearPesos`), `ivaDe`, validaciones, orden (`mover`), **`precioVigente`**, `historial`, `idPrecio`, `clientePrincipal`, `nuevoId` |
 | `APP\js\core\acceso.js` | Ingreso con Google por redirección: `comenzar`, `terminar`, `validar` |
@@ -188,6 +203,7 @@ Versión de la app: **0.6.0** (caché 2026.11.17.1) · 20 pruebas, todas bien (1
 | `APP\js\pantallas\registro.js` | **Registro general**: período, filtros, canastos de a 100 y bitácora de correcciones |
 | `APP\js\pantallas\datos.js` | **Datos**: exportar a Excel (un mes u otras fechas) y respaldo; `exportar` lo usa también Entregas |
 | `APP\js\pantallas\cierres.js` · `cierres-importar.js` | **Cierres mensuales**: el año, detalle por pan, reabrir (dueños), `cerrarMes` (lo usa Entregas) · importar: archivos, revisión (mes, emparejar panes, ✓ con el total del Excel) y guardar |
+| `APP\js\pantallas\indicadores.js` · `proyeccion.js` · `meses-datos.js` | **Números** (Indicadores): el mes con los nueve indicadores · «Año y metas»: gráfico y lista del año contra el anterior, proyección (hoja con factores y vista previa), fijar metas, meta de un mes · datos de cada mes (cierre, en vivo o lectura única guardada 10 minutos) |
 | `APP\js\pantallas\avisos.js` | Franjas: accesos por revisar, vendido sin precio, respaldo semanal («Más tarde») |
 | `APP\js\pantallas\pesaje.js` | **Pesaje** (tablet, letra grande): quién pesa, entrega en curso con «Cerrar entrega» / «Volver a abrir», panes, teclado propio y físico, nota, «Pesado hoy» con «Por enviar» |
 | `APP\js\pantallas\pesaje-hoja.js` | Hojas comunes de un canasto (del día o del período): ficha, corregir, anular, reactivar (con constancia en `cambios`); nota del próximo canasto; `filaCanasto` («anotado el …»), `anotadoDespues`, `rechazo` |
@@ -200,20 +216,20 @@ Versión de la app: **0.6.0** (caché 2026.11.17.1) · 20 pruebas, todas bien (1
 | `tests\perfil-unit.js` · `reglas-unit.js` · `catalogo-unit.js` · `pesaje-unit.js` | Sin navegador: perfiles y pantallas de acceso · reglas contra la copia a mano · catálogo y vigencia de precios · teclado, cantidades, totales, montos y bitácora del pesaje |
 | `tests\ventas-unit.js` · `xlsx-unit.js` · `leer-xlsx.js` | Sin navegador: líneas de venta, redondeo, meses, filtros, **Excel que cuadra con las entregas** (también un mes al azar) y respaldo · escritor .xlsx (ZIP, CRC, XML, fechas, fórmulas) · ayuda para abrir los .xlsx en las pruebas |
 | `tests\cierres-unit.js` · `cierres-e2e.js` · `fixtures\` | Sin navegador: lector, formatos, emparejar, documento con la copia de las reglas, «Listo cuando» con 10 meses · con navegador: importar, cerrar, reabrir, externo, tablet · Excel de ejemplo (LibreOffice y openpyxl) |
+| `tests\indicadores-unit.js` · `indicadores-e2e.js` | Sin navegador: indicadores = Entregas = cierres (también 300 meses al azar), ritmo, comparaciones, proyección, metas, año y documento con la copia de las reglas · con navegador: Números de punta a punta (mes, cerrado, año, proyección, metas, externo, tablet) |
 | `tests\ventas-e2e.js` | Con navegador: Entregas, sin precio con franja, anotar en fecha pasada, registro con filtros y bitácora, corrección con nombre, Excel = Entregas, respaldo y su franja, sin conexión, externo y tablet |
 | `tests\reglas-casos.js` · `rules-emulator.js` | Casos de reglas compartidos · prueba contra las reglas reales con el emulador (CI o `npm run reglas`) |
-| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 54 vistas |
+| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 60 vistas |
 | `tests\fake-firebase\` | Dobles de prueba de Firebase, Google, Firestore (`window.__fakeDb`; con `setDoc`, `updateDoc`, `deleteDoc`, lotes, consultas `where` de igualdad y de rango, lecturas del servidor, escrituras pendientes sin conexión y conteo de lecturas), App Check y la copia a mano de las reglas (`reglas.mjs`) |
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
 
 ```
-Proyecto App Panadería, Fase 7. Lee D:\APP Panaderia\ESTADO.md y de PLAN.md solo
-las secciones 3, 7 y "Fase 7". De APP lee: js/app.js, js/core/nube.js, js/core/ventas.js,
-js/core/cierres.js, js/core/catalogo.js, js/pantallas/entregas.js, js/pantallas/cierres.js,
-js/pantallas/mas.js, css/componentes.css, firestore.rules (bloque Proyección), tests/reglas-casos.js,
-tests/fake-firebase/reglas.mjs y tests/a11y.js.
-Resultado del paso 21 de GUIA-FIREBASE.md: [pegar la tabla de 6 casillas, el Diagnóstico
-y si «Reglas de Firestore (emulador)» quedó en verde o los ✗; si algún Excel no se importó bien, qué dijo la pantalla].
-Desarrolla la Fase 7 completa. Al terminar: pruebas, versión 0.7.0 y ESTADO.md actualizado.
+Proyecto App Panadería, Fase 8. Lee D:\APP Panaderia\ESTADO.md y de PLAN.md solo
+las secciones 2, 9, 12 y "Fase 8". De APP lee: index.html, sw.js, js/app.js, js/core/nube.js,
+js/core/acceso.js, js/pantallas/mas.js, js/pantallas/ingreso.js, css/base.css, firestore.rules,
+firebase.json, tools/appcheck.js, tests/csp.js, tests/a11y.js y tests/repo-unit.js.
+Resultado del paso 22 de GUIA-FIREBASE.md: [pegar la tabla de 6 casillas, el Diagnóstico,
+si «Reglas de Firestore (emulador)» quedó en verde o los ✗, y si se importó 2025].
+Desarrolla la Fase 8 completa. Al terminar: pruebas, versión 0.8.0 y ESTADO.md actualizado.
 ```

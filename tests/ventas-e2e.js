@@ -52,7 +52,7 @@ Object.fromEntries([pes('h1', HOY, '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', HOY,
 
   console.log('1. La dueña: barra, franja del respaldo semanal');
   await entrar(); await page.waitForSelector('#hoyTotales');
-  ok((await page.locator('#nav button').allTextContents()).join() === 'Hoy,Entregas,Pesaje,Más', 'la barra tiene Hoy, Entregas, Pesaje y Más');
+  ok((await page.locator('#nav button').allTextContents()).join() === 'Hoy,Entregas,Números,Pesaje,Más', 'la barra tiene Hoy, Entregas, Números, Pesaje y Más');
   await page.waitForSelector('#avisoRespaldo');
   ok(/Todavía no hay ningún respaldo/.test(await texto('#avisoRespaldo')), 'sin respaldos aún: la franja lo avisa');
   await tocar('#avisoRespaldo [data-act="aviso-luego"]'); await page.waitForSelector('#avisoRespaldo', { state: 'detached' });

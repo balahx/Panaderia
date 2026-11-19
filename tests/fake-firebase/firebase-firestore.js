@@ -3,7 +3,7 @@
    Estado inicial: «Rosa» (u-1001, la cuenta por defecto de google.js) es dueña, para que las pruebas de la Fase 1 entren directo.
    Sin conexión (fuera(true)) las escrituras quedan PENDIENTES en el equipo: se ven al instante con hasPendingWrites (como en Firestore),
    y al volver la conexión (fuera(false)) se envían en orden y pasan por las reglas con la hora de ESE momento.
-   Consultas: igualdad (==), rangos (>=, <=, >, <) y limit (en las lecturas del servidor). Lecturas directas del servidor (getDocsFromServer, getDocFromServer): sin conexión fallan.
+   Consultas: igualdad (==), rangos (>=, <=, >, <) y limit (en las lecturas del servidor). Lecturas directas del servidor (getDocsFromServer, getDocFromServer): sin conexión fallan; getDocs, sin conexión, entrega la copia del equipo.
    Para las pruebas:  window.__fakeDb = { poner, borrar, leer, todo, fuera, pedir, pendientes, lecturas }  (poner y borrar NO pasan por las reglas). */
 import { permitido, TS } from './reglas.mjs';
 const L = localStorage, K = 'fake.db', KC = 'fake.cache', KF = 'fake.fuera', KP = 'fake.pend';
@@ -83,6 +83,15 @@ export function getDocsFromServer(ref) {
     if (!permitido(quien(), 'list', ref.ruta, filtro, null, leer, Date.now())) return rej(denegado());
     let rutas = enCol(d, ref.ruta).filter(r => cumple(d[r], filtro, ref.rango)).sort(); if (ref.limite) rutas = rutas.slice(0, ref.limite); lecturas += Math.max(1, rutas.length);
     res({ docs: rutas.map(r => ({ id: r.split('/').pop(), data: () => d[r], metadata: { hasPendingWrites: false, fromCache: false } })), metadata: { fromCache: false, hasPendingWrites: false } });
+  }, 5));
+}
+/* Lectura única común (getDocs): con conexión, del «servidor» (pasa por las reglas); sin conexión, la copia del equipo. */
+export function getDocs(ref) {
+  if (!fuera()) return getDocsFromServer(ref);
+  return new Promise(res => setTimeout(() => {
+    const { v, marcadas } = vista(), filtro = ref.filtro || {};
+    const rutas = enCol(v, ref.ruta).filter(r => cumple(v[r], filtro, ref.rango)).sort();
+    res({ docs: rutas.map(r => ({ id: r.split('/').pop(), data: () => v[r], metadata: { hasPendingWrites: marcadas.has(r), fromCache: true } })), metadata: { fromCache: true, hasPendingWrites: false } });
   }, 5));
 }
 export function getDocFromServer(ref) {

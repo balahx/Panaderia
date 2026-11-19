@@ -189,7 +189,7 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
 
   console.log('11. El externo también ve «Hoy» y puede pesar');
   await entrar(FELIPE); await page.waitForSelector('#hoyTotales');
-  ok((await page.locator('#nav button').allTextContents()).join() === 'Hoy,Entregas,Pesaje,Más' && !!(await page.$('#hoyMontos')), 've Hoy con montos, y las pestañas Entregas y Pesaje');
+  ok((await page.locator('#nav button').allTextContents()).join() === 'Hoy,Entregas,Números,Pesaje,Más' && !!(await page.$('#hoyMontos')), 've Hoy con montos, y las pestañas Entregas, Números y Pesaje');
   await tocar('#nav button[data-tab="pesaje"]'); await page.waitForSelector('#pesPanes');
   ok((await page.getAttribute('html', 'data-escala')) === 'grande' && /Pesa: Luis/.test(await page.textContent('#pesQuienActual')), 'en Pesaje la letra crece (y el equipo recuerda quién pesa)');
   await salir();

@@ -4,7 +4,7 @@ rules_version = '2';
 // Perfiles: DUEÑO (su UID figura en config/negocio, creado a mano en la consola), EXTERNO y PESAJE (miembros/{uid}, los crea un dueño).
 // «Gestión» = dueño o externo. La cuenta de pesaje nunca lee precios, clientes, cierres ni proyecciones.
 // Cada cambio se prueba con el emulador: tests/rules-emulator.js (casos en tests/reglas-casos.js).
-// La forma de los datos de la proyección se afina en la Fase 7; el acceso por perfil queda fijado aquí.
+// Fase 6: cierres mensuales. Fase 7: forma de la proyección y las metas.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -258,9 +258,31 @@ service cloud.firestore {
         || (esDueno() && resource.data.get('cerrado', false) == true && reapertura());
       allow delete: if esGestion() && resource.data.get('cerrado', false) != true;
     }
+    // Proyección y metas de un año (Fase 7): proyeccion/{AAAA}. Factores como multiplicadores (1,05 = +5 %): crecimiento general,
+    // precio y, por pan, un mapa productoId → factor. Metas: lista de 12 montos netos en pesos enteros (o null = se usa la proyección).
+    // La escriben dueños y externo, a su nombre; no se borra.
+    function factorValido(f) { return f is number && f > 0 && f <= 10; }
+    function metaValida(v) { return v == null || (v is int && v >= 0 && v <= 100000000000); }
+    function metasValidas(m) {
+      return m is list && m.size() == 12
+        && metaValida(m[0]) && metaValida(m[1]) && metaValida(m[2]) && metaValida(m[3]) && metaValida(m[4]) && metaValida(m[5])
+        && metaValida(m[6]) && metaValida(m[7]) && metaValida(m[8]) && metaValida(m[9]) && metaValida(m[10]) && metaValida(m[11]);
+    }
+    function proyeccionValida(anio) {
+      return anio.matches('20[0-9][0-9]')
+        && nuevo().keys().hasOnly(['anio', 'factor', 'factorPrecio', 'panes', 'metas', 'por', 'quien', 'en'])
+        && nuevo().keys().hasAll(['anio', 'factor', 'factorPrecio', 'panes', 'metas', 'por', 'quien', 'en'])
+        && nuevo().anio is int && nuevo().anio == int(anio)
+        && factorValido(nuevo().factor) && factorValido(nuevo().factorPrecio)
+        && nuevo().panes is map && nuevo().panes.size() <= 200
+        && metasValidas(nuevo().metas)
+        && nuevo().por == request.auth.uid
+        && texto(nuevo().quien, 1, 60)
+        && nuevo().en == request.time;
+    }
     match /proyeccion/{anio} {
       allow read: if esGestion();
-      allow create, update: if esGestion() && nuevo().en == request.time;
+      allow create, update: if esGestion() && proyeccionValida(anio);
       allow delete: if false;
     }
     // Bitácora de correcciones: se agrega junto con cada corrección, anulación o reactivación de un pesaje; nunca se cambia ni se borra.

@@ -1,6 +1,6 @@
 # Guía paso a paso · Firebase, publicación y repositorio
 
-> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4 · paso 20: Fase 5). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
+> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4 · paso 20: Fase 5 · paso 21: Fase 6 · paso 22: Fase 7). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
 > Tiempo estimado: 60 a 90 minutos la primera vez.
 > Los nombres de botones están en español; entre paréntesis va el nombre en inglés por si tu consola aparece en ese idioma. Google cambia a veces el texto de un botón: si no lo encuentras igual, busca el más parecido.
 
@@ -30,6 +30,8 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 18 | **Fase 3:** publicar la versión 0.3.0 (catálogo) y cargar productos, precios y trabajadores | Terminal y la app |
 | 19 | **Fase 4:** publicar la versión 0.4.0 (pesaje y entregas) y empezar a usar la tablet | Terminal, la tablet y el teléfono del dueño |
 | 20 | **Fase 5:** publicar la versión 0.5.0 (ventas, registro, fecha pasada, Excel y respaldo) | Terminal, el teléfono del dueño y el computador |
+| 21 | **Fase 6:** publicar la versión 0.6.0 (cierres mensuales) e importar enero a octubre | Terminal y el computador |
+| 22 | **Fase 7:** publicar la versión 0.7.0 (indicadores, proyección y metas) | Terminal, el computador y el teléfono del dueño |
 
 ---
 
@@ -633,6 +635,54 @@ firebase deploy --only hosting,firestore:rules
 | Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.6.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde | |
 
 **Listo cuando:** las seis casillas están marcadas (es el «Listo cuando» de la Fase 6: los 10 meses importados coinciden con los totales de los Excel).
+
+---
+
+## Paso 22 · Publicar la versión 0.7.0 (indicadores, proyección y metas)
+
+Esta versión agrega la pestaña **Números** (dueños y externo; la tablet no la ve), entre **Entregas** y **Pesaje**:
+- **El mes:** venta neta por pan, kilos y unidades por pan, participación de cada pan, comparación con el **mes anterior** y con el **mismo mes del año anterior**, promedio diario, **días de la semana** más fuertes, **kilos por trabajador** y **real contra proyectado** (o contra la meta). El mes en curso se compara **a su ritmo** (lo que sumaría completo al paso de los días ya terminados) y dice cuánto falta por día para la meta.
+- **Año y metas:** el año mes a mes contra el anterior (gráfico y lista), la **proyección** (mismo mes del año anterior × crecimiento general o por pan × precio) y las **metas**: «Usar la proyección como metas» las fija, y cada mes se puede escribir a mano (toca el mes).
+- Un mes **cerrado** usa los totales de su **cierre**; uno sin cerrar, lo pesado con el precio de cada día (lo mismo que **Entregas**). Los meses importados desde Excel no traen días ni trabajadores: esos dos indicadores salen solo de lo pesado en la app.
+
+Cambian las **reglas** (forma de la proyección y las metas): hay que publicarlas junto con la app.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+npm test
+```
+
+Debe terminar con **«22 pruebas … todas bien»**.
+
+2. **Antes de publicar**, sube el código (`git add .`, `git commit -m "Fase 7: indicadores, proyección y metas"`, `git push`) y mira en GitHub → **Actions** → **Pruebas** que **«Reglas de Firestore (emulador)»** quede en verde. Ahora son **261 casos** (26 nuevos, de la proyección) y **desde el chat no se pudieron ejecutar con el emulador**: si queda en rojo, **no publiques** y lleva las líneas con ✗ al chat.
+
+3. Con ese paso en verde:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+4. En **cada equipo**: **Más → Buscar actualización → Actualizar ahora** (debe decir versión 0.7.0).
+
+5. **Recomendado: importar 2025.** En `privado\` está `Cierres 2025.xlsx` (marzo a diciembre de 2025, con el formato de la plantilla de la app). Impórtalo igual que en el paso 21 (**Más → Cierres mensuales → Archivos de Excel**). Con 2025 cargado, cada mes de 2026 se compara con el mismo mes de 2025 y se puede proyectar 2026 (marzo a diciembre) y, cuando noviembre y diciembre de 2026 estén cerrados, todo 2027. Enero y febrero de 2026 no tienen base: su meta se escribe a mano.
+
+6. **Probar la proyección y las metas** (teléfono del dueño o computador): **Números → Año y metas → Ajustar proyección**. Escribe el crecimiento general (por ejemplo `5`), el de precio (por ejemplo `3`) y, si quieres, el de algún pan; abajo se ve el total proyectado mientras escribes. **Guardar proyección**. Luego **Usar la proyección como metas** y confirma.
+
+7. Verifica y marca:
+
+| Comprobación | ✓ / ✗ |
+|---|---|
+| **Números → El mes**, octubre 2026: el **neto** es igual al del cierre (Más → Cierres mensuales → Octubre) y dice «cerrado desde Excel» | |
+| **Números**, noviembre (en curso): el **neto** es igual al **Neto** de **Entregas** de noviembre | |
+| Con 2025 importado: en un mes de 2026, «Contra … 2025» muestra la variación; en **Año y metas**, la cifra de 2025 de cada mes es la de su cierre | |
+| Tras **Usar la proyección como metas**, noviembre muestra **«Meta»** con su porcentaje; al tocar un mes en **Año y metas** se puede escribir su meta | |
+| El externo ve **Números** y puede ajustar la proyección; la tablet **no** ve **Números** | |
+| Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.7.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde | |
+
+**Listo cuando:** las seis casillas están marcadas (es el «Listo cuando» de la Fase 7: los totales de los indicadores cuadran con cierres y entregas).
+
+**Lecturas:** un mes sin cerrar se lee canasto por canasto cada vez que se abre (como en Entregas). **Cerrar los meses** (Entregas → «Cerrar mes», desde el día 1 del mes siguiente) hace que los indicadores y la proyección usen el cierre y no lean nada más.
 
 ---
 

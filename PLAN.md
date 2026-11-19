@@ -129,7 +129,7 @@ D:\APP Panaderia\            (raíz del repositorio público «Panaderia»)
 | `pesajes/{id}` | fecha, hora, entregaN, productoId, cantidad, unidad, trabajadorId, nota, anulado, creadoPor, en (un documento por canasto) | Todos (pesaje: solo del día) | Pesaje: crear (hoy, o ayer por lo anotado sin conexión), y corregir/anular solo del día; dueños y externo: todo |
 | `dias/{fecha}` | entregaN (entrega en curso), por, en. **Los totales no se guardan**: se calculan con los pesajes (Fase 4) | Todos (pesaje: solo hoy) | Pesaje: de a un paso (cerrar o volver a abrir); dueños y externo: cualquier número |
 | `cierres/{aaaa-mm}` | `mes`, `origen` (`excel`/`app`), `cerrado`, `iva` (%), `lineas` (por pan: productoId, nombre, unidad, cantidad, precio, neto), `neto`, `ivaMonto` (IVA % × neto del mes), `total`, `kg`, `un`, `por`, `quien`, `en` (+ cliente, archivo y hoja, o canastos y días; constancia de reapertura) (Fase 6) | Dueños y externo | Dueños y externo, solo meses terminados; un mes cerrado no se modifica y en él no se anota ni se corrige; **solo un dueño lo reabre** |
-| `proyeccion/{año}` | factores y metas mensuales | Dueños y externo | Dueños y externo |
+| `proyeccion/{año}` | `anio`, `factor` (crecimiento general, 1,05 = +5 %), `factorPrecio`, `panes` (productoId → factor propio), `metas` (12 montos netos o null), `por`, `quien`, `en` (Fase 7) | Dueños y externo | Dueños y externo, a su nombre; no se borra |
 | `cambios/{id}` | bitácora: tipo (`corregir`/`anular`/`reactivar`), pesajeId, fecha, antes, despues, por, `quien` (nombre de la cuenta, opcional, Fase 5), en | Dueños y externo | Se crea con cada corrección (la tablet, solo de lo del día) |
 
 Reglas: todo lo no permitido queda prohibido; el perfil se comprueba en el servidor; la fecha de un pesaje de la tablet debe ser la del día según la hora del servidor.
@@ -137,7 +137,7 @@ Reglas: todo lo no permitido queda prohibido; el perfil se comprueba en el servi
 ## 8. Pantallas
 
 - **Tablet de pesaje:** una sola pantalla, letra grande. Nombre de quien pesa (queda elegido), botones de pan, teclado numérico propio, lista «pesado hoy» con corregir/anular, total de kilos del día, y la entrega en curso con **«Cerrar entrega»** (la siguiente pasa a ser la n.º 2, 3…).
-- **Dueños y externo:** menú inferior *Hoy · Entregas · Indicadores · Proyección · Más* (barra lateral en computador). «Más» con submenús: *Catálogo* (productos, precios, trabajadores), *Registros* (registro general, fecha pasada, cierres mensuales), *Datos* (exportar a Excel, respaldo), *Accesos* (solo dueños), *Ajustes* (IVA, aplicación, privacidad).
+- **Dueños y externo:** menú inferior *Hoy · Entregas · Números · Pesaje · Más* (barra lateral en computador); «Números» reúne los indicadores y la proyección con metas (Fase 7: «El mes» y «Año y metas»). «Más» con submenús: *Catálogo* (productos, precios, trabajadores), *Registros* (registro general, fecha pasada, cierres mensuales), *Datos* (exportar a Excel, respaldo), *Accesos* (solo dueños), *Ajustes* (IVA, aplicación, privacidad).
 
 ## 9. Seguridad desde el inicio (del resumen de la auditoría)
 
@@ -185,14 +185,15 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 - **Listo cuando:** el Excel de un mes cuadra con la suma de sus entregas.
 - Hecho (16-nov-2026, versión 0.5.0): pestaña **Entregas**, «＋ Anotar canasto» en **Hoy** (fecha pasada), **Registro general** con filtros y bitácora, **Excel** propio (sin librerías) y **respaldo** con franja semanal. Venta = lo pesado no anulado; un pan sin precio se registra y avisa. Montos por **línea** (un pan en una entrega): todos los totales son sumas de líneas (ESTADO.md, decisiones de la Fase 5).
 
-### Fase 6 · Cierres mensuales — chat 7 ◐
+### Fase 6 · Cierres mensuales — chat 7 ✔
 - Importar los Excel de enero a octubre de 2026 (subir, revisar, confirmar; emparejar nombres de pan con el catálogo).
 - «Cerrar mes» desde los datos de la app.
 - **Requiere:** los archivos de cierre en `privado/`. **Listo cuando:** los 10 meses importados coinciden con los totales de los Excel.
 
-### Fase 7 · Indicadores, proyección y metas — chat 8
+### Fase 7 · Indicadores, proyección y metas — chat 8 ◐
 - Los nueve indicadores elegidos; proyección con factores; año 1 contra año 2; metas y seguimiento.
 - **Listo cuando:** los totales de indicadores cuadran con cierres y entregas.
+- Hecho (18-nov-2026, versión 0.7.0): pestaña **Números** con «El mes» (los nueve indicadores; el mes en curso se compara a su ritmo) y «Año y metas» (año contra año, proyección por pan con crecimiento y precio, metas fijas editables). Meses cerrados = su cierre; los demás = lo de Entregas (ESTADO.md, decisiones de la Fase 7).
 
 ### Fase 8 · Cierre y entrega — chat 9
 - Aviso de privacidad, accesibilidad, rendimiento, App Check obligatorio, revisión final de seguridad, `LEEME.md` y guía breve para la familia.

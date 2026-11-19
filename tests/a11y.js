@@ -1,5 +1,6 @@
 /* Accesibilidad de las pantallas (portado de la app de muestra en la Fase 3): en 360 px y 390 px, claro y oscuro, recorre el ingreso,
    Hoy (con datos, otro día, las hojas de un canasto y la de anotar), Entregas con las franjas de aviso (sin precio y respaldo),
+   Números (indicadores del mes en curso y de uno cerrado desde Excel, «Año y metas», ajustar la proyección y la meta de un mes),
    Pesaje (con letra grande, teclado, nota y cierre de entrega), «Más» con sus grupos, Registro general (canastos y bitácora),
    Datos (Excel y respaldo), Cierres mensuales (el año, el detalle de un mes, la revisión de una importación, Entregas de un mes cerrado
    y de uno por cerrar, y Hoy en un mes cerrado), Accesos y el Catálogo con sus hojas y formularios, y comprueba que no hay desborde lateral, que todo lo tocable
@@ -95,6 +96,12 @@ const CHECK = () => {
     await hoja('hoy: anotar en fecha pasada', '#hoyAnotar', '#anDia'); await cerrar();
     await tocar('[data-act="hoy-dia"][data-d="0"]'); await page.waitForSelector('#hoyTotales');
     await tocar('#nav button[data-tab="entregas"]'); await page.waitForSelector('#entTotal'); await page.waitForSelector('#avisoRespaldo'); await page.waitForSelector('#avisoSinPrecio'); await look('entregas: mes con franjas de aviso');
+    await tocar('#nav button[data-tab="indicadores"]'); await page.waitForSelector('#indNeto'); await look('números: el mes en curso');
+    await page.fill('#indMes', '2026-10'); await page.dispatchEvent('#indMes', 'input'); await page.waitForFunction(() => /Excel/.test((document.querySelector('#indFuente') || {}).textContent || '')); await look('números: mes cerrado desde Excel');
+    await tocar('[data-act="ind-vista"][data-v="anio"]'); await page.waitForSelector('#anioProy'); await look('números: año y metas');
+    await hoja('números: ajustar la proyección', '[data-act="anio-ajustar"]', '#pyFactor'); await page.fill('#pyFactor', 'x'); await page.dispatchEvent('#pyFactor', 'input'); await page.waitForSelector('#pyError:not([hidden])'); await look('números: ajustar con error'); await cerrar();
+    await hoja('números: meta de un mes', '#anioMeses .anio-fila', '#pyMeta'); await cerrar();
+    await tocar('[data-act="ind-vista"][data-v="mes"]'); await page.waitForSelector('#indMes');
     await tocar('#nav button[data-tab="pesaje"]'); await page.waitForSelector('#pesQuien'); await look('pesaje: quién pesa (letra grande)');
     await tocar('#pesQuien .pes-op'); await page.waitForSelector('#pesPanes'); await look('pesaje: elegir pan');
     await tocar('#pesPanes .pes-op:nth-child(1)'); for (const k of ['2', '5', ',', '5']) await tocar('#pesTeclado [data-k="' + k + '"]'); await page.waitForSelector('#pesAviso'); await look('pesaje: teclado con aviso');

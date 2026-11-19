@@ -21,6 +21,8 @@ const pesaje = (fecha, por, mas) => sinVacios(Object.assign({ fecha, hora: '07:1
 const cierre = (mes, por, mas) => Object.assign({ mes, origen: 'excel', cerrado: true, iva: 19, lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', cantidad: 100, precio: 1450, neto: 145000 }],
   neto: 145000, ivaMonto: 27550, total: 172550, kg: 100, un: 0, por, quien: 'Nombre', en: '@TS' }, mas || {});
 const reabrir = por => ({ cerrado: false, reabiertoPor: por, reabiertoQuien: 'Nombre', reabiertoEn: '@TS', en: '@TS' });
+const metas = (...v) => Array.from({ length: 12 }, (x, i) => (i < v.length ? v[i] : null));
+const proy = (anio, por, mas) => Object.assign({ anio, factor: 1.05, factorPrecio: 1.03, panes: { p1: 1.1, u5: 0.95 }, metas: metas(2500000, 2400000, null, 2600000), por, quien: 'Nombre', en: '@TS' }, mas || {});
 const mesSiguiente = mes => { const [a, m] = mes.split('-').map(Number); return m === 12 ? (a + 1) + '-01' : a + '-' + String(m + 1).padStart(2, '0'); };
 const cambio = (tipo, fecha, por, mas) => Object.assign({ tipo, pesajeId: 'hoy1', fecha, antes: { cantidad: 18.5 }, despues: { cantidad: 19 }, por, en: '@TS' }, mas || {});
 
@@ -298,6 +300,34 @@ function casos(HOY, ANTES, AYER) {
   si('rosa', 'update', 'pesajes/sep1', 'en un mes reabierto sí se corrige', { cantidad: 21, en: '@TS' });
   si('felipe', 'set', 'pesajes/sep2', 'y se anota en fecha pasada', pesaje('2026-09-20', 'felipe'));
   si('tablet', 'set', 'pesajes/hoy9', 'la tablet sigue anotando hoy', pesaje(HOY, 'tablet'));
+
+  t('12. Proyección y metas (Fase 7)');
+  si('rosa', 'set', 'proyeccion/2026', 'un dueño guarda la proyección de un año con sus metas', proy(2026, 'rosa'));
+  si('felipe', 'set', 'proyeccion/2027', 'el externo también (reemplaza la anterior)', proy(2027, 'felipe', { panes: {}, metas: metas() }));
+  si('felipe', 'update', 'proyeccion/2027', 'y cambia una meta', { metas: metas(3000000), por: 'felipe', quien: 'Felipe', en: '@TS' });
+  si('rosa', 'set', 'proyeccion/2028', 'factores enteros también valen (1 = sin cambio)', proy(2028, 'rosa', { factor: 1, factorPrecio: 1 }));
+  no('tablet', 'set', 'proyeccion/2026', 'la tablet no escribe proyecciones', proy(2026, 'tablet'));
+  no('carla', 'set', 'proyeccion/2026', 'ni una cuenta sin acceso', proy(2026, 'carla'));
+  no('ines', 'set', 'proyeccion/2026', 'ni quien perdió el acceso', proy(2026, 'ines'));
+  no('rosa', 'set', 'proyeccion/2026', 'el año del documento es el de su nombre', proy(2025, 'rosa'));
+  no('rosa', 'set', 'proyeccion/2026', 'el año es un número', proy('2026', 'rosa'));
+  no('rosa', 'set', 'proyeccion/actual', 'el nombre es un año (AAAA)', proy(2026, 'rosa'));
+  no('rosa', 'set', 'proyeccion/2026', 'el crecimiento es mayor que 0', proy(2026, 'rosa', { factor: 0 }));
+  no('rosa', 'set', 'proyeccion/2026', 'y como mucho ×10', proy(2026, 'rosa', { factor: 11 }));
+  no('rosa', 'set', 'proyeccion/2026', 'el factor de precio también', proy(2026, 'rosa', { factorPrecio: -1 }));
+  no('rosa', 'set', 'proyeccion/2026', 'el factor es un número', proy(2026, 'rosa', { factor: '1,05' }));
+  no('rosa', 'set', 'proyeccion/2026', 'los factores por pan van en un mapa', proy(2026, 'rosa', { panes: [1.1] }));
+  no('rosa', 'set', 'proyeccion/2026', 'las metas son 12', proy(2026, 'rosa', { metas: metas(1, 2, 3).slice(0, 11) }));
+  no('rosa', 'set', 'proyeccion/2026', 'cada meta en pesos enteros', proy(2026, 'rosa', { metas: metas(2500000.5) }));
+  no('rosa', 'set', 'proyeccion/2026', 'y no negativa', proy(2026, 'rosa', { metas: metas(null, -1) }));
+  no('rosa', 'set', 'proyeccion/2026', 'una meta no es un texto', proy(2026, 'rosa', { metas: metas(null, null, '2.500.000') }));
+  no('rosa', 'set', 'proyeccion/2026', 'la meta de diciembre también se revisa', proy(2026, 'rosa', { metas: metas(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12.5) }));
+  no('rosa', 'set', 'proyeccion/2026', 'sin campos de más', proy(2026, 'rosa', { nota: 'x' }));
+  no('rosa', 'set', 'proyeccion/2026', 'sin que falte ninguno', (() => { const d = proy(2026, 'rosa'); delete d.factorPrecio; return d; })());
+  no('rosa', 'set', 'proyeccion/2026', 'a nombre de quien la guarda', proy(2026, 'felipe'));
+  no('rosa', 'set', 'proyeccion/2026', 'con su nombre', proy(2026, 'rosa', { quien: '' }));
+  no('rosa', 'set', 'proyeccion/2026', 'con la hora del servidor', proy(2026, 'rosa', { en: 1 }));
+  no('rosa', 'delete', 'proyeccion/2026', 'una proyección no se borra');
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

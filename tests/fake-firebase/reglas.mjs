@@ -38,6 +38,16 @@ function reapertura(d, prev, q) {
     && texto(d.reabiertoQuien, 1, 60) && esTS(d.reabiertoEn) && esTS(d.en);
 }
 
+/* Fase 7: proyeccion/{AAAA} = { anio, factor, factorPrecio, panes, metas (12 × pesos enteros o null), por, quien, en } */
+const factorValido = f => num(f) && f > 0 && f <= 10;
+const metaValida = v => v === null || (entero(v) && v >= 0 && v <= 100000000000);
+const PROY = ['anio', 'factor', 'factorPrecio', 'panes', 'metas', 'por', 'quien', 'en'];
+function proyeccionValida(id, d, q) {
+  return /^20[0-9]{2}$/.test(id) && solo(d, PROY) && todas(d, PROY) && entero(d.anio) && d.anio === Number(id) && factorValido(d.factor) && factorValido(d.factorPrecio)
+    && mapa(d.panes) && Object.keys(d.panes).length <= 200 && Array.isArray(d.metas) && d.metas.length === 12 && d.metas.every(metaValida)
+    && d.por === q.uid && texto(d.quien, 1, 60) && esTS(d.en);
+}
+
 export function permitido(quien, op, ruta, datos, previo, leer, ahora) {
   try { return !!evaluar(quien, op, ruta, datos || {}, previo || null, leer, ahora); }
   catch (e) { return false; }   // como en las reglas reales: un error al evaluar es un «no»
@@ -135,7 +145,7 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
   }
   if (col === 'proyeccion') {
     if (leerOp) return gestion;
-    return escribir && gestion && esTS(d.en);
+    return escribir && gestion && proyeccionValida(id, d, q);
   }
   if (col === 'cambios') {
     if (leerOp) return gestion;
