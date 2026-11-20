@@ -20,7 +20,7 @@ Se entra solo con cuenta de Google. Quien entra por primera vez pide acceso y un
 ## Cómo está hecha
 
 - **Sin compilación ni dependencias en la app:** HTML, CSS y módulos de JavaScript en `APP/`, un archivo por pantalla (`APP/js/pantallas/`) y la lógica pura aparte (`APP/js/core/`), para que cada actualización cambie solo lo necesario.
-- **Firebase** (Authentication con Google, Cloud Firestore con su copia sin conexión, Hosting y App Check). El SDK está **dentro** de la app (`APP/vendor/firebase/`, con su huella SHA-256): la app no carga nada de otros sitios.
+- **Firebase** (Authentication con Google, Cloud Firestore con su copia sin conexión y Hosting; App Check queda preparado pero no se usa). El SDK está **dentro** de la app (`APP/vendor/firebase/`, con su huella SHA-256): la app no carga nada de otros sitios.
 - **Excel propio** (escritor y lector `.xlsx` sin librerías) para las ventas, los cierres y la plantilla de importación.
 - **Service worker** (`APP/sw.js`): abre sin conexión; red primero, con espera máxima de 3 s.
 
@@ -30,7 +30,7 @@ Se entra solo con cuenta de Google. Quien entra por primera vez pide acceso y un
 | `firestore.rules` | Reglas del servidor: quién lee y escribe qué, y la forma de cada dato. **Lo que decide es el servidor**, no la app |
 | `firebase.json` | Hosting y cabeceras de seguridad |
 | `tests/` | Pruebas (Node y Playwright) con Firebase, Google y Firestore simulados, y los casos de reglas para el emulador |
-| `tools/` | Servidor local, subir versión, correr pruebas, descargar el SDK, activar App Check |
+| `tools/` | Servidor local, subir versión, correr pruebas, descargar el SDK, activar App Check (si algún día se usa) |
 | `PLAN.md` · `ESTADO.md` | El plan completo y el avance (lo lee cada chat de desarrollo) |
 | `GUIA-FIREBASE.md` | Paso a paso de la consola, la publicación y la verificación de cada versión |
 | `GUIA-FAMILIA.md` | Guía breve para la familia (para imprimir). La misma está en la app: **Más → Ayuda** |
@@ -58,16 +58,16 @@ Revisión final de la Fase 8 (19-nov-2026), a partir de la auditoría de la app 
 |---|---|
 | Ingreso solo con Google, por redirección propia (sin ventanas emergentes, marcos ni scripts de Google); `state` y `nonce` al azar; el token se borra de la dirección | `core/acceso.js` · `tests/acceso-unit.js`, `ingreso-e2e.js`, `repo-unit.js` |
 | Reglas cerradas por defecto, por perfil y con la forma de cada dato; la tablet solo lee lo de hoy y nunca precios | `firestore.rules` · `tests/reglas-casos.js` (emulador en cada cambio) |
-| App Check con reCAPTCHA v3: primero en modo supervisar, luego obligatorio | `core/nube.js`, `tools/appcheck.js` · `tests/accesos-e2e.js`, `privacidad-e2e.js` · consola (paso 23) |
+| App Check con reCAPTCHA v3: **preparado y apagado** (decisión del 19-nov-2026); se activa en unos 30 minutos si hiciera falta | `core/nube.js`, `tools/appcheck.js` · `tests/accesos-e2e.js`, `privacidad-e2e.js` · `GUIA-FIREBASE.md`, pasos 16 y 23.D |
 | Política de contenido estricta (`script-src 'self'`, sin `unsafe-inline`, sin marcos), antimarcos, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `COOP` y `CORP` | `index.html`, `firebase.json` · `tests/csp.js` |
 | Sin claves secretas, correos ni UID en el repositorio; `.gitignore` ampliado | `tests/repo-unit.js` · Secret scanning y Push protection de GitHub |
 | GitHub Actions con permisos de solo lectura, acciones fijadas por hash, sin `pull_request_target` ni secretos; Dependabot | `.github/` · `tests/repo-unit.js` |
 | Clave web restringida por sitio y por API; IAM revisado; plan Spark (no puede generar cobros) | Consola (pasos 11, 17 y 23) |
 | Al cerrar sesión se borra la copia de los datos del equipo (avisa si hay canastos sin enviar) | `core/nube.js`, `app.js` |
 
-La clave web de Firebase (`APP/firebase-config.js`) **es pública por diseño**: identifica el proyecto. La protección está en las reglas, en la restricción de la clave y en App Check. La clave **secreta** de reCAPTCHA va solo en la consola de Firebase.
+La clave web de Firebase (`APP/firebase-config.js`) **es pública por diseño**: identifica el proyecto. La protección está en las reglas y en la restricción de la clave. La clave **secreta** de reCAPTCHA va solo en la consola de Firebase.
 
-**Riesgo residual conocido:** cualquier cuenta de Google puede ingresar y crear una solicitud de acceso (una por cuenta) y leer quiénes son los dueños (sus identificadores, que por sí solos no dan acceso). App Check obligatorio impide hacerlo desde fuera de la app.
+**Riesgo residual conocido:** cualquier cuenta de Google puede ingresar y crear una solicitud de acceso (una por cuenta) y leer quiénes son los dueños (sus identificadores, que por sí solos no dan acceso). Sin App Check, alguien con un programa propio podría además gastar la cuota diaria de lecturas y detener la app hasta el día siguiente (sin cobros: plan Spark). Si pasara, se activa App Check (`GUIA-FIREBASE.md`, paso 23.D).
 
 ## Privacidad
 

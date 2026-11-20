@@ -144,7 +144,7 @@ Reglas: todo lo no permitido queda prohibido; el perfil se comprueba en el servi
 - Ingreso solo con Google; sin anónimo ni otros proveedores. Dominios autorizados: solo los del proyecto.
 - Reglas cerradas por defecto y probadas con el emulador en cada cambio.
 - Clave web restringida por sitio y por API (Identity Toolkit, Token Service, Firestore).
-- App Check con reCAPTCHA: primero en modo supervisar, luego obligatorio.
+- ~~App Check con reCAPTCHA: primero en modo supervisar, luego obligatorio.~~ **Decisión del 19-nov-2026 (Fase 8): no se usa**; queda preparado para activarlo si hiciera falta (`GUIA-FIREBASE.md`, paso 23.D).
 - Alertas de presupuesto (50 %, 90 %, 100 %) y revisión de permisos del proyecto.
 - CSP estricta, antimarcos, sin scripts de terceros.
 - Repositorio: `.gitignore` ampliado, escaneo de secretos (en la Fase 1: prueba propia `tests/repo-unit.js` en CI + Secret scanning de GitHub; gitleaks queda pendiente hasta fijar su acción por hash), Secret scanning y Push protection activados, acciones fijadas por hash, permisos `contents: read`, pull requests solo de colaboradores.
@@ -196,8 +196,8 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 - Hecho (18-nov-2026, versión 0.7.0): pestaña **Números** con «El mes» (los nueve indicadores; el mes en curso se compara a su ritmo) y «Año y metas» (año contra año, proyección por pan con crecimiento y precio, metas fijas editables). Meses cerrados = su cierre; los demás = lo de Entregas (ESTADO.md, decisiones de la Fase 7).
 
 ### Fase 8 · Cierre y entrega — chat 9 ◐
-- Aviso de privacidad, accesibilidad, rendimiento, App Check obligatorio, revisión final de seguridad, `LEEME.md` y guía breve para la familia.
-- Hecho (19-nov-2026, versión 0.8.0): aviso de privacidad (ingreso, espera y Más), Ayuda por perfil en la app y `GUIA-FAMILIA.md` para imprimir, títulos y foco por pantalla y revisión a 320 px, respaldo por año (cuota de lecturas), Diagnóstico con comprobante de App Check, bloqueos y tiempos, cabecera CORP y pruebas de higiene, `LEEME.md`. App Check obligatorio y la revisión de consolas: `GUIA-FIREBASE.md`, paso 23 (ESTADO.md, decisiones de la Fase 8).
+- Aviso de privacidad, accesibilidad, rendimiento, ~~App Check obligatorio~~ (se decidió no usarlo), revisión final de seguridad, `LEEME.md` y guía breve para la familia.
+- Hecho (19-nov-2026, versión 0.8.0): aviso de privacidad (ingreso, espera y Más), Ayuda por perfil en la app y `GUIA-FAMILIA.md` para imprimir, títulos y foco por pantalla y revisión a 320 px, respaldo por año (cuota de lecturas), Diagnóstico con comprobante de App Check, bloqueos y tiempos, cabecera CORP y pruebas de higiene, `LEEME.md`. La revisión de consolas: `GUIA-FIREBASE.md`, paso 23 (ESTADO.md, decisiones de la Fase 8).
 
 ### Fase 9 · Costos y margen por pan — chat 10
 ### Fase 10 · Plan de producción diario — chat 11
@@ -234,6 +234,6 @@ Un chat por fase (tabla anterior). Reglas:
 | Ingreso con Google falla en la app instalada en iPhone | Hosting en el dominio de Firebase; prueba real en la Fase 1 antes de seguir |
 | Tablet sin internet por un rato | Caché sin conexión; indicador de «pendiente de enviar» |
 | Borrado o error masivo en la nube | Respaldo semanal con aviso; nada se borra físicamente; bitácora |
-| Uso indebido del proyecto Firebase | Clave restringida, App Check, reglas, alertas de presupuesto |
+| Uso indebido del proyecto Firebase | Clave restringida, reglas, plan Spark sin cobros; App Check preparado para activarlo si hiciera falta |
 | Nombres de pan distintos entre los Excel y el catálogo | Paso de emparejar en la importación |
 | Archivos que crecen | Límite de ~300 líneas y un archivo por pantalla |

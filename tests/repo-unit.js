@@ -71,4 +71,15 @@ const cfgTxt = fs.readFileSync(path.join(APPD, 'firebase-config.js'), 'utf8');
 ok(!/secret|privateKey|private_key/i.test(cfgTxt.replace(/\/\*[\s\S]*?\*\//g, '')), 'firebase-config.js solo tiene datos públicos (la clave secreta de reCAPTCHA va solo en la consola)');
 const enlacesBlank = codigo.flatMap(([r, t]) => (t.match(/target="_blank"[^>]*/g) || []).filter(x => !/rel="noopener/.test(x)).map(() => r));
 ok(enlacesBlank.length === 0, 'todo enlace que abre aparte lleva rel="noopener"' + (enlacesBlank.length ? ': ' + enlacesBlank.join(', ') : ''));
-console.log(fails ? '\nFALLAS: ' + fails : '\nTodo bien'); process.exit(fails ? 1 : 0);
+/* El servidor local (solo pruebas y computador) rechaza direcciones tramposas (revisión de CodeQL) */
+(async () => {
+  const http = require('http'), { crear } = require('../tools/servidor.js');
+  const srv = crear({ rutas: { '/hola': (q, r) => { r.writeHead(200); r.end('hola'); } } }), URL = await srv.abrir(), puerto = new globalThis.URL(URL).port;
+  const pedir = ruta => new Promise(res => { const q = http.request({ host: '127.0.0.1', port: puerto, path: ruta }, r => { r.resume(); r.on('end', () => res(r.statusCode)); }); q.on('error', () => res(0)); q.end(); });
+  const c = {}; for (const r of ['/', '/hola', '/__proto__', '/constructor', '/%E0%A4%A', '/../package.json', '/..%2Fpackage.json', '/js/%00app.js', '/..%5Cpackage.json']) c[r] = await pedir(r);
+  ok(c['/'] === 200 && c['/hola'] === 200, 'el servidor local sirve la app y sus rutas a medida');
+  ok(c['/__proto__'] === 404 && c['/constructor'] === 404, 'nombres especiales de JavaScript no se tratan como rutas a medida');
+  ok(c['/%E0%A4%A'] === 400 && [c['/../package.json'], c['/..%2Fpackage.json'], c['/js/%00app.js'], c['/..%5Cpackage.json']].every(x => x === 403 || x === 404) && c['/..%2Fpackage.json'] === 403, 'una dirección mal codificada no lo cae, y nada fuera de APP\\ se entrega (.., %2F, %5C, byte nulo)');
+  srv.close();
+  console.log(fails ? '\nFALLAS: ' + fails : '\nTodo bien'); process.exit(fails ? 1 : 0);
+})();

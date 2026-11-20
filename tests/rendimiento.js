@@ -41,7 +41,9 @@ function precios(anio) {
   const largos = js.map(f => [f, fs.readFileSync(path.join(APP, f), 'utf8').split('\n').length]).filter(x => x[1] > 320);
   ok(largos.length === 0, 'ningún archivo pasa de ~300 líneas (actualizar solo lo que cambia)' + (largos.length ? ': ' + largos.map(x => x.join(' ')).join(', ') : ''));
   const html = fs.readFileSync(path.join(APP, 'index.html'), 'utf8');
-  const clasicos = (html.match(/<script[^>]*>/g) || []).filter(t => !/type="module"/.test(t)).map(t => (/src="([^"]+)"/.exec(t) || [])[1]);
+  /* Las etiquetas script de index.html, sin expresión regular (CodeQL las marca al filtrar HTML; aquí es nuestro propio archivo) */
+  const etiquetas = html.split('<script').slice(1).map(t => t.slice(0, t.indexOf('>')));
+  const clasicos = etiquetas.filter(t => !t.includes('type="module"')).map(t => { const i = t.indexOf('src="'); return i < 0 ? '' : t.slice(i + 5, t.indexOf('"', i + 5)); });
   ok((html.match(/rel="preload"[^>]+as="font"/g) || []).length === 2 && clasicos.join() === 'guard.js,version.js', 'index.html adelanta las dos tipografías de la primera pantalla y antes del módulo solo carga guard.js y version.js (pequeños)');
 
   console.log('2. Cálculos de un año completo (40 canastas al día)');

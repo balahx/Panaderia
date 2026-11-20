@@ -25,14 +25,14 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 13 | **Fase 2:** publicar la versión 0.2.0 y las reglas por perfil | Terminal |
 | 14 | Definir a los dueños (`config/negocio`) | Consola de Firebase |
 | 15 | Dar los accesos (externo y tablet) y verificar | La app, en cada equipo |
-| 16 | App Check en modo supervisar | reCAPTCHA, consola de Firebase y terminal |
+| 16 | App Check en modo supervisar (**opcional: no se usa**, decisión del 19-nov-2026; ver paso 23.D) | reCAPTCHA, consola de Firebase y terminal |
 | 17 | Cierre de seguridad de la Fase 2 | Consolas |
 | 18 | **Fase 3:** publicar la versión 0.3.0 (catálogo) y cargar productos, precios y trabajadores | Terminal y la app |
 | 19 | **Fase 4:** publicar la versión 0.4.0 (pesaje y entregas) y empezar a usar la tablet | Terminal, la tablet y el teléfono del dueño |
 | 20 | **Fase 5:** publicar la versión 0.5.0 (ventas, registro, fecha pasada, Excel y respaldo) | Terminal, el teléfono del dueño y el computador |
 | 21 | **Fase 6:** publicar la versión 0.6.0 (cierres mensuales) e importar enero a octubre | Terminal y el computador |
 | 22 | **Fase 7:** publicar la versión 0.7.0 (indicadores, proyección y metas) | Terminal, el computador y el teléfono del dueño |
-| 23 | **Fase 8:** publicar la versión 0.8.0 (privacidad, ayuda, respaldo por año), App Check **obligatorio** y revisión final de seguridad | Terminal, cada equipo y consolas |
+| 23 | **Fase 8:** publicar la versión 0.8.0 (privacidad, ayuda, respaldo por año) y revisión final de seguridad | Terminal, cada equipo y consolas |
 
 ---
 
@@ -392,6 +392,8 @@ Verifica y marca:
 
 ## Paso 16 · App Check en modo supervisar
 
+> **Opcional. Decisión del 19-nov-2026: la app funciona sin App Check** (motivos y cuándo activarlo: paso 23.D). Este paso queda como instrucciones por si algún día se activa.
+
 App Check hace que Firebase distinga las peticiones que vienen de **tu app** de las que vienen de programas ajenos. Se parte en **modo supervisar**: la app envía su comprobante y Firebase solo lo mide, sin rechazar a nadie. Volverlo obligatorio queda para la Fase 8, cuando las mediciones muestren que todo llega verificado.
 
 Usa reCAPTCHA v3 de Google (invisible: nunca pide resolver nada). Es la **única excepción** a la regla de «nada de otros sitios» de la app, y por eso viene apagado: se enciende con una herramienta que abre la política de seguridad solo para reCAPTCHA.
@@ -687,15 +689,15 @@ firebase deploy --only hosting,firestore:rules
 
 ---
 
-## Paso 23 · Publicar la versión 0.8.0, App Check obligatorio y revisión final
+## Paso 23 · Publicar la versión 0.8.0 y revisión final
 
 Esta versión cierra el desarrollo base (Fase 8):
 - **Aviso de privacidad** breve: desde la pantalla de ingreso (**Aviso de privacidad**, abajo), desde la espera de aprobación y desde **Más → Aviso de privacidad**, en todos los perfiles.
 - **Ayuda** para la familia: **Más → Ayuda**, con temas que se abren de a uno. La tablet ve solo los suyos (pesar, corregir, cerrar la entrega, sin internet). La misma guía, para imprimir, está en `GUIA-FAMILIA.md`.
 - **Respaldo por año:** por omisión baja los canastos y correcciones **del año actual** (lo demás, completo). Así no se come la cuota diaria de lecturas cuando pasen los años. «Todos los años» sigue disponible.
-- **Diagnóstico** más completo: si App Check entrega su **comprobante**, **qué** se bloqueó (si algo), cuánto tarda la **apertura** y la **pantalla más lenta**.
+- **Diagnóstico** más completo: **qué** se bloqueó (si algo), cuánto tarda la **apertura** y la **pantalla más lenta**.
 - **Accesibilidad:** cada pantalla con su título, el foco pasa al título al cambiar de pantalla (lo anuncia el lector de pantalla) y no se pierde cuando llegan datos; revisada también a 320 px (equivale a ampliar al 400 %).
-- **Seguridad:** cabecera `Cross-Origin-Resource-Policy` y pruebas nuevas de higiene. Las **reglas no cambian**.
+- **Seguridad:** cabecera `Cross-Origin-Resource-Policy` y pruebas nuevas de higiene. Las **reglas no cambian**. **App Check no se usa** (punto D).
 
 ### A. Publicar
 
@@ -707,7 +709,7 @@ npm test
 
 Debe terminar con **«24 pruebas … todas bien»**.
 
-2. Sube el código (`git add .`, `git commit -m "Fase 8: privacidad, ayuda, respaldo por año y App Check"`, `git push`) y mira en GitHub → **Actions** → **Pruebas**: todo en verde (las reglas no cambiaron: siguen los 261 casos).
+2. Sube el código (`git add .`, `git commit -m "Fase 8: privacidad, ayuda, respaldo por año y revisión de seguridad"`, `git push`) y mira en GitHub → **Actions** → **Pruebas**: todo en verde (las reglas no cambiaron: siguen los 261 casos).
 3. Publica solo la app (las reglas no cambiaron):
 
 ```
@@ -716,47 +718,7 @@ firebase deploy --only hosting
 
 4. En **cada equipo** (tablet, teléfonos de los dueños, computador): **Más → Buscar actualización → Actualizar ahora**. Debe decir versión **0.8.0**.
 
-### B. App Check en modo supervisar (si aún no lo hiciste)
-
-Si el Diagnóstico dice **«App Check: Sin configurar»**, haz ahora el **paso 16** completo (puntos 1 a 6): crear la clave de reCAPTCHA v3, pegar la clave secreta en la consola, pegar la clave del sitio en `APP\firebase-config.js`, `node tools/appcheck.js activar`, `npm test` y `firebase deploy --only hosting`, y agregar **Firebase App Check API** a la clave web.
-
-Después, en **cada equipo**: **Más → Buscar actualización → Actualizar ahora** y **Más → Diagnóstico de instalación**. Debe decir:
-- **App Check: Activo · comprobante recibido**
-- **Bloqueos de seguridad: 0** (si no es 0, el Diagnóstico muestra **«Qué se bloqueó»**: cópialo y tráelo al chat; no sigas con el punto C).
-
-Con App Check configurado, la pantalla de ingreso muestra abajo un aviso de reCAPTCHA con enlaces a las políticas de Google: es la condición de Google para ocultar su insignia (que taparía la barra de abajo).
-
-### C. Esperar las mediciones (1 a 2 días de uso normal)
-
-Consola de Firebase → **App Check** → pestaña **APIs** → **Cloud Firestore**. El gráfico de los últimos días debe mostrar casi todo como **Solicitudes verificadas** (Verified requests). Las otras categorías:
-- **Solicitudes de clientes desactualizados** (Outdated client): equipos con una versión anterior a la que activó App Check. Actualízalos (punto B) hasta que esto quede en 0 por un día entero.
-- **Solicitudes de origen desconocido** o **no válidas** (Unknown origin / Invalid): no deberían venir de la app. Si son muchas y la app funciona, es justo lo que App Check va a bloquear.
-
-Mira lo mismo en **Authentication**, si aparece en la lista.
-
-### D. Volverlo obligatorio
-
-> Este es el único punto que puede dejar a un equipo sin poder usar la app: hazlo cuando **todos** los equipos digan «comprobante recibido» y con tiempo para revisar (no un día de mucho trabajo). Es reversible al instante (punto E).
-
-1. Consola de Firebase → **App Check** → pestaña **APIs** → **Cloud Firestore** → **Aplicar** (Enforce) → confirmar.
-2. Si en la lista aparece **Authentication** (o «Identity Platform»), haz lo mismo.
-3. Espera **15 minutos** (Google tarda en aplicarlo en todos sus servidores).
-4. En **cada equipo**, cierra la app por completo y ábrela de nuevo. Comprueba:
-   - Los dueños: **Hoy** muestra lo pesado y **Entregas** abre el mes.
-   - La tablet: pesa un canasto de prueba y luego **anúlalo** (queda constancia en el registro, con su anulación).
-   - **Más → Diagnóstico**: «App Check: Activo · comprobante recibido» y «Bloqueos de seguridad: 0».
-5. Desde ese momento, quien intente usar el proyecto de Firebase con un programa propio (fuera de la app publicada) recibe un rechazo.
-
-### E. Si algo falla con App Check obligatorio
-
-Síntoma típico: la app dice **«No se pudo comprobar tu acceso (permission-denied)»** y debajo **«App Check no entregó su comprobante»**, o los canastos quedan rechazados.
-
-1. Consola → **App Check** → **APIs** → **Cloud Firestore** (y Authentication) → **Desaplicar** (Unenforce). La app vuelve a funcionar en unos minutos, sin publicar nada.
-2. En el equipo con problemas: **Más → Diagnóstico → Copiar** (si llega a abrir) y tráelo al chat, junto con el modelo del equipo y el navegador.
-
-Causas conocidas: un bloqueador de anuncios o un modo de «protección contra rastreo» estricto que impide cargar reCAPTCHA; la fecha y hora del equipo mal puestas; o una versión vieja de la app en ese equipo.
-
-### F. Revisión final de seguridad (consolas)
+### B. Revisión final de seguridad (consolas)
 
 Marca cada fila. Las que dependen del código las comprueban las pruebas (`tests/csp.js`, `tests/repo-unit.js`, reglas con el emulador); estas solo se ven en las consolas:
 
@@ -764,8 +726,7 @@ Marca cada fila. Las que dependen del código las comprueban las pruebas (`tests
 |---|---|---|
 | Solo **Google** como forma de ingreso (ni anónimo ni correo) | Firebase → Authentication → Método de acceso | |
 | Dominios autorizados: solo `ID.web.app` y `ID.firebaseapp.com` | Authentication → Configuración → Dominios autorizados | |
-| Clave web restringida a `https://ID.web.app/*` y `https://ID.firebaseapp.com/*` (y `localhost` solo si lo usas) y a 4 API: Identity Toolkit, Token Service, Cloud Firestore y Firebase App Check | Google Cloud → APIs y servicios → Credenciales | |
-| App Check **aplicado** en Cloud Firestore (y en Authentication, si aparece) | Firebase → App Check → APIs | |
+| Clave web restringida a `https://ID.web.app/*` y `https://ID.firebaseapp.com/*` (y `localhost` solo si lo usas) y a 3 API: Identity Toolkit, Token Service y Cloud Firestore | Google Cloud → APIs y servicios → Credenciales | |
 | Pantalla de consentimiento de Google **publicada** («En producción») y sin permisos extra (solo nombre, correo y perfil) | Google Cloud → Google Auth Platform → Público y Acceso a los datos | |
 | IAM: solo tu cuenta como Propietario, más las cuentas de servicio de Google | Google Cloud → IAM y administración → IAM | |
 | Plan **Spark** (gratuito: no puede generar cobros) | Firebase, abajo en el menú | |
@@ -774,18 +735,33 @@ Marca cada fila. Las que dependen del código las comprueban las pruebas (`tests
 | **Accesos de la app:** solo las personas que corresponden (quitar a quien ya no) | La app → Más → Accesos | |
 | Respaldo descargado esta semana y guardado fuera del computador, en un lugar privado | La app → Más → Exportar a Excel y respaldo | |
 
-### G. Verifica y marca
+### C. Verifica y marca
 
 | Comprobación | ✓ / ✗ |
 |---|---|
 | En el ingreso (sin sesión) se abre **Aviso de privacidad**; en la tablet, **Más → Ayuda** muestra solo pesar, corregir, entrega, sin internet, actualizar y problemas | |
 | **Más → Exportar a Excel y respaldo**: por omisión «2026 (este año)»; el archivo se llama `respaldo-panaderia-AAAA-MM-DD-de-2026.json` | |
-| Diagnóstico en los tres tipos de equipo: **Versión 0.8.0**, **Bloqueos de seguridad: 0** y **App Check: Activo · comprobante recibido** (anota la **apertura** y la **pantalla más lenta** de la tablet) | |
-| App Check **aplicado** en Cloud Firestore y, 15 minutos después, la tablet pesa (y anula) un canasto y los dueños ven Hoy y Entregas | |
-| La tabla de la revisión final de seguridad (F) quedó completa | |
+| Diagnóstico en los tres tipos de equipo: **Versión 0.8.0**, **Bloqueos de seguridad: 0** y **App Check: Sin configurar** (anota la **apertura** y la **pantalla más lenta** de la tablet) | |
+| La tabla de la revisión final de seguridad (B) quedó completa | |
 | `GUIA-FAMILIA.md` impresa (o enviada) a la familia | |
 
-**Listo cuando:** las seis casillas están marcadas. Con eso la Fase 8 queda cerrada y la app, entregada.
+**Listo cuando:** las cinco casillas están marcadas. Con eso la Fase 8 queda cerrada y la app, entregada.
+
+### D. App Check: por qué no se usa y cuándo activarlo
+
+**Decisión (19-nov-2026): la app funciona sin App Check.** Los datos los protegen las **reglas**: sin acceso aprobado nadie lee precios, ventas ni pesajes, ni siquiera con un programa propio y la clave pública. App Check solo exige que las conexiones vengan de la app publicada. Sin él:
+- cualquier cuenta de Google puede crear su solicitud de acceso (una por cuenta) y leer quiénes son los dueños (identificadores que no dan acceso), igual que desde la app;
+- el único riesgo real es que alguien, con un programa propio, **gaste la cuota diaria** de lecturas: la app dejaría de funcionar hasta que la cuota se reinicia (medianoche de California, de madrugada en Chile). Con el plan Spark **no hay cobros**.
+
+A cambio, la app no carga reCAPTCHA (sigue sin nada de otros sitios) y ningún equipo puede quedar bloqueado por un bloqueador de anuncios o la protección contra rastreo.
+
+**Actívalo si** la app se cae un día por cuota agotada (Firebase → Firestore → Uso, con lecturas muy por encima de lo normal) o aparecen solicitudes de acceso de desconocidos. Todo quedó preparado (unos 30 minutos):
+1. Haz el **paso 16** (modo supervisar) y actualiza cada equipo: el Diagnóstico debe decir **«App Check: Activo · comprobante recibido»** y 0 bloqueos (si no, muestra **«Qué se bloqueó»**: tráelo al chat). Agrega **Firebase App Check API** a la clave web.
+2. Tras 1 a 2 días, en Firebase → **App Check** → **APIs** → **Cloud Firestore**, casi todo debe ser **Solicitudes verificadas** y las de **clientes desactualizados** en 0.
+3. **Aplicar** (Enforce) en Cloud Firestore (y en Authentication, si aparece). Espera 15 minutos y prueba en cada equipo: la tablet pesa (y anula) un canasto, los dueños ven Hoy y Entregas.
+4. Si un equipo falla (la app dice «permission-denied» y «App Check no entregó su comprobante»), **Desaplicar** (Unenforce) en la misma pantalla: vuelve a funcionar en minutos, sin publicar nada. Causas típicas: bloqueador de anuncios, protección contra rastreo estricta, fecha y hora del equipo mal puestas o una versión vieja de la app.
+
+Con App Check configurado, el ingreso y el aviso de privacidad mencionan reCAPTCHA solos (es la condición de Google para ocultar su insignia).
 
 ---
 
@@ -804,12 +780,12 @@ Marca cada fila. Las que dependen del código las comprueban las pruebas (`tests
 | En el iPhone el ingreso se queda en Safari y no vuelve a la app | Anótalo en la tabla del paso 9 y llévalo al próximo chat (es justo lo que verifica T3) |
 | La app dice **«Falta el primer paso de configuración»** | No existe `config/negocio` o está mal escrito (paso 14). Revisa minúsculas y que `duenos` sea un **array** de textos |
 | Un dueño ve **«Pedir acceso»** en vez de entrar | Su UID no está en `duenos`, o se copió con un espacio o incompleto (paso 14.2). Cada cuenta de Google tiene un UID distinto |
-| La app dice **«No se pudo comprobar tu acceso (permission-denied)»** | Las reglas no se publicaron (paso 13.2), o App Check es obligatorio y ese equipo no entrega el comprobante (paso 23.E) |
+| La app dice **«No se pudo comprobar tu acceso (permission-denied)»** | Las reglas no se publicaron (paso 13.2), o App Check es obligatorio y ese equipo no entrega el comprobante (paso 23.D) |
 | La app se queda en **«Comprobando tu acceso…»** | Sin internet la primera vez en ese equipo. Con internet, pulsa **Reintentar** |
 | `firebase deploy` muestra un error en `firestore.rules` | No se publicó nada. Copia el mensaje completo (con la línea) y llévalo al chat |
 | El Diagnóstico dice **«App Check: Falta el SDK»** | Ejecuta `node tools/vendor.js` y publica de nuevo (paso 13.1) |
-| El Diagnóstico dice **«App Check: Activo · sin comprobante (…)»** o **«el comprobante no llega»** | reCAPTCHA no pudo cargar o no reconoce el dominio. Revisa que en la clave de reCAPTCHA estén `ID.web.app` y `ID.firebaseapp.com` (paso 16.1), que el equipo no tenga un bloqueador de anuncios y que la fecha y hora sean automáticas. Si App Check ya es obligatorio, **Desaplicar** mientras tanto (paso 23.E) |
-| Con App Check obligatorio, un equipo dice **«No se pudo comprobar tu acceso (permission-denied)»** | Ese equipo no entrega el comprobante (fila de arriba) o tiene una versión vieja: **Más → Buscar actualización**. Si no se arregla, **Desaplicar** (paso 23.E) y trae el Diagnóstico al chat |
+| El Diagnóstico dice **«App Check: Activo · sin comprobante (…)»** o **«el comprobante no llega»** | reCAPTCHA no pudo cargar o no reconoce el dominio. Revisa que en la clave de reCAPTCHA estén `ID.web.app` y `ID.firebaseapp.com` (paso 16.1), que el equipo no tenga un bloqueador de anuncios y que la fecha y hora sean automáticas. Si App Check ya es obligatorio, **Desaplicar** mientras tanto (paso 23.D) |
+| Con App Check obligatorio, un equipo dice **«No se pudo comprobar tu acceso (permission-denied)»** | Ese equipo no entrega el comprobante (fila de arriba) o tiene una versión vieja: **Más → Buscar actualización**. Si no se arregla, **Desaplicar** (paso 23.D) y trae el Diagnóstico al chat |
 | Al guardar en el catálogo dice **«Esta cuenta no puede cambiar el catálogo»** | Las reglas nuevas no se publicaron (paso 18.3) o la cuenta es de Pesaje. Si es un dueño o el externo y las reglas están publicadas, anota qué estabas guardando y llévalo al chat |
 | La tablet dice **«No se guardó el canasto…: el servidor no lo aceptó»** | La fecha u hora de la tablet está mal (paso 19.5: fecha y hora automáticas), las reglas nuevas no se publicaron (paso 19.3) o la cuenta perdió el acceso. El canasto se deshace solo: anótalo de nuevo cuando esté resuelto |
 | Un canasto queda **«Por enviar»** mucho rato | La tablet no tiene internet. Se envía solo al volver la conexión; no cierres sesión mientras tanto |
