@@ -82,7 +82,7 @@ export function html(c) {
 
 export function alActuar(act, el, c) {
   if (act === 'recargar') { location.reload(); return true; }
-  if (act === 'ent-excel') { const r = rango(c); exportar(c, r.desde, r.hasta); return 'repintar'; }
+  if (act === 'ent-excel') { const r = rango(c); exportar(c, r.desde, r.hasta, false); return 'repintar'; }   // sin costos: es el de la contadora (Fase 9)
   if (act === 'ent-cerrar') { cerrarMes(c, mesDe(c)); return true; }
   if (act !== 'ent-mes') return false;
   const m = V.sumarMeses(mesDe(c), Number(el.dataset.d));

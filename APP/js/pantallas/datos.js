@@ -12,14 +12,15 @@ import { MIME } from '../core/xlsx.js';
 import * as R from '../core/respaldo.js';
 import * as actualizar from '../core/actualizar.js';
 
-const X = { modo: 'mes', mes: '', desde: '', hasta: '', ocupado: false, msg: '', err: '', ultimo: '' };   // Excel
+const X = { modo: 'mes', mes: '', desde: '', hasta: '', ocupado: false, msg: '', err: '', ultimo: '', costos: true };   // Excel · costos: con costo y margen (Fase 9)
 const B = { ocupado: false, msg: '', err: '', ultimo: '', anio: '' };                                   // respaldo · anio: '' = el actual · 'todo'
 export const ocupado = () => X.ocupado;
 const mesDe = c => (X.mes && X.mes <= V.mesDe(c.hoy) ? X.mes : V.mesDe(c.hoy));
 const motivo = e => { const m = String(e && (e.code || e.message) || e); return /unavailable|offline|network/i.test(m) ? 'sin conexión con el servidor' : /permission/.test(m) ? 'el servidor no lo permitió' : m; };
 
-/* Descarga el Excel de ventas de un período. Lo usan esta pantalla y Entregas. */
-export async function exportar(c, desde, hasta) {
+/* Descarga el Excel de ventas de un período. Lo usan esta pantalla (con la casilla de costos), Entregas (sin costos: es el de la contadora)
+   y Costos → El mes (con costos). `conCostos`: true / false; sin indicarlo, lo que diga la casilla. */
+export async function exportar(c, desde, hasta, conCostos) {
   if (X.ocupado) return;
   if (navigator.onLine === false) { toast('Para descargar el Excel hace falta internet: así sale completo.'); return; }
   const k = c.cat || {}, cliente = cat.clientePrincipal(k.clientes);
@@ -27,12 +28,21 @@ export async function exportar(c, desde, hasta) {
   X.ocupado = true; X.err = ''; X.msg = 'Leyendo las ventas…'; repintar();
   try {
     const pesajes = await nube.leerRango('pesajes', 'fecha', desde, hasta);
-    const lib = excel.libro({ desde, hasta, pesajes, productos: k.productos, trabajadores: k.trabajadores, precios: k.precios, cliente, iva: cat.ivaDe(c.negocio), quien: c.user.nombre });
+    const lib = excel.libro({ desde, hasta, pesajes, productos: k.productos, trabajadores: k.trabajadores, precios: k.precios, cliente, iva: cat.ivaDe(c.negocio), quien: c.user.nombre, costos: costosDe(c, desde, hasta, conCostos === undefined ? X.costos : conCostos) });
     await descargar(lib.nombre, excel.bytes(lib), MIME);
     X.ultimo = lib.nombre + ' · ' + lib.lineas.length + (lib.lineas.length === 1 ? ' fila' : ' filas') + ' · total ' + cat.pesos(lib.totales.total);
     toast(lib.faltan.length ? 'Excel descargado. Ojo: ' + lib.faltan.map(f => f.nombre).join(', ') + ' sin precio algún día (no suma).' : 'Excel descargado', lib.faltan.length ? 8000 : 3500);
   } catch (e) { X.err = 'No se pudo preparar el Excel: ' + motivo(e) + '.'; toast(X.err); }
   X.ocupado = false; X.msg = ''; repintar();
+}
+
+/* Costos para el Excel (Fase 9), si la casilla está marcada y ya cargaron: insumos, sus precios y las recetas; y los gastos del mes,
+   si el período es un mes completo (o el mes en curso hasta hoy). Sin la casilla, el Excel sale como antes (sin costos). */
+function costosDe(c, desde, hasta, si) {
+  const k = c.cat || {};
+  if (!si || !k.insumos || !k.preciosInsumo || !k.recetas) return null;
+  const m = V.mesDe(desde), r = V.rangoMes(m), unMes = desde === r.desde && V.mesDe(hasta) === m && (hasta === r.hasta || hasta === c.hoy);
+  return { k: { insumos: k.insumos, preciosInsumo: k.preciosInsumo, recetas: k.recetas }, mes: unMes ? m : null, gastos: unMes ? (c.gastos || []).find(g => g.id === m) || null : null };
 }
 
 /* Respaldo completo (lo que esta cuenta puede leer) y marca en config/respaldo para la franja semanal. */
@@ -67,18 +77,20 @@ function tarjetaExcel(c) {
       : '<div class="dos"><div><label class="lab" for="datDesde">Desde</label><input class="txt" type="date" id="datDesde" max="' + c.hoy + '" value="' + esc(X.desde || V.rangoMes(V.mesDe(c.hoy)).desde) + '"></div>' +
         '<div><label class="lab" for="datHasta">Hasta</label><input class="txt" type="date" id="datHasta" max="' + c.hoy + '" value="' + esc(X.hasta || c.hoy) + '"></div></div>') +
     (p.error ? '<p class="form-error" role="alert">' + esc(p.error) + '</p>' : '<p class="muted chico" id="datPeriodo">Del ' + esc(fechaTexto(p.desde)) + ' al ' + esc(fechaTexto(p.hasta)) + '.</p>') +
+    '<label class="check" for="datCostos"><input type="checkbox" id="datCostos"' + (X.costos ? ' checked' : '') + '><span>Incluir costos y margen (columnas de costo y la hoja «Resultado», con los gastos si es un mes)</span></label>' +
+    '<p class="muted chico">Desmárcala si el Excel es para otra persona (por ejemplo, la contadora). El de «Entregas» sale siempre sin costos; el de «Costos → El mes», con costos.</p>' +
     (X.err ? '<p class="form-error" role="alert">' + esc(X.err) + '</p>' : '') + (X.ocupado ? '<p class="muted" role="status">' + esc(X.msg) + '</p>' : X.ultimo ? '<p class="muted chico" id="datXlUltimo">' + esc(X.ultimo) + '</p>' : '') +
     '<div class="actions"><button class="btn" id="datExcel" data-act="dat-excel"' + (X.ocupado || p.error ? ' disabled' : '') + '>' + svg('bajar') + (X.ocupado ? 'Preparando…' : 'Descargar Excel') + '</button></div></section>';
 }
 function tarjetaRespaldo(c) {
   const marca = c.respaldo, viejo = R.toca(marca);
   return '<section class="card sec" id="secRespaldo"><span class="eyebrow">Copia de seguridad</span><h2>Respaldo</h2>' +
-    '<p class="muted">Un archivo con todos los datos: catálogo, precios, canastos, entregas y correcciones' + (c.perfil === 'dueno' ? ', y los accesos' : '') + '. ' +
+    '<p class="muted">Un archivo con todos los datos: catálogo, precios, canastos, entregas, correcciones y costos (insumos, recetas y gastos)' + (c.perfil === 'dueno' ? ', y los accesos' : '') + '. ' +
     'Firebase gratis no guarda copias solo: descárgalo cada semana y guárdalo en un lugar privado (tiene precios y ventas). Cada descarga usa una lectura por registro de la cuota diaria gratuita.</p>' +
     '<label class="lab" for="datBkAnio">Canastos y correcciones de</label><select class="txt" id="datBkAnio">' +
     R.anios(c.hoy).map((a, i) => '<option value="' + a + '"' + (anioRespaldo(c) === a ? ' selected' : '') + '>' + a + (i === 0 ? ' (este año, lo recomendado)' : '') + '</option>').join('') +
     '<option value="todo"' + (anioRespaldo(c) === null ? ' selected' : '') + '>Todos los años (usa más lecturas)</option></select>' +
-    '<p class="muted chico" id="datBkAlcance">El catálogo, los precios, los cierres y las metas van siempre completos. Los años anteriores ya quedaron en sus respaldos.</p>' +
+    '<p class="muted chico" id="datBkAlcance">El catálogo, los precios, los cierres, las metas y los costos van siempre completos. Los años anteriores ya quedaron en sus respaldos.</p>' +
     (marca !== undefined ? '<p class="' + (viejo ? 'note warn' : 'muted') + '" id="datMarca">' + esc(R.textoMarca(marca)) + '</p>' : '') +
     (B.err ? '<p class="form-error" role="alert">' + esc(B.err) + '</p>' : '') + (B.ocupado ? '<p class="muted" role="status">' + esc(B.msg) + '</p>' : B.ultimo ? '<p class="muted chico" id="datBkUltimo">' + esc(B.ultimo) + '</p>' : '') +
     '<div class="actions"><button class="btn" id="datRespaldo" data-act="dat-respaldo"' + (B.ocupado ? ' disabled' : '') + '>' + svg('bajar') + (B.ocupado ? 'Descargando…' : 'Descargar respaldo') + '</button></div></section>';
@@ -98,4 +110,5 @@ export function alEscribir(el, c) {
   if (el.id === 'datMes' && V.esMes(el.value)) { X.mes = el.value >= V.mesDe(c.hoy) ? '' : el.value; return 'repintar'; }
   if (el.id === 'datDesde' || el.id === 'datHasta') { X[el.id === 'datDesde' ? 'desde' : 'hasta'] = el.value; return 'repintar'; }
   if (el.id === 'datBkAnio') { B.anio = el.value; return 'repintar'; }
+  if (el.id === 'datCostos') { X.costos = el.checked; return ''; }
 }

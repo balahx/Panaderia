@@ -2,9 +2,9 @@ rules_version = '2';
 
 // Panadería · reglas por perfil (Fase 2), forma de los datos del catálogo (Fase 3) y del pesaje (Fase 4). Todo lo que no se permite aquí queda prohibido.
 // Perfiles: DUEÑO (su UID figura en config/negocio, creado a mano en la consola), EXTERNO y PESAJE (miembros/{uid}, los crea un dueño).
-// «Gestión» = dueño o externo. La cuenta de pesaje nunca lee precios, clientes, cierres ni proyecciones.
+// «Gestión» = dueño o externo. La cuenta de pesaje nunca lee precios, clientes, cierres, proyecciones ni costos.
 // Cada cambio se prueba con el emulador: tests/rules-emulator.js (casos en tests/reglas-casos.js).
-// Fase 6: cierres mensuales. Fase 7: forma de la proyección y las metas.
+// Fase 6: cierres mensuales. Fase 7: forma de la proyección y las metas. Fase 9: insumos, precios de insumos, recetas y gastos del mes.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -283,6 +283,65 @@ service cloud.firestore {
     match /proyeccion/{anio} {
       allow read: if esGestion();
       allow create, update: if esGestion() && proyeccionValida(anio);
+      allow delete: if false;
+    }
+    // Costos (Fase 9): insumos, sus precios con vigencia, recetas por tanda con vigencia y gastos del mes. Internos como los precios:
+    // solo dueños y externo (la cuenta de pesaje no los lee). Nada de esto toca las ventas ni los cierres.
+    // Insumo: nombre y unidad ('kg', 'l' o 'un'); la unidad no cambia después de creado (precios y recetas dependen de ella). No se borra.
+    match /insumos/{id} {
+      allow read: if esGestion();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['nombre', 'unidad', 'activo', 'en'])
+        && nuevo().keys().hasAll(['nombre', 'unidad', 'activo', 'en'])
+        && texto(nuevo().nombre, 1, 60)
+        && nuevo().unidad in ['kg', 'l', 'un']
+        && nuevo().activo is bool
+        && nuevo().en == request.time
+        && (resource == null || nuevo().unidad == resource.data.unidad);
+      allow delete: if false;
+    }
+    // Precio de un insumo: lo que dice la factura (formato = cuánto trae, en su unidad; neto = precio neto de ese formato; puede ser 0)
+    // desde una fecha. Identificador insumo_fecha: no hay dos precios para el mismo día. Se puede quitar uno del historial.
+    match /preciosInsumo/{id} {
+      allow read, delete: if esGestion();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['insumoId', 'formato', 'neto', 'desde', 'en'])
+        && nuevo().keys().hasAll(['insumoId', 'formato', 'neto', 'desde', 'en'])
+        && texto(nuevo().insumoId, 1, 60)
+        && nuevo().formato is number && nuevo().formato > 0 && nuevo().formato <= 100000
+        && nuevo().neto is number && nuevo().neto >= 0 && nuevo().neto <= 100000000
+        && fechaValida(nuevo().desde)
+        && id == nuevo().insumoId + '_' + nuevo().desde
+        && nuevo().en == request.time;
+    }
+    // Receta de un pan por tanda, desde una fecha (producto_fecha): ingredientes (lista de 1 a 30) y lo que sale (kilos o unidades).
+    // La revisión de cada ingrediente la hace la app (core/costos.js); aquí, la forma. Se puede quitar una versión.
+    match /recetas/{id} {
+      allow read, delete: if esGestion();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['productoId', 'desde', 'items', 'rendimiento', 'nota', 'por', 'en'])
+        && nuevo().keys().hasAll(['productoId', 'desde', 'items', 'rendimiento', 'por', 'en'])
+        && texto(nuevo().productoId, 1, 60)
+        && fechaValida(nuevo().desde)
+        && id == nuevo().productoId + '_' + nuevo().desde
+        && nuevo().items is list && nuevo().items.size() >= 1 && nuevo().items.size() <= 30
+        && nuevo().rendimiento is number && nuevo().rendimiento > 0 && nuevo().rendimiento <= 100000
+        && (!('nota' in nuevo()) || texto(nuevo().nota, 1, 200))
+        && nuevo().por == request.auth.uid
+        && nuevo().en == request.time;
+    }
+    // Gastos de un mes (gastos/{AAAA-MM}): líneas con nombre y monto (hasta 30). Se pueden corregir también en un mes cerrado
+    // (no cambian las ventas). Queda quién y cuándo. No se borra (se guarda sin líneas).
+    match /gastos/{mes} {
+      allow read: if esGestion();
+      allow create, update: if esGestion() && mesValido(mes)
+        && nuevo().keys().hasOnly(['mes', 'items', 'por', 'quien', 'en'])
+        && nuevo().keys().hasAll(['mes', 'items', 'por', 'quien', 'en'])
+        && nuevo().mes == mes
+        && nuevo().items is list && nuevo().items.size() <= 30
+        && nuevo().por == request.auth.uid
+        && texto(nuevo().quien, 1, 60)
+        && nuevo().en == request.time;
       allow delete: if false;
     }
     // Bitácora de correcciones: se agrega junto con cada corrección, anulación o reactivación de un pesaje; nunca se cambia ni se borra.

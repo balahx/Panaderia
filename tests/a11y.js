@@ -27,6 +27,13 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   'cierres/2026-10': { mes: '2026-10', origen: 'excel', cerrado: true, iva: 19, lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', cantidad: 1234.5, precio: 1450, neto: 1790025, nombreExcel: 'MARRAQUETAS' },
     { productoId: 'p2', nombre: 'Pan de completo con un nombre largo para probar', unidad: 'un', cantidad: 3200, precio: 120, neto: 384000 }], neto: 2174025, ivaMonto: 413065, total: 2587090, kg: 1234.5, un: 3200,
     archivo: 'cierre-octubre-2026-con-un-nombre-de-archivo-largo.xlsx', hoja: 'Hoja1', por: 'u-1001', quien: 'Rosa Dueña', en: 1794600000000 },
+  'insumos/i1': { nombre: 'Harina', unidad: 'kg', activo: true, en: 1 }, 'insumos/i2': { nombre: 'Margarina con un nombre bastante largo', unidad: 'kg', activo: true, en: 1 },   // Fase 9
+  'insumos/i3': { nombre: 'Agua', unidad: 'l', activo: true, en: 1 }, 'insumos/i4': { nombre: 'Huevo', unidad: 'un', activo: true, en: 1 }, 'insumos/i5': { nombre: 'Mejorador', unidad: 'kg', activo: false, en: 1 },
+  'preciosInsumo/i1_2026-01-01': { insumoId: 'i1', formato: 25, neto: 18500, desde: '2026-01-01', en: 1 }, 'preciosInsumo/i1_2099-01-01': { insumoId: 'i1', formato: 25, neto: 1234567, desde: '2099-01-01', en: 1 },
+  'preciosInsumo/i2_2026-01-01': { insumoId: 'i2', formato: 10, neto: 22000, desde: '2026-01-01', en: 1 }, 'preciosInsumo/i3_2026-01-01': { insumoId: 'i3', formato: 1, neto: 0, desde: '2026-01-01', en: 1 },
+  'recetas/p1_2026-01-01': { productoId: 'p1', desde: '2026-01-01', rendimiento: 17.5, items: [{ insumoId: 'i1', cantidad: 12 }, { insumoId: 'i2', cantidad: 0.2 }, { insumoId: 'i3', cantidad: 7.5 }], nota: 'Levadura: invierno 130 g, verano 100 g', por: 'u-1001', en: 1 },
+  'recetas/p1_2026-06-01': { productoId: 'p1', desde: '2026-06-01', rendimiento: 17.5, items: [{ insumoId: 'i1', cantidad: 12 }, { insumoId: 'i2', cantidad: 0.2 }, { insumoId: 'i3', cantidad: 7.5 }], por: 'u-1001', en: 1 },
+  'recetas/p2_2026-01-01': { productoId: 'p2', desde: '2026-01-01', rendimiento: 192, items: [{ insumoId: 'i1', cantidad: 12 }, { insumoId: 'i4', cantidad: 2 }], por: 'u-1001', en: 1 },
   'pesajes/s1': { fecha: '2026-09-15', hora: '06:00', entregaN: 1, productoId: 'p1', cantidad: 25, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: 'u-1001', en: 1790000000000 } };
 const path = require('path'), FX = n => path.join(__dirname, 'fixtures', n);
 const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
@@ -152,6 +159,24 @@ const CHECK = () => {
     await sub('negocio'); await look('catálogo: cliente e IVA');
     await hoja('cliente', '[data-act="cat-cliente"]', '#cNombre'); await cerrar();
     await hoja('IVA', '[data-act="cat-iva"]', '#ivaNuevo'); await cerrar();
+    await sub('productos');   // costos y margen (Fase 9): la ficha del pan, la receta, el simulador, insumos, el mes y sus gastos
+    await hoja('producto: ficha con costo', '#listaProductos .mrow:nth-child(1)', '#costoHoy');
+    await tocar('#dlg [data-act="rec-ver"]'); await page.waitForSelector('#recItems'); await look('receta: vigente con versiones');
+    await tocar('#dlg [data-act="rec-form"]'); await page.waitForSelector('#recRend'); await look('receta: cambiar');
+    await page.fill('#recRend', 'x'); await tocar('#dlg [data-act="rec-guardar"]'); await page.waitForSelector('#dlg .form-error:not([hidden])'); await look('receta: con error'); await cerrar();
+    await tocar('#listaProductos .mrow:nth-child(1)'); await page.waitForSelector('#costoHoy'); await tocar('#dlg [data-act="rec-sim"]'); await page.waitForSelector('#simPrecio'); await look('producto: simular precio'); await cerrar();
+    await hoja('producto: sin receta', '#listaProductos .mrow:nth-child(3)', '#sinReceta'); await cerrar();
+    await tocar('.volver'); await tocar('#irCostos'); await page.waitForSelector('#listaInsumos'); await look('costos: insumos');
+    await hoja('insumo: ficha', '#listaInsumos .mrow:nth-child(2)', '#insHistorial');
+    await tocar('#dlg [data-act="cos-ins-precio"]'); await page.waitForSelector('#ipFormato'); await look('insumo: precio'); await cerrar();
+    await hoja('insumo: sin precio', '#listaInsumos .mrow:nth-child(3)', '#insPrecioHoy'); await cerrar();
+    await hoja('insumo: agregar', '[data-act="cos-ins-nuevo"]', '#iNombre'); await tocar('#dlg [data-act="cos-guardar"]'); await page.waitForSelector('#dlg .form-error:not([hidden])'); await look('insumo: agregar con error'); await cerrar();
+    await tocar('.seg [data-sub="mes"]'); await page.waitForSelector('#cosVenta'); await look('costos: el mes');
+    await hoja('costos: gastos del mes', '#cosAnotarGastos', '#gM0'); await cerrar();
+    await page.fill('#cosMes', '2026-10'); await page.dispatchEvent('#cosMes', 'input'); await page.waitForSelector('#cosFuente'); await look('costos: mes cerrado desde Excel');
+    await page.fill('#cosMes', '2026-08'); await page.dispatchEvent('#cosMes', 'input'); await page.waitForSelector('#cosSinGastos'); await look('costos: mes sin ventas');
+    await tocar('.seg [data-sub="insumos"]'); await page.waitForSelector('#listaInsumos');
+    await tocar('.volver'); await tocar('#irCatalogo'); await page.waitForSelector('#listaProductos .mrow'); await sub('negocio');
     await page.evaluate(() => { const d = window.__fakeDb.todo(); Object.keys(d).filter(r => /^(productos|trabajadores|clientes|precios)\//.test(r)).forEach(r => window.__fakeDb.borrar(r)); });
     await page.waitForSelector('#tarjetaCliente [data-act="cat-cliente"].btn:not(.ghost)'); await look('catálogo vacío: cliente');
     await sub('productos'); await page.waitForSelector('#faltaCliente'); await look('catálogo vacío: productos');

@@ -1,10 +1,11 @@
-/* Catálogo · hojas de un producto: ficha con su precio y el historial, formulario (nuevo o editar), precio con vigencia,
+/* Catálogo · hojas de un producto: ficha con su precio, su costo y margen (Fase 9, pantallas/costos-receta.js) y el historial, formulario (nuevo o editar), precio con vigencia,
    orden en la lista y activar o desactivar. También las ayudas comunes de las hojas del catálogo (enviar, error, pieHoja).
    Un precio nuevo rige desde su fecha: los días anteriores conservan el precio que tenían (core/catalogo.js, precioVigente). */
 import { esc, fechaTexto, diaChile } from '../core/formato.js';
 import { $, ask, hoja, cerrarHoja, toast } from '../core/ui.js';
 import * as nube from '../core/nube.js';
 import * as cat from '../core/catalogo.js';
+import { resumenFicha } from './costos-receta.js';
 
 const hoy = () => diaChile(new Date());
 const buscar = (lista, id) => (lista || []).find(x => x.id === id);
@@ -40,6 +41,7 @@ function hojaProducto(p, c) {
     (vig ? '<div class="precio-hoy" id="precioHoy"><b>' + esc(cat.pesos(vig.neto)) + '</b><span>neto ' + por(p) + ' · ' + esc(conIva(vig.neto, c)) + ' con IVA</span><small>Rige desde el ' + esc(fechaTexto(vig.desde)) + '</small></div>'
       : '<div class="note warn" id="precioHoy">' + (cliente ? 'Este producto no tiene precio para hoy.' : 'Para anotar precios primero crea el cliente (Catálogo → Cliente e IVA).') + '</div>') +
     (fut ? '<p class="muted chico" id="precioFuturo">Desde el ' + esc(fechaTexto(fut.desde)) + ' regirá ' + esc(cat.pesos(fut.neto)) + ' neto.</p>' : '') +
+    resumenFicha(p, c) +
     '<p class="form-error" role="alert" hidden></p><div class="actions">' +
     (cliente ? '<button class="btn" data-act="cat-precio"' + id + '>' + (h.length ? 'Cambiar precio' : 'Poner precio') + '</button>' : '') +
     '<button class="btn ghost" data-act="cat-editar"' + id + '>Editar</button>' +

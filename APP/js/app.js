@@ -19,6 +19,7 @@ import * as cierres from './pantallas/cierres.js';
 import * as avisos from './pantallas/avisos.js';
 import * as accesos from './pantallas/accesos.js';
 import * as catalogo from './pantallas/catalogo.js';
+import * as costos from './pantallas/costos.js';
 import * as mas from './pantallas/mas.js';
 import * as ayuda from './pantallas/ayuda.js';
 import * as privacidad from './pantallas/privacidad.js';
@@ -36,21 +37,23 @@ const TABS = [
   { id: 'datos', t: 'Datos', ic: 'bajar', mod: datos, oculta: true, permiso: 'gestion', datos: true },
   { id: 'cierres', t: 'Cierres', ic: 'file', mod: cierres, oculta: true, permiso: 'gestion', datos: true },
   { id: 'catalogo', t: 'Catálogo', ic: 'pan', mod: catalogo, oculta: true, permiso: 'gestion', datos: true },
+  { id: 'costos', t: 'Costos', ic: 'calc', mod: costos, oculta: true, permiso: 'gestion', datos: true },
   { id: 'accesos', t: 'Accesos', ic: 'team', mod: accesos, oculta: true, permiso: 'accesos' },
   { id: 'ayuda', t: 'Ayuda', ic: 'ayuda', mod: ayuda, oculta: true },
   { id: 'mas', t: 'Más', ic: 'more', mod: mas }
 ];
 /* S.estado: un perfil ('dueno' | 'externo' | 'pesaje') o lo que falta para tenerlo (ver perfil.resolver). */
 const S = { user: null, tab: 'inicio', gate: { tipo: 'cargando' }, estado: 'comprobando', acc: null, lento: false, sol: null, miem: null, errListas: '',
-  cat: null, errCat: '', nivel: '',     // cat: { productos, trabajadores, precios, clientes } (precios y clientes solo para gestión)
+  cat: null, errCat: '', nivel: '',     // cat: { productos, trabajadores, precios, clientes, insumos, preciosInsumo, recetas } (todo salvo productos y trabajadores, solo gestión)
   dia: null,                            // dia: { fecha, pesajes, dia (entrega en curso), err } (core/pesaje.js)
   per: null,                            // per: { desde, hasta, pesajes, cambios, err } (Entregas y Registro; solo gestión)
   respaldo: undefined,                  // config/respaldo: undefined = aún no se sabe · null = nunca hubo (core/respaldo.js)
   cierres: null,                        // cierres mensuales [{ id: 'AAAA-MM', … }] (Fase 6; solo gestión) · null = aún no llegan
-  proy: null };                         // proyecciones y metas [{ id: 'AAAA', … }] (Fase 7; solo gestión) · null = aún no llegan
+  proy: null,                           // proyecciones y metas [{ id: 'AAAA', … }] (Fase 7; solo gestión) · null = aún no llegan
+  gastos: null };                       // gastos de cada mes [{ id: 'AAAA-MM', items, … }] (Fase 9; solo gestión) · null = aún no llegan
 let escuchas = [], escuchasDueno = [], escuchasCat = [], escuchasDia = [], escuchasPer = [], escuchasGes = [], tLento = 0;
 const ctx = () => ({ user: S.user, perfil: S.estado, estado: S.estado, negocio: S.acc && S.acc.negocio, lento: S.lento, error: S.acc && S.acc.error,
-  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, per: S.per, respaldo: S.respaldo, cierres: S.cierres, proy: S.proy, hoy: diaChile(new Date()) });
+  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, per: S.per, respaldo: S.respaldo, cierres: S.cierres, proy: S.proy, gastos: S.gastos, hoy: diaChile(new Date()) });
 const visible = t => !t.permiso || perfil.puede(S.estado, t.permiso);
 const tabActual = () => TABS.find(t => t.id === S.tab && visible(t)) || TABS.find(visible);
 
@@ -102,7 +105,7 @@ function pintarRed() {
 
 /* ---------- Acceso por perfil ---------- */
 function soltar(lista) { lista.forEach(f => { try { f(); } catch (e) { /* */ } }); lista.length = 0; }
-function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); soltar(escuchasPer); soltar(escuchasGes); S.dia = null; S.per = null; S.respaldo = undefined; S.cierres = null; S.proy = null; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
+function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); soltar(escuchasPer); soltar(escuchasGes); S.dia = null; S.per = null; S.respaldo = undefined; S.cierres = null; S.proy = null; S.gastos = null; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
 /* Al entrar: escucha quiénes son los dueños, la ficha de miembro y la solicitud de esta cuenta. Se actualiza solo. */
 function vigilarAcceso(u) {
   dejarDeVigilar();
@@ -140,9 +143,11 @@ function evaluar(cambio) {
     /* Cierres mensuales (Fase 6): unos pocos documentos al año. Deciden qué meses están cerrados (Hoy, Entregas, Registro y Cierres). */
     escuchasGes.push(nube.vigilarCol('cierres', l => { S.cierres = l; if (perfil.puede(S.estado, 'gestion') && tabActual().datos) pintarApp(); }, () => { S.cierres = S.cierres || []; }));
     /* Proyecciones y metas (Fase 7): un documento por año. Solo las usa Indicadores. */
+    /* Gastos del mes (Fase 9): un documento por mes. Solo los usa Costos. */
+    escuchasGes.push(nube.vigilarCol('gastos', l => { S.gastos = l; if (perfil.puede(S.estado, 'gestion') && tabActual().id === 'costos') pintarApp(); }, () => { S.gastos = S.gastos || []; }));
     escuchasGes.push(nube.vigilarCol('proyeccion', l => { S.proy = l; if (perfil.puede(S.estado, 'gestion') && tabActual().id === 'indicadores') pintarApp(); }, () => { S.proy = S.proy || []; if (perfil.puede(S.estado, 'gestion') && tabActual().id === 'indicadores') pintarApp(); }));
   }
-  if (!perfil.puede(S.estado, 'gestion') && escuchasGes.length) { soltar(escuchasGes); S.respaldo = undefined; S.cierres = null; S.proy = null; }
+  if (!perfil.puede(S.estado, 'gestion') && escuchasGes.length) { soltar(escuchasGes); S.respaldo = undefined; S.cierres = null; S.proy = null; S.gastos = null; }
   vigilarCatalogo();
   if (S.estado === antes) {         // misma pantalla: no se redibuja (no borra lo que se está escribiendo)…
     if (cambio === 'negocio' && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp();   // …salvo si cambió el IVA y la pantalla muestra precios
@@ -152,14 +157,14 @@ function evaluar(cambio) {
   if (perfil.esPerfil(S.estado) && !perfil.esPerfil(antes)) { S.tab = 'inicio'; if (antes === 'espera') toast('Tu acceso fue aprobado'); }
   pintar();
 }
-/* Catálogo en vivo según el perfil: productos y trabajadores para todos; precios y clientes solo para dueños y externo
-   (la cuenta de pesaje ni los pide: las reglas se los negarían). */
+/* Catálogo en vivo según el perfil: productos y trabajadores para todos; precios, clientes y costos (insumos, sus precios y las recetas,
+   Fase 9) solo para dueños y externo (la cuenta de pesaje ni los pide: las reglas se los negarían). Son decenas de documentos. */
 function vigilarCatalogo() {
   const nivel = !perfil.esPerfil(S.estado) ? '' : perfil.puede(S.estado, 'gestion') ? 'gestion' : 'pesaje';
   if (nivel === S.nivel) return;
   soltar(escuchasCat); S.nivel = nivel; S.errCat = ''; S.cat = null;
   if (!nivel) return;
-  const k = S.cat = { productos: null, trabajadores: null, precios: nivel === 'gestion' ? null : [], clientes: nivel === 'gestion' ? null : [] };
+  const g = nivel === 'gestion' ? null : [], k = S.cat = { productos: null, trabajadores: null, precios: g, clientes: g, insumos: g, preciosInsumo: g, recetas: g };
   const repintar = () => { if (S.cat === k && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp(); };
   for (const col of Object.keys(k).filter(c => k[c] === null))
     escuchasCat.push(nube.vigilarCol(col, l => { if (S.cat !== k) return; k[col] = l; S.errCat = ''; repintar(); }, cod => { if (S.cat !== k) return; S.errCat = cod; repintar(); }));

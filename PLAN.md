@@ -42,7 +42,7 @@ Ingreso **solo con cuenta de Google**. Quien ingresa por primera vez envía una 
 11. **Respaldos** (dueños y externo): descarga completa y franja de aviso semanal.
 12. **Actualización sin reinstalar**, versión visible, aviso de privacidad breve.
 
-**Después de la entrega principal:** costos y margen por pan; plan de producción diario.
+**Después de la entrega principal:** costos y margen por pan (Fase 9: ingredientes por receta, gastos del mes, simulador de precio); plan de producción diario.
 **Lista de futuros:** insumos (harina, levadura), varios clientes (el modelo ya guarda el cliente), conexión con balanza, informe para la contadora.
 **Descartado:** asistencia de trabajadores, facturación electrónica.
 
@@ -130,6 +130,10 @@ D:\APP Panaderia\            (raíz del repositorio público «Panaderia»)
 | `dias/{fecha}` | entregaN (entrega en curso), por, en. **Los totales no se guardan**: se calculan con los pesajes (Fase 4) | Todos (pesaje: solo hoy) | Pesaje: de a un paso (cerrar o volver a abrir); dueños y externo: cualquier número |
 | `cierres/{aaaa-mm}` | `mes`, `origen` (`excel`/`app`), `cerrado`, `iva` (%), `lineas` (por pan: productoId, nombre, unidad, cantidad, precio, neto), `neto`, `ivaMonto` (IVA % × neto del mes), `total`, `kg`, `un`, `por`, `quien`, `en` (+ cliente, archivo y hoja, o canastos y días; constancia de reapertura) (Fase 6) | Dueños y externo | Dueños y externo, solo meses terminados; un mes cerrado no se modifica y en él no se anota ni se corrige; **solo un dueño lo reabre** |
 | `proyeccion/{año}` | `anio`, `factor` (crecimiento general, 1,05 = +5 %), `factorPrecio`, `panes` (productoId → factor propio), `metas` (12 montos netos o null), `por`, `quien`, `en` (Fase 7) | Dueños y externo | Dueños y externo, a su nombre; no se borra |
+| `insumos/{id}` | `nombre`, `unidad` (`kg`/`l`/`un`), `activo`, `en` (Fase 9) | Dueños y externo (**no** pesaje) | Dueños y externo; no se borra (se desactiva) |
+| `preciosInsumo/{insumoId_desde}` | `insumoId`, `formato` (cantidad comprada en su unidad, p. ej. 25), `neto` (precio neto del formato), `desde` (Fase 9) | Dueños y externo | Dueños y externo; se puede quitar |
+| `recetas/{productoId_desde}` | `productoId`, `desde`, `items` ([{ insumoId, cantidad }], ≤ 30), `rendimiento` (kg o unidades, según el pan), `nota`, `por`, `en` (Fase 9) | Dueños y externo | Dueños y externo; se puede quitar una versión |
+| `gastos/{aaaa-mm}` | `mes`, `items` ([{ nombre, monto }], ≤ 30, pesos enteros netos), `por`, `quien`, `en` (Fase 9) | Dueños y externo | Dueños y externo, también en meses cerrados; no se borra |
 | `cambios/{id}` | bitácora: tipo (`corregir`/`anular`/`reactivar`), pesajeId, fecha, antes, despues, por, `quien` (nombre de la cuenta, opcional, Fase 5), en | Dueños y externo | Se crea con cada corrección (la tablet, solo de lo del día) |
 
 Reglas: todo lo no permitido queda prohibido; el perfil se comprueba en el servidor; la fecha de un pesaje de la tablet debe ser la del día según la hora del servidor.
@@ -195,11 +199,40 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 - **Listo cuando:** los totales de indicadores cuadran con cierres y entregas.
 - Hecho (18-nov-2026, versión 0.7.0): pestaña **Números** con «El mes» (los nueve indicadores; el mes en curso se compara a su ritmo) y «Año y metas» (año contra año, proyección por pan con crecimiento y precio, metas fijas editables). Meses cerrados = su cierre; los demás = lo de Entregas (ESTADO.md, decisiones de la Fase 7).
 
-### Fase 8 · Cierre y entrega — chat 9 ◐
+### Fase 8 · Cierre y entrega — chat 9 ✔
 - Aviso de privacidad, accesibilidad, rendimiento, ~~App Check obligatorio~~ (se decidió no usarlo), revisión final de seguridad, `LEEME.md` y guía breve para la familia.
 - Hecho (19-nov-2026, versión 0.8.0): aviso de privacidad (ingreso, espera y Más), Ayuda por perfil en la app y `GUIA-FAMILIA.md` para imprimir, títulos y foco por pantalla y revisión a 320 px, respaldo por año (cuota de lecturas), Diagnóstico con comprobante de App Check, bloqueos y tiempos, cabecera CORP y pruebas de higiene, `LEEME.md`. La revisión de consolas: `GUIA-FIREBASE.md`, paso 23 (ESTADO.md, decisiones de la Fase 8).
 
-### Fase 9 · Costos y margen por pan — chat 10
+### Fase 9 · Costos y margen por pan — chat 10 ◐
+Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas). **Hecho (20-nov-2026, versión 0.9.0):** todo lo de abajo, más el primer precio y la primera receta desde el 1 ene 2026 por omisión y el Excel de Entregas siempre sin costos. Falta que Felipe publique y verifique (`GUIA-FIREBASE.md`, paso 24). Detalle en `ESTADO.md`.
+
+**Qué se mide**
+- **Margen de cada pan** = venta neta − **ingredientes**. El costo de los ingredientes sale de la **receta por tanda** (por kilos de masa). Los envases no entran.
+- **Resultado del mes** = venta neta − ingredientes − **gastos del mes** (gas, luz, sueldos, arriendo y otros fijos). Los gastos **no se reparten** entre los panes.
+- **Margen % = sobre el precio de venta**: (neto − costo) / neto. Vender a $1.000 lo que cuesta $700 da 30 %.
+- Todo es **neto**: los insumos y los gastos con factura se anotan sin IVA (la panadería recupera el IVA de las compras). Los sueldos se anotan por lo que se paga.
+
+**Cómo se carga** (dueños y externo; la tablet no lee nada de costos)
+1. **Insumos** (Más → Costos → Insumos): nombre y unidad (`kg`, `l` o `un`). El precio se anota **como dice la factura**: formato de compra (por ejemplo, saco de 25 kg) y precio neto del formato, **con fecha de vigencia**, igual que los precios de venta. La app muestra el $ por kg, litro o unidad. Un insumo no se borra: se desactiva.
+2. **Receta** (ficha del pan en Catálogo): ingredientes de **una tanda** con su cantidad (kg o l con hasta 3 decimales, o unidades) y **rendimiento** = kilos de pan horneado que salen (o unidades, si el pan es por unidad). La app muestra la masa total, la merma de horneado (informativa), el costo de la tanda y el **costo por kg o por unidad**. **La receta también tiene fecha de vigencia**: cambiarla crea una versión nueva, y los meses anteriores conservan su costo.
+3. **Gastos del mes** (Más → Costos → El mes): líneas con nombre y monto (sugeridas: Gas, Luz, Sueldos, Arriendo, Agua, Transporte, Otros) y el botón «Copiar del mes anterior». Se pueden corregir también en un mes cerrado, porque no tocan las ventas. Queda el registro de quién y cuándo.
+
+**Cálculo** (`core/costos.js`, lógica pura)
+- Costo unitario de un pan en un día = Σ (cantidad × precio vigente del insumo ese día) / rendimiento, con la receta vigente ese día. Si falta la receta o el precio de un insumo: «sin costo», no suma, y se avisa qué falta (igual que «sin precio»).
+- **Costo de una línea de venta** (un pan en una entrega de un día) = costo unitario de ese día × cantidad, en pesos enteros (`redondearPesos`). Todo total es suma de líneas, igual que el neto, así el Excel cuadra con la pantalla.
+- **Meses**: la venta sigue la regla de la Fase 6 (mes cerrado → el cierre; si no → los pesajes). Los ingredientes salen de los pesajes por día. En un mes **importado desde Excel** (sin días) se usa la cantidad de cada pan × el costo vigente el último día del mes, marcado «estimado».
+
+**Dónde se ve**
+- **Ficha del pan (Catálogo):** receta vigente con su historial, costo por kg o unidad, precio de hoy, margen en $ y en %, y un **simulador**: «si el precio fuera ___ → margen» y «para ganar ___ % → precio neto (y con IVA)».
+- **Más → Costos** (pestaña oculta `costos`, permiso `gestion`), en dos partes: **Insumos** y **El mes** (‹ mes ›: venta, ingredientes, margen por pan con su %, panes sin costo, gastos, resultado y su % de la venta).
+- **Excel del mes:** columnas *Costo ingredientes*, *Margen* y *Margen %* en las hojas Ventas y Por pan, y una hoja nueva **Resultado**. Al exportar hay una casilla «Incluir costos y margen» (marcada por omisión), para poder sacar un Excel sin costos si se entrega a otra persona. El de **Entregas** sale siempre sin costos (el de la contadora).
+- **Números no cambia** (decisión de Felipe).
+
+**Datos nuevos** (PLAN §7): `insumos`, `preciosInsumo`, `recetas` y `gastos`, con sus reglas y casos en `tests/reglas-casos.js`. Entran también en el respaldo, en el aviso de privacidad («costos de ingredientes y gastos del mes») y en la Ayuda (tema «Costos y margen»).
+
+**Listo cuando:** la receta da el mismo costo por kg que el cálculo a mano; un alza de la harina con fecha nueva no cambia los meses anteriores (y una receta nueva tampoco); en el Excel del mes, la suma de los costos de la hoja Ventas es igual a los ingredientes de Costos → El mes; resultado = venta − ingredientes − gastos; la tablet no puede leer insumos, recetas ni gastos (emulador); las vistas nuevas están en `a11y.js`; la versión 0.9.0 tiene el Diagnóstico con 0 bloqueos.
+
+**Fuera de la fase:** envases, reparto de gastos entre panes, inventario de insumos (lista de futuros), margen en Números y vista del año en Costos (se puede agregar después).
 ### Fase 10 · Plan de producción diario — chat 11
 
 ## 11. Organización de los chats

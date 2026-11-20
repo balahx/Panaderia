@@ -8,6 +8,7 @@ import * as nube from '../core/nube.js';
 import * as cat from '../core/catalogo.js';
 import { puede } from '../core/perfil.js';
 import * as producto from './catalogo-producto.js';
+import * as receta from './costos-receta.js';
 import { enviar, error, pieHoja } from './catalogo-producto.js';
 
 const SUBS = [['productos', 'Productos'], ['trabajadores', 'Trabajadores'], ['negocio', 'Cliente e IVA']];
@@ -79,6 +80,7 @@ function hojaIva(c) {
 
 export function alActuar(act, el, c) {
   if (act === 'recargar') { location.reload(); return true; }
+  if (receta.alActuar(act, el, c)) return true;   // receta y simulador desde la ficha del pan (Fase 9)
   if (!act.startsWith('cat-')) return false;
   if (!puede(c.perfil, 'gestion') || !c.cat) return true;
   if (act === 'cat-sub') { sub = SUBS.some(s => s[0] === el.dataset.sub) ? el.dataset.sub : 'productos'; $('#view').innerHTML = html(c); return true; }
@@ -108,4 +110,4 @@ export function alActuar(act, el, c) {
   return true;
 }
 /* Mientras se escribe en una hoja del catálogo (vista previa del precio con IVA, peso de referencia según la unidad). */
-export const alEscribir = (el, c) => producto.alEscribir(el, c);
+export const alEscribir = (el, c) => { if (!receta.alEscribir(el, c)) producto.alEscribir(el, c); };

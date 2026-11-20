@@ -1,5 +1,5 @@
 /* «Más»: la cuenta y su perfil; para dueños y externo, los submenús del PLAN §8: Catálogo, Registros (registro general y fecha pasada)
-   y Datos (Excel y respaldo); Registros incluye los cierres mensuales (Fase 6); Accesos (dueños); la versión y actualización, y el diagnóstico de instalación.
+   y Datos (Excel y respaldo); Catálogo incluye Costos y margen (Fase 9); Registros incluye los cierres mensuales (Fase 6); Accesos (dueños); la versión y actualización, y el diagnóstico de instalación.
    Fase 8: Ayuda (todos los perfiles), Aviso de privacidad (lo abre app.js), y el diagnóstico dice si App Check entrega su comprobante,
    qué se bloqueó (si algo) y cuánto tardan la apertura y las pantallas (window.__pan, lo mide app.js).
    «Cerrar sesión» lo atiende app.js (vale también en las pantallas de espera). */
@@ -57,7 +57,8 @@ export function diagnostico(ctx) {
 const fila = (id, ic, t, d, extra) => '<button class="mrow" id="' + id + '" data-act="ir" ' + extra + '>' + svg(ic) + '<span class="mt"><b>' + esc(t) + '</b><small>' + esc(d) + '</small></span>' + svg('chev', 'go') + '</button>';
 function gestion(ctx) {
   const marca = R.textoMarca(ctx.respaldo);
-  return '<p class="eyebrow mas-grupo">Catálogo</p><div class="mlist">' + fila('irCatalogo', 'pan', 'Catálogo', 'Productos, precios, trabajadores, cliente e IVA', 'data-tab="catalogo"') + '</div>' +
+  return '<p class="eyebrow mas-grupo">Catálogo</p><div class="mlist">' + fila('irCatalogo', 'pan', 'Catálogo', 'Productos, precios, trabajadores, cliente e IVA', 'data-tab="catalogo"') +
+    fila('irCostos', 'calc', 'Costos y margen', 'Insumos, recetas, gastos del mes y resultado', 'data-tab="costos"') + '</div>' +
     '<p class="eyebrow mas-grupo">Registros</p><div class="mlist">' + fila('irRegistro', 'lista', 'Registro general', 'Todos los canastos con filtros, y las correcciones', 'data-tab="registro"') +
     fila('irFechaPasada', 'mas', 'Anotar en fecha pasada', 'Abre «Hoy» en el día de ayer; con ‹ › eliges otro', 'data-tab="inicio" data-dia="' + sumarDias(ctx.hoy, -1) + '"') +
     fila('irCierres', 'file', 'Cierres mensuales', 'Cerrar meses e importar los anteriores desde Excel', 'data-tab="cierres"') + '</div>' +

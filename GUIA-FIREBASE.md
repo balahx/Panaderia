@@ -1,6 +1,6 @@
 # Guía paso a paso · Firebase, publicación y repositorio
 
-> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4 · paso 20: Fase 5 · paso 21: Fase 6 · paso 22: Fase 7 · paso 23: Fase 8). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
+> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4 · paso 20: Fase 5 · paso 21: Fase 6 · paso 22: Fase 7 · paso 23: Fase 8 · paso 24: Fase 9). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
 > Tiempo estimado: 60 a 90 minutos la primera vez.
 > Los nombres de botones están en español; entre paréntesis va el nombre en inglés por si tu consola aparece en ese idioma. Google cambia a veces el texto de un botón: si no lo encuentras igual, busca el más parecido.
 
@@ -33,6 +33,7 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 21 | **Fase 6:** publicar la versión 0.6.0 (cierres mensuales) e importar enero a octubre | Terminal y el computador |
 | 22 | **Fase 7:** publicar la versión 0.7.0 (indicadores, proyección y metas) | Terminal, el computador y el teléfono del dueño |
 | 23 | **Fase 8:** publicar la versión 0.8.0 (privacidad, ayuda, respaldo por año) y revisión final de seguridad | Terminal, cada equipo y consolas |
+| 24 | **Fase 9:** publicar la versión 0.9.0 (costos y margen por pan) y cargar insumos, recetas y gastos | Terminal, el computador y el teléfono del dueño |
 
 ---
 
@@ -762,6 +763,58 @@ A cambio, la app no carga reCAPTCHA (sigue sin nada de otros sitios) y ningún e
 4. Si un equipo falla (la app dice «permission-denied» y «App Check no entregó su comprobante»), **Desaplicar** (Unenforce) en la misma pantalla: vuelve a funcionar en minutos, sin publicar nada. Causas típicas: bloqueador de anuncios, protección contra rastreo estricta, fecha y hora del equipo mal puestas o una versión vieja de la app.
 
 Con App Check configurado, el ingreso y el aviso de privacidad mencionan reCAPTCHA solos (es la condición de Google para ocultar su insignia).
+
+---
+
+## Paso 24 · Publicar la versión 0.9.0 (costos y margen por pan)
+
+Esta versión agrega **costos y margen** (dueños y externo; la tablet no ve ni lee nada de esto):
+- **Más → Costos y margen → Insumos:** harina, margarina, sal, levadura… con el precio **neto de factura** (cuánto trae lo que se compra, por ejemplo un saco de 25 kg, y su precio). La app calcula el precio por kilo, litro o unidad. Cada precio rige **desde una fecha**; el **primero** rige por omisión desde el 1 de enero de 2026, así los meses anteriores también tienen costo.
+- **Receta de cada pan** (Catálogo → el pan → **Anotar receta**): lo que lleva **una tanda** (se puede escribir «250 g») y cuántos kilos de pan (o unidades) salen. La ficha del pan muestra el **costo por kg** (o por unidad) y el **margen** con el precio de hoy. La receta también tiene fecha: si cambia (por ejemplo, la levadura de verano), se anota una versión nueva desde su fecha y los meses anteriores no cambian.
+- **Simular precio** (ficha del pan): «si el precio fuera ___ → margen» y «para ganar ___ % → precio» (con IVA al lado). El margen % es sobre el precio de venta.
+- **Costos y margen → El mes:** venta, ingredientes y margen de cada pan, **gastos del mes** (gas, luz, sueldos, arriendo…, con «Copiar del mes anterior») y **resultado** = margen − gastos. Un mes cerrado desde Excel usa su cierre y estima los ingredientes.
+- **Excel con costos:** el de **El mes** trae columnas de costo y margen y una hoja **«Resultado»**; en **Más → Exportar a Excel** hay una casilla para incluirlos o no. El de **Entregas** sale siempre **sin costos** (es el de la contadora).
+
+Cambian las **reglas** (cuatro colecciones nuevas: `insumos`, `preciosInsumo`, `recetas` y `gastos`, solo para dueños y externo): hay que publicarlas junto con la app.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+npm test
+```
+
+Debe terminar con **«26 pruebas … todas bien»**.
+
+2. **Antes de publicar**, sube el código (`git add .`, `git commit -m "Fase 9: costos y margen por pan"`, `git push`) y mira en GitHub → **Actions** → **Pruebas** que **«Reglas de Firestore (emulador)»** quede en verde. Ahora son **325 casos** (64 nuevos, de los costos) y **desde el chat no se pudieron ejecutar con el emulador**: si queda en rojo, **no publiques** y lleva las líneas con ✗ al chat.
+
+3. Con ese paso en verde:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+4. En **cada equipo**: **Más → Buscar actualización → Actualizar ahora** (debe decir versión 0.9.0).
+
+5. **Cargar los insumos** (teléfono del dueño o computador): **Más → Costos y margen → Insumos → Agregar insumo**. Para cada uno: nombre, en qué se mide (kilos, litros o unidades) y, si lo tienes a mano, **cuánto trae** lo que se compra y su **precio neto de factura**. Con las recetas de ejemplo: Harina, Margarina, Manteca, Sal, Azúcar, Levadura, Agua (en litros; puede ir a **$0**, porque el agua se paga en los gastos del mes) y Huevo (en unidades).
+
+6. **Anotar las recetas** (Catálogo → el pan → **Anotar receta**). Por ejemplo, la hallulla: Harina `12,5`, Margarina `250 g`, Sal `160 g`, Azúcar `60 g`, Levadura `130 g`, Agua `7` y **salen** `16,5` kg. En la nota se puede dejar «Levadura: invierno 130 g, verano 100 g»; cuando llegue el verano, **Cambiar receta** con `100 g` y la fecha desde la que rige. El pan de completo: **salen** `192` (unidades).
+
+7. **Anotar los gastos del mes** (**Costos y margen → El mes → Anotar gastos**): gas, luz, sueldos, arriendo…, netos de factura.
+
+8. Verifica y marca:
+
+| Comprobación | ✓ / ✗ |
+|---|---|
+| En la ficha de la hallulla, el **costo por kg** es igual al cálculo a mano: (12,5 × precio del kilo de harina + 0,25 × margarina + 0,16 × sal + 0,06 × azúcar + 0,13 × levadura) ÷ 16,5 | |
+| **Simular precio**: con otro precio cambia el margen; «para ganar 30 %» da un precio | |
+| Un **alza** de un insumo con fecha de **mañana** no cambia el costo de hoy (y aparece «aún no rige» en su historial) | |
+| **El mes**: ingredientes y margen por pan; con gastos anotados, **resultado = margen − gastos**; un pan sin receta dice «Sin costo» | |
+| **Descargar Excel del mes** (desde El mes): trae la hoja **«Resultado»** con los mismos montos; el Excel de **Entregas** no trae costos | |
+| El externo ve **Costos y margen**; la tablet **no** lo ve. Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.9.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde | |
+
+**Listo cuando:** las seis casillas están marcadas (es el «Listo cuando» de la Fase 9).
+
+**Lecturas:** los insumos, sus precios y las recetas son unas decenas de documentos (se leen al abrir la app, solo en las cuentas de dueños y externo); los gastos, uno por mes. **El mes** lee los canastos del mes que miras, igual que **Entregas**.
 
 ---
 

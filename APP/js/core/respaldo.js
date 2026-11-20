@@ -12,7 +12,7 @@ export const anios = hoy => { const a = Number(String(hoy).slice(0, 4)), l = [];
 
 /* Qué se respalda. Los dueños además guardan los accesos (el externo no puede leerlos: las reglas se lo niegan). */
 export const DOCUMENTOS = ['config/negocio', 'config/respaldo'];
-export const COLECCIONES = ['productos', 'precios', 'trabajadores', 'clientes', 'pesajes', 'dias', 'cambios', 'cierres', 'proyeccion'];
+export const COLECCIONES = ['productos', 'precios', 'trabajadores', 'clientes', 'pesajes', 'dias', 'cambios', 'cierres', 'proyeccion', 'insumos', 'preciosInsumo', 'recetas', 'gastos'];   // las 4 últimas: costos (Fase 9)
 export const DE_DUENOS = ['miembros', 'solicitudes'];
 export const colecciones = perfil => COLECCIONES.concat(perfil === 'dueno' ? DE_DUENOS : []);
 

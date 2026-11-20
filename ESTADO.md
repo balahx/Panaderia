@@ -14,18 +14,17 @@
 | 5 | Ventas para dueños: Entregas, registro, fecha pasada, Excel, respaldo | 6 | ✔ Hecha. Paso 20 verificado por Felipe (17-nov-2026): las 8 casillas (incluida la de **modo avión** pendiente del paso 19), Diagnóstico con 0 bloqueos y versión 0.5.0, emulador en verde |
 | 6 | Cierres mensuales (importar ene–oct 2026, cerrar mes) | 7 | ✔ Hecha. Paso 21 verificado por Felipe (18-nov-2026): las 6 casillas (10 meses cerrados desde Excel, cada neto = total del Excel), Diagnóstico con 0 bloqueos y versión 0.6.0, emulador en verde con los 235 casos |
 | 7 | Indicadores, proyección y metas | 8 | ✔ Hecha. Paso 22 verificado por Felipe (19-nov-2026): las 6 casillas (octubre = su cierre, noviembre = Entregas, 2025 importado y comparado, metas fijadas y a mano, externo sí y tablet no), Diagnóstico con 0 bloqueos y versión 0.7.0, emulador en verde con los 261 casos |
-| 8 | Cierre y entrega (App Check: se decidió no usarlo) | 9 | ◐ Código, pruebas, guía y documentos hechos (19-nov-2026). Falta que Felipe ejecute `GUIA-FIREBASE.md`, paso 23 (publicar, revisión de consolas, verificar) |
-| 9 | Costos y margen por pan | 10 | Después |
+| 8 | Cierre y entrega (App Check: se decidió no usarlo) | 9 | ✔ Hecha. Paso 23 verificado por Felipe (20-nov-2026): tabla C (5 casillas) y tabla B de consolas completas, Diagnóstico con versión 0.8.0, 0 bloqueos y «App Check: Sin configurar» en los tres tipos de equipo |
+| 9 | Costos y margen por pan | 10 | ◐ Código, pruebas, guía y documentos hechos (20-nov-2026, versión 0.9.0). Falta que Felipe ejecute `GUIA-FIREBASE.md`, paso 24 (publicar con las reglas, cargar insumos, recetas y gastos, verificar) |
 | 10 | Plan de producción diario | 11 | Después |
 
-Versión de la app: **0.8.0** (caché 2026.11.19.1) · 24 pruebas, todas bien (19-nov-2026, con Firebase, Google y Firestore simulados) · 261 casos de reglas (sin cambios en la Fase 8)
+Versión de la app: **0.9.0** (caché 2026.11.20.1) · 26 pruebas, todas bien (20-nov-2026, con Firebase, Google y Firestore simulados) · 325 casos de reglas (64 nuevos de la Fase 9; el emulador corre en GitHub Actions)
 
-## Qué falta para cerrar la Fase 8 (lo hace Felipe, con `GUIA-FIREBASE.md`, paso 23)
+## Qué falta para cerrar la Fase 9 (lo hace Felipe, con `GUIA-FIREBASE.md`, paso 24)
 
-1. `npm test` (24 pruebas), subir a GitHub y ver **Actions** en verde. Las **reglas no cambiaron** (siguen los 261 casos).
-2. `firebase deploy --only hosting` y actualizar cada equipo a 0.8.0.
-3. Revisión final de las consolas (tabla B del paso 23), imprimir o enviar `GUIA-FAMILIA.md`, y marcar la tabla C (5 casillas).
-4. **App Check no se usa** (decisión de Felipe, 19-nov-2026): nada que hacer en la consola. El Diagnóstico debe decir «App Check: Sin configurar».
+1. `npm test` (26 pruebas), subir a GitHub y ver **Actions** en verde, sobre todo **«Reglas de Firestore (emulador)»**: las reglas **cambiaron** (325 casos) y desde el chat no se pudieron correr con el emulador.
+2. `firebase deploy --only hosting,firestore:rules` y actualizar cada equipo a 0.9.0.
+3. Cargar insumos (con precio neto de factura), las recetas y los gastos del mes, y marcar la tabla del paso 24 (6 casillas).
 
 ## Decisiones tomadas
 
@@ -43,6 +42,29 @@ Versión de la app: **0.8.0** (caché 2026.11.19.1) · 24 pruebas, todas bien (1
 - Seguridad de la auditoría aplicada desde el inicio (PLAN §9).
 - Commits y PR: autor Felipe González con su correo, sin coautoría, sin Claude-Session ni enlace de sesión.
 - Carpetas: app en `APP\`; `privado\` y `app de muestra\` fuera del repositorio.
+
+### Decisiones de la Fase 9 · desarrollo (20-nov-2026, versión 0.9.0)
+
+- **Datos** (PLAN §7): `insumos/{id}` = `{ nombre, unidad: kg | l | un, activo }` (la unidad no cambia; no se borra, se desactiva) · `preciosInsumo/{insumo_fecha}` = `{ insumoId, formato, neto, desde }` (formato = cuánto trae lo comprado, en su unidad; neto ≥ 0: el agua puede ir a $0 porque se paga en los gastos) · `recetas/{producto_fecha}` = `{ productoId, desde, items: [{ insumoId, cantidad }] (1 a 30), rendimiento, nota?, por }` · `gastos/{AAAA-MM}` = `{ mes, items: [{ nombre, monto }] (≤ 30), por, quien }`. Todos con `en` (hora del servidor), **solo dueños y externo** (la tablet no los lee ni con peticiones directas). Las reglas revisan la forma; la revisión de cada ingrediente o línea de gasto la hace la app (las reglas no recorren listas). Los gastos se corrigen también en meses cerrados (no tocan las ventas) y no se borran.
+- **Cálculo** (`core/costos.js`, lógica pura): costo de la tanda = Σ cantidad × (neto ÷ formato) con los precios **vigentes ese día**; costo por kg (o unidad) = tanda ÷ rendimiento, con la **receta vigente ese día**. Costo de una línea de venta = costo unitario del día × cantidad, en pesos enteros; todo total es suma de líneas (`conCostos`, `totalesCosto`). Margen = venta neta − ingredientes; **margen % = sobre el precio de venta**. Sin receta o con un insumo sin precio: «sin costo», no descuenta ingredientes y se avisa (igual que «sin precio»). Un pan vendido sin precio sí descuenta sus ingredientes.
+- **Meses** (`resumenMes`): la venta sigue la regla de la Fase 6 (cerrado → cierre). Los ingredientes salen de los pesajes del mes por día; en un mes **importado desde Excel** (sin días) se **estiman** con la cantidad de cada pan × el costo vigente el último día del mes, y la pantalla lo dice. Resultado = margen − gastos del mes (no se reparten).
+- **Primer precio y primera receta (mejora):** por omisión rigen desde el **1 ene 2026** (`K.INICIO`, el inicio de los datos) y no piden confirmar, así los meses ya cerrados también tienen costo; los cambios siguientes parten desde hoy, y una fecha pasada pide confirmar (como los precios de venta).
+- **Cantidades** a la chilena y con sigla: «12,5», «250 g», «250gr», «7,5 lt», «500 ml»; en la receta se muestran en g o ml cuando es menos de 1. La merma de horneado (masa en kg y litros − lo que sale) es solo informativa.
+- **Pantallas:** **Más → Costos y margen** (pestaña oculta `costos`, permiso `gestion`, ícono nuevo `calc`) con **Insumos** (`pantallas/costos.js`: lista, ficha con historial y «Lo llevan…», precio con vista previa por kilo) y **El mes** (`pantallas/costos-mes.js`: venta, ingredientes, margen por pan —tocar un pan abre su receta—, gastos con «Copiar del mes anterior», resultado y «Descargar Excel del mes» con costos). La **receta** y el **simulador** (`pantallas/costos-receta.js`) se abren desde la ficha del pan (bloque «Costo y margen») y desde El mes: el formulario tiene **una fila por insumo activo** (en blanco = no lo lleva) y una vista previa del costo; las versiones se pueden quitar.
+- **Excel:** con costos (`excel.libro({ …, costos })`): columnas *Costo ingredientes · Margen · Margen %* en Ventas y Por pan, y la hoja **«Resultado»** (venta e ingredientes enlazados a los totales de Ventas, margen, gastos del mes si el período es un mes, resultado; verificado con LibreOffice: recalcula igual). Estilo nuevo `pct` en `core/xlsx.js`. **El de Entregas sale siempre sin costos** (el de la contadora); el de El mes, con costos; en **Datos**, una casilla (marcada por omisión).
+- `app.js`: escucha `insumos`, `preciosInsumo` y `recetas` en `ctx.cat` (solo gestión; la tablet recibe listas vacías sin pedirlas) y `gastos` en `ctx.gastos`. Respaldo con las 4 colecciones nuevas. Aviso de privacidad (ahora vigente desde el 20-nov-2026) y Ayuda («Costos y margen de cada pan») actualizados, también `GUIA-FAMILIA.md`.
+- Pruebas: `costos-unit.js` (las **cuatro recetas de la panadería** —hallulla, marraqueta, completos y dobladita— contra el cálculo a mano, vigencia de precios y recetas, cantidades, margen por línea y mes, meses cerrados, gastos, simulador y Excel) y `costos-e2e.js` (insumos, receta de la hallulla, simulador, alza futura, El mes con gastos y resultado, mes de Excel estimado, Excel, externo y tablet). `a11y.js` recorre 80 vistas.
+
+### Decisiones de la Fase 9 · planificación (20-nov-2026)
+
+Respuestas de Felipe (el detalle está en PLAN «Fase 9»):
+- **Costos:** ingredientes por pan; gas, luz, sueldos y fijos **se cargan al mes**; los envases no entran.
+- **Costo de cada pan:** **receta por tanda** descrita **por kilos de masa**, con rendimiento en kg de pan horneado (o en unidades).
+- **Gastos del mes: no se reparten.** Margen por pan = venta − ingredientes; resultado del mes = venta − ingredientes − gastos.
+- **Insumos: neto de factura** (sin IVA), con formato de compra y fecha de vigencia.
+- **Margen % sobre el precio de venta.**
+- **Dónde se ve:** ficha del pan (costo, margen y simulador), **pantalla Costos** en Más (insumos, gastos y resultado del mes) y **Excel del mes**. Números no cambia.
+- Propuestas incluidas en el plan: la receta con fecha de vigencia (como los precios), «Copiar del mes anterior» en los gastos, la casilla «Incluir costos y margen» al exportar, y en los meses de Excel el costo estimado con el precio vigente el último día del mes.
 
 ### Decisiones de la Fase 1 (13-nov-2026)
 
@@ -167,7 +189,8 @@ Versión de la app: **0.8.0** (caché 2026.11.19.1) · 24 pruebas, todas bien (1
 
 ## Pendientes de información (PLAN §13)
 
-- Resultado del paso 23 de la guía (tabla C de 5 casillas, tabla B de consolas y Diagnóstico de la tablet con su apertura y pantalla más lenta).
+- Opcional: cifras del Diagnóstico de la tablet («Apertura de la app» y «Pantalla más lenta»). En el paso 23 se marcaron sin anotar los números.
+- Precios netos reales de los insumos (las pruebas usan precios inventados; las recetas son las de la panadería, 20-nov-2026). Los carga Felipe en el paso 24.
 - Noviembre de 2026 se cierra desde Entregas a partir del 1 de diciembre; con noviembre y diciembre cerrados se puede proyectar todo 2027.
 - «Ajustes» del plan (§8) aún no existe como pantalla: el IVA quedó dentro de Catálogo → Cliente e IVA.
 
@@ -179,7 +202,7 @@ Versión de la app: **0.8.0** (caché 2026.11.19.1) · 24 pruebas, todas bien (1
 | `GUIA-FIREBASE.md` | Paso a paso: consola, publicación, instalación, repositorio, seguridad (paso 23: revisión final; 23.D: App Check, si algún día se activa), problemas frecuentes |
 | `GUIA-FAMILIA.md` | Guía breve para la familia, para imprimir (instalar, tablet, dueños, si algo falla). La misma está en la app: Más → Ayuda |
 | `firebase.json` | Hosting publica `APP\`; cabeceras de seguridad (CSP, antimarcos, COOP, CORP) y de caché |
-| `firestore.rules` | Reglas por perfil de las 12 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días, bitácora (con `quien`), `config/respaldo`, cierres (meses cerrados) y proyección con metas; todo lo demás cerrado |
+| `firestore.rules` | Reglas por perfil de las 16 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días, bitácora (con `quien`), `config/respaldo`, cierres (meses cerrados), proyección con metas y costos (insumos, sus precios, recetas y gastos, Fase 9); todo lo demás cerrado |
 | `package.json` · `.gitignore` · `.gitattributes` | Scripts npm, exclusiones, finales de línea |
 | `tools\plantillas-github\` · `.github\` | `ci.yml` (pruebas y reglas con emulador en GitHub Actions) y `dependabot.yml`. Las dos copias de `ci.yml` deben ser iguales |
 | `APP\index.html` | Cáscara: CSP, `#gate` (ingreso), `#appRoot` (app), `#dlg`, `#toast` |
@@ -195,8 +218,9 @@ Versión de la app: **0.8.0** (caché 2026.11.19.1) · 24 pruebas, todas bien (1
 | `APP\js\core\perfil.js` | Perfiles, permisos (`puede`) y `resolver` (qué pantalla corresponde). Lógica pura |
 | `APP\js\core\pesaje.js` | Pesaje, lógica pura: teclado (`teclear`), `validarCantidad` (aviso 20 kg, confirmar 50 kg), `nuevoPesaje`, `soloPesaje`, `diferencia`, `constancia` (bitácora, con `quien`) y `describirCambio` (bitácora legible), `entregaEnCurso`, `entregaActual`, **`resumen`** (totales por pan, entrega y trabajador), `horaChile`, `sumarDias` |
 | `APP\js\core\ventas.js` | Ventas, lógica pura: **`lineas`** (un pan en una entrega, con el precio vigente ese día), `totales`, `porEntrega`, `porDia`, `porPan`, `faltanPrecios`, meses (`rangoMes`, `sumarMeses`, `mesTexto`), `validarPeriodo`, `filtrar` y `ordenRegistro` (registro general) |
-| `APP\js\core\excel.js` · `xlsx.js` | Excel de ventas: las seis hojas (`libro`) · escritor .xlsx propio sin librerías (`crear`, ZIP sin comprimir, estilos, fórmulas) |
+| `APP\js\core\excel.js` · `xlsx.js` | Excel de ventas: las seis hojas (`libro`), y con `costos` (Fase 9) columnas de costo y margen y la hoja «Resultado» · escritor .xlsx propio sin librerías (`crear`, ZIP sin comprimir, estilos —con `pct`—, fórmulas) |
 | `APP\js\core\xlsx-leer.js` · `cierres.js` | Lector .xlsx propio (ZIP comprimido con `DecompressionStream`, textos compartidos, fechas, límites) · cierres, lógica pura: `interpretar` (formatos de Excel), `clave`/`emparejar`/`preparar` (nombres con el catálogo, cuadre con el total del Excel), `documento`, `desdeApp` («Cerrar mes»), `cerradoEl`, `estadoMes`, `plantilla` |
+| `APP\js\core\costos.js` | Costos y margen (Fase 9), lógica pura: insumos (`validarInsumo`), precios de insumos con vigencia (`precioVigente`, `porUnidad`, `validarPrecio`), `cantidad` («250 g»), recetas con vigencia (`recetaVigente`, `validarReceta`, `costoReceta`, `costoUnitario`), `conCostos` y `totalesCosto` (líneas de venta), `resumenMes` (venta, ingredientes, margen por pan, gastos y resultado; Excel estimado), gastos (`filasGastos`, `validarGastos`), simulador (`simular`, `precioPara`), `INICIO` |
 | `APP\js\core\indicadores.js` | Indicadores, proyección y metas, lógica pura: `resumenMes` (cierre o pesajes; por pan, por día, semana, trabajador, promedio, ritmo), `comparar`, `variacion`, `pctTexto`, `leerProyeccion`, `validarPct`, `proyectarMes`, `objetivo`, `avance`, `metasDesde`, `tablaAnio`, `documentoProyeccion`, `validarMeta` |
 | `APP\js\core\respaldo.js` | Respaldo: qué se lee por perfil y año (`reunir`, `anios`, `POR_FECHA`), archivo (`armar`, con `anio`), nombre, marca (`marcaNueva`) y franja semanal (`toca`, `textoMarca`) |
 | `APP\js\core\catalogo.js` | Catálogo, lógica pura: `numero`, `pesos`, `montos` (con `redondearPesos`), `ivaDe`, validaciones, orden (`mover`), **`precioVigente`**, `historial`, `idPrecio`, `clientePrincipal`, `nuevoId` |
@@ -217,6 +241,7 @@ Versión de la app: **0.8.0** (caché 2026.11.19.1) · 24 pruebas, todas bien (1
 | `APP\js\pantallas\datos.js` | **Datos**: exportar a Excel (un mes u otras fechas) y respaldo; `exportar` lo usa también Entregas |
 | `APP\js\pantallas\cierres.js` · `cierres-importar.js` | **Cierres mensuales**: el año, detalle por pan, reabrir (dueños), `cerrarMes` (lo usa Entregas) · importar: archivos, revisión (mes, emparejar panes, ✓ con el total del Excel) y guardar |
 | `APP\js\pantallas\indicadores.js` · `proyeccion.js` · `meses-datos.js` | **Números** (Indicadores): el mes con los nueve indicadores · «Año y metas»: gráfico y lista del año contra el anterior, proyección (hoja con factores y vista previa), fijar metas, meta de un mes · datos de cada mes (cierre, en vivo o lectura única guardada 10 minutos) |
+| `APP\js\pantallas\costos.js` · `costos-mes.js` · `costos-receta.js` | **Costos y margen** (Fase 9): Insumos (lista, ficha, precio con vigencia) · El mes (venta, ingredientes, margen por pan, gastos con «Copiar del mes anterior», resultado, Excel con costos) · receta por tanda (ver, cambiar, versiones) y simulador de precio; `resumenFicha` (bloque de la ficha del pan) |
 | `APP\js\pantallas\avisos.js` | Franjas: accesos por revisar, vendido sin precio, respaldo semanal («Más tarde») |
 | `APP\js\pantallas\pesaje.js` | **Pesaje** (tablet, letra grande): quién pesa, entrega en curso con «Cerrar entrega» / «Volver a abrir», panes, teclado propio y físico, nota, «Pesado hoy» con «Por enviar» |
 | `APP\js\pantallas\pesaje-hoja.js` | Hojas comunes de un canasto (del día o del período): ficha, corregir, anular, reactivar (con constancia en `cambios`); nota del próximo canasto; `filaCanasto` («anotado el …»), `anotadoDespues`, `rechazo` |
@@ -230,21 +255,22 @@ Versión de la app: **0.8.0** (caché 2026.11.19.1) · 24 pruebas, todas bien (1
 | `tests\perfil-unit.js` · `reglas-unit.js` · `catalogo-unit.js` · `pesaje-unit.js` | Sin navegador: perfiles y pantallas de acceso · reglas contra la copia a mano · catálogo y vigencia de precios · teclado, cantidades, totales, montos y bitácora del pesaje |
 | `tests\ventas-unit.js` · `xlsx-unit.js` · `leer-xlsx.js` | Sin navegador: líneas de venta, redondeo, meses, filtros, **Excel que cuadra con las entregas** (también un mes al azar) y respaldo · escritor .xlsx (ZIP, CRC, XML, fechas, fórmulas) · ayuda para abrir los .xlsx en las pruebas |
 | `tests\cierres-unit.js` · `cierres-e2e.js` · `fixtures\` | Sin navegador: lector, formatos, emparejar, documento con la copia de las reglas, «Listo cuando» con 10 meses · con navegador: importar, cerrar, reabrir, externo, tablet · Excel de ejemplo (LibreOffice y openpyxl) |
+| `tests\costos-unit.js` · `costos-e2e.js` | Sin navegador: las cuatro recetas de la panadería contra el cálculo a mano, vigencia, cantidades, margen, meses (Excel estimado), gastos, simulador y Excel con «Resultado» · con navegador: Costos de punta a punta (insumos, receta, simulador, El mes, gastos, Excel, externo y tablet) |
 | `tests\indicadores-unit.js` · `indicadores-e2e.js` | Sin navegador: indicadores = Entregas = cierres (también 300 meses al azar), ritmo, comparaciones, proyección, metas, año y documento con la copia de las reglas · con navegador: Números de punta a punta (mes, cerrado, año, proyección, metas, externo, tablet) |
 | `tests\ventas-e2e.js` | Con navegador: Entregas, sin precio con franja, anotar en fecha pasada, registro con filtros y bitácora, corrección con nombre, Excel = Entregas, respaldo y su franja, sin conexión, externo y tablet |
 | `tests\reglas-casos.js` · `rules-emulator.js` | Casos de reglas compartidos · prueba contra las reglas reales con el emulador (CI o `npm run reglas`) |
-| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 64 vistas en 320, 360 (claro y oscuro) y 390 px |
+| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 80 vistas en 320, 360 (claro y oscuro) y 390 px |
 | `tests\privacidad-e2e.js` · `rendimiento.js` | Con navegador: aviso de privacidad (ingreso, espera, Más, cada perfil), Ayuda por perfil, títulos y foco, App Check (aviso de reCAPTCHA, insignia oculta, comprobante y su falla) y «Qué se bloqueó» · tamaño de la descarga, cálculos de un año y dibujo de cada pantalla con datos reales |
 | `tests\fake-firebase\` | Dobles de prueba de Firebase, Google, Firestore (`window.__fakeDb`; con `setDoc`, `updateDoc`, `deleteDoc`, lotes, consultas `where` de igualdad y de rango, lecturas del servidor, escrituras pendientes sin conexión y conteo de lecturas), App Check (con `getToken`; falla con `localStorage['fake.appCheckFalla']`) y la copia a mano de las reglas (`reglas.mjs`) |
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
 
 ```
-Proyecto App Panadería, Fase 9 (costos y margen por pan). Lee D:\APP Panaderia\ESTADO.md y de
-PLAN.md solo las secciones 3, 7, 9, 12 y "Fase 9". De APP lee: js/app.js, js/core/catalogo.js,
-js/core/ventas.js, js/core/indicadores.js, js/pantallas/catalogo.js, js/pantallas/catalogo-producto.js,
-js/pantallas/indicadores.js, firestore.rules, tests/reglas-casos.js y tests/a11y.js.
-Resultado del paso 23 de GUIA-FIREBASE.md: [pegar la tabla C de 5 casillas, la tabla B de consolas
-y el Diagnóstico de la tablet].
-Planifica la Fase 9 con preguntas primero (qué costos, por kilo o por tanda, cómo se cargan).
+Proyecto App Panadería, Fase 10 (plan de producción diario). Lee D:\APP Panaderia\ESTADO.md y de
+PLAN.md solo las secciones 3, 7, 9, 12 y "Fase 10". De APP lee: js/app.js, js/core/catalogo.js,
+js/core/ventas.js, js/core/costos.js, js/core/indicadores.js, js/pantallas/pesaje.js, js/pantallas/inicio.js,
+firestore.rules, tests/reglas-casos.js y tests/a11y.js.
+Resultado del paso 24 de GUIA-FIREBASE.md: [pegar la tabla de 6 casillas y si «Reglas de Firestore
+(emulador)» quedó en verde].
+Planifica la Fase 10 con preguntas primero (qué se planifica, en kilos, tandas o canastos, cómo se compara con lo pesado).
 ```

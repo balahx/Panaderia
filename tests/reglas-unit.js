@@ -27,7 +27,7 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
     ok(res === c.ok, c.m + (res === c.ok ? '' : ' · ' + (res ? 'se permitió' : 'se rechazó')));
   }
 
-  console.log('13. El día según la hora del servidor');
+  console.log('14. El día según la hora del servidor');
   const t = Date.UTC(2026, 10, 15, 2, 30);   // 15-nov 02:30 UTC = 14-nov 23:30 en Chile (UTC-3)
   ok(R.esHoy('2026-11-14', t) && !R.esHoy('2026-11-15', t) && !R.esHoy('2026-11-13', t), 'a las 23:30 de Chile el día sigue siendo el 14');
   const t2 = Date.UTC(2026, 6, 15, 3, 30);   // en invierno (UTC-4): 14-jul 23:30
@@ -36,17 +36,17 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
   const t3 = Date.UTC(2026, 10, 15, 3, 10);   // 15-nov 00:10 en Chile: lo pesado a las 23:50 del 14 llega a esta hora
   ok(R.esAyer('2026-11-14', t3) || R.esHoy('2026-11-14', t3), 'un canasto del 14 que llega pasada la medianoche todavía se acepta');
 
-  console.log('14. firestore.rules');
+  console.log('15. firestore.rules');
   const rules = fs.readFileSync(path.join(__dirname, '..', 'firestore.rules'), 'utf8').replace(/\/\/.*$/gm, '');
-  const cols = [...new Set((rules.match(/match \/([a-z]+)\//g) || []).map(x => x.slice(7, -1)))].filter(x => x !== 'databases').sort();
-  const esperadas = ['cambios', 'cierres', 'clientes', 'config', 'dias', 'miembros', 'pesajes', 'precios', 'productos', 'proyeccion', 'solicitudes', 'trabajadores'];
+  const cols = [...new Set((rules.match(/match \/([A-Za-z]+)\//g) || []).map(x => x.slice(7, -1)))].filter(x => x !== 'databases').sort();
+  const esperadas = ['cambios', 'cierres', 'clientes', 'config', 'dias', 'gastos', 'insumos', 'miembros', 'pesajes', 'precios', 'preciosInsumo', 'productos', 'proyeccion', 'recetas', 'solicitudes', 'trabajadores'];
   ok(JSON.stringify(cols) === JSON.stringify(esperadas), 'las reglas cubren las colecciones del plan: ' + cols.join(', '));
   ok(!/\{document=\*\*\}/.test(rules) && !/allow[^;]*:\s*if true/.test(rules), 'sin comodines ni «if true»: lo no nombrado queda cerrado');
   const precios = (/match \/precios\/\{id\} \{([\s\S]*?)\n    \}/.exec(rules) || [])[1] || '';
   ok(/allow read: if esGestion\(\);/.test(precios) && !/esPesaje|conAcceso|sesion\(\)/.test(precios), 'los precios solo los lee gestión (dueños y externo)');
-  for (const c of ['clientes', 'cierres', 'proyeccion', 'cambios']) {
+  for (const c of ['clientes', 'cierres', 'proyeccion', 'cambios', 'insumos', 'preciosInsumo', 'recetas', 'gastos']) {
     const b = (new RegExp('match \\/' + c + '\\/\\{[a-z]+\\} \\{([\\s\\S]*?)\\n    \\}').exec(rules) || [])[1] || '';
-    ok(/allow read: if esGestion\(\);/.test(b), c + ': lectura solo de gestión');
+    ok(/allow read(, delete)?: if esGestion\(\);/.test(b) && (c === 'cambios' || !/esPesaje|conAcceso|sesion\(\)/.test(b)), c + ': lectura solo de gestión');
   }
   ok((rules.match(/\{/g) || []).length === (rules.match(/\}/g) || []).length && (rules.match(/\(/g) || []).length === (rules.match(/\)/g) || []).length, 'llaves y paréntesis equilibrados');
   const sinPunto = rules.split('\n').map((l, i) => [i + 1, l.trim()]).filter(x => /^allow /.test(x[1])).filter(x => { let j = x[0] - 1, L = rules.split('\n'); while (j < L.length && !/;\s*$/.test(L[j])) { if (/^\s*(allow|match|function)\b/.test(L[j + 1] || '')) return true; j++; } return false; });

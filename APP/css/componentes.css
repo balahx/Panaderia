@@ -305,3 +305,15 @@ dialog.cfm { margin: auto; max-width: min(380px, calc(100vw - 32px)); border-rad
    aviso (pantallas/privacidad.js: en el ingreso y en el aviso de privacidad). */
 .grecaptcha-badge { visibility: hidden; }
 h1[tabindex="-1"]:focus { outline: none; }
+/* Costos y margen (Fase 9): costo en la ficha del pan, totales destacados, gastos del mes y filas de la receta */
+.costo-hoy { background: var(--surface2); border-left: 3px solid var(--gold); border-radius: 10px; padding: 10px 12px; margin: 0 0 12px; }
+.costo-hoy b { display: block; font: 700 1.6em/1.05 var(--font-display); }
+.costo-hoy span { display: block; }
+.costo-hoy small { display: block; color: var(--muted); font-size: .87em; margin-top: 2px; }
+.kv.fuerte span { color: var(--ink); font-weight: 600; }
+.kv.fuerte b { font-weight: 700; }
+.gasto-f { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 8px; margin: 0 0 8px; }
+.gasto-f .txt { margin: 0; }
+.rec-f .lab .muted { font-weight: 400; }
+.check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 8px 0; cursor: pointer; }
+.check input { flex: none; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--gold); }

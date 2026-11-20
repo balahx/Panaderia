@@ -48,6 +48,37 @@ function proyeccionValida(id, d, q) {
     && d.por === q.uid && texto(d.quien, 1, 60) && esTS(d.en);
 }
 
+/* Fase 9: costos. insumos/{id} · preciosInsumo/{insumo_fecha} · recetas/{producto_fecha} · gastos/{AAAA-MM} */
+const mesValido = m => /^20[0-9]{2}-(0[1-9]|1[0-2])$/.test(m);
+function costos(col, id, op, d, prev, q, gestion) {
+  const leerOp = op === 'get' || op === 'list', escribir = op === 'create' || op === 'update';
+  if (col === 'insumos') {
+    if (leerOp) return gestion;
+    const K = ['nombre', 'unidad', 'activo', 'en'];
+    return escribir && gestion && solo(d, K) && todas(d, K) && texto(d.nombre, 1, 60) && ['kg', 'l', 'un'].includes(d.unidad) && typeof d.activo === 'boolean' && esTS(d.en)
+      && (!prev || d.unidad === prev.unidad);
+  }
+  if (col === 'preciosInsumo') {
+    if (leerOp || op === 'delete') return gestion;
+    const K = ['insumoId', 'formato', 'neto', 'desde', 'en'];
+    return gestion && solo(d, K) && todas(d, K) && texto(d.insumoId, 1, 60) && num(d.formato) && d.formato > 0 && d.formato <= 100000
+      && num(d.neto) && d.neto >= 0 && d.neto <= 100000000 && fechaValida(d.desde) && id === d.insumoId + '_' + d.desde && esTS(d.en);
+  }
+  if (col === 'recetas') {
+    if (leerOp || op === 'delete') return gestion;
+    return gestion && solo(d, ['productoId', 'desde', 'items', 'rendimiento', 'nota', 'por', 'en']) && todas(d, ['productoId', 'desde', 'items', 'rendimiento', 'por', 'en'])
+      && texto(d.productoId, 1, 60) && fechaValida(d.desde) && id === d.productoId + '_' + d.desde && Array.isArray(d.items) && d.items.length >= 1 && d.items.length <= 30
+      && num(d.rendimiento) && d.rendimiento > 0 && d.rendimiento <= 100000 && (!('nota' in d) || texto(d.nota, 1, 200)) && d.por === q.uid && esTS(d.en);
+  }
+  if (col === 'gastos') {
+    if (leerOp) return gestion;
+    const K = ['mes', 'items', 'por', 'quien', 'en'];
+    return escribir && gestion && mesValido(id) && solo(d, K) && todas(d, K) && d.mes === id && Array.isArray(d.items) && d.items.length <= 30
+      && d.por === q.uid && texto(d.quien, 1, 60) && esTS(d.en);
+  }
+  return null;
+}
+
 export function permitido(quien, op, ruta, datos, previo, leer, ahora) {
   try { return !!evaluar(quien, op, ruta, datos || {}, previo || null, leer, ahora); }
   catch (e) { return false; }   // como en las reglas reales: un error al evaluar es un «no»
@@ -147,6 +178,8 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
     if (leerOp) return gestion;
     return escribir && gestion && proyeccionValida(id, d, q);
   }
+  const co = costos(col, id, op, d, prev, q, gestion);
+  if (co !== null) return co;
   if (col === 'cambios') {
     if (leerOp) return gestion;
     const K = ['tipo', 'pesajeId', 'fecha', 'antes', 'despues', 'por', 'en'];

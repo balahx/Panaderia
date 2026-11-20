@@ -24,6 +24,10 @@ const reabrir = por => ({ cerrado: false, reabiertoPor: por, reabiertoQuien: 'No
 const metas = (...v) => Array.from({ length: 12 }, (x, i) => (i < v.length ? v[i] : null));
 const proy = (anio, por, mas) => Object.assign({ anio, factor: 1.05, factorPrecio: 1.03, panes: { p1: 1.1, u5: 0.95 }, metas: metas(2500000, 2400000, null, 2600000), por, quien: 'Nombre', en: '@TS' }, mas || {});
 const mesSiguiente = mes => { const [a, m] = mes.split('-').map(Number); return m === 12 ? (a + 1) + '-01' : a + '-' + String(m + 1).padStart(2, '0'); };
+const insumo = (mas) => Object.assign({ nombre: 'Levadura', unidad: 'kg', activo: true, en: '@TS' }, mas || {});
+const precioIns = (insumoId, desde, mas) => Object.assign({ insumoId, formato: 0.5, neto: 2250, desde, en: '@TS' }, mas || {});
+const receta = (productoId, desde, por, mas) => Object.assign({ productoId, desde, items: [{ insumoId: 'i1', cantidad: 12.5 }, { insumoId: 'i2', cantidad: 0.13 }], rendimiento: 16.5, nota: 'Levadura: invierno 130 g', por, en: '@TS' }, mas || {});
+const gastos = (mes, por, mas) => Object.assign({ mes, items: [{ nombre: 'Gas', monto: 180000 }, { nombre: 'Sueldos', monto: 900000 }], por, quien: 'Nombre', en: '@TS' }, mas || {});
 const cambio = (tipo, fecha, por, mas) => Object.assign({ tipo, pesajeId: 'hoy1', fecha, antes: { cantidad: 18.5 }, despues: { cantidad: 19 }, por, en: '@TS' }, mas || {});
 
 function semilla(HOY, ANTES, AYER) {
@@ -46,7 +50,11 @@ function semilla(HOY, ANTES, AYER) {
     'pesajes/oct1': pesaje('2026-10-15', 'rosa'),
     'pesajes/sep1': pesaje('2026-09-15', 'rosa'),
     'proyeccion/2027': { factor: 1.05, en: '@TS' },
-    'cambios/x1': { que: 'corrección', por: 'rosa', en: '@TS' }
+    'cambios/x1': { que: 'corrección', por: 'rosa', en: '@TS' },
+    'insumos/i1': { nombre: 'Harina', unidad: 'kg', activo: true, en: '@TS' },                                    // Fase 9: costos
+    'preciosInsumo/i1_2026-01-01': { insumoId: 'i1', formato: 25, neto: 18500, desde: '2026-01-01', en: '@TS' },
+    'recetas/p1_2026-01-01': receta('p1', '2026-01-01', 'rosa'),
+    'gastos/2026-10': gastos('2026-10', 'rosa')
   };
 }
 
@@ -328,6 +336,71 @@ function casos(HOY, ANTES, AYER) {
   no('rosa', 'set', 'proyeccion/2026', 'con su nombre', proy(2026, 'rosa', { quien: '' }));
   no('rosa', 'set', 'proyeccion/2026', 'con la hora del servidor', proy(2026, 'rosa', { en: 1 }));
   no('rosa', 'delete', 'proyeccion/2026', 'una proyección no se borra');
+  t('13. Costos: insumos, precios de insumos, recetas y gastos del mes (Fase 9)');
+  no('tablet', 'list', 'insumos', 'la tablet no lee los insumos');
+  no('tablet', 'get', 'preciosInsumo/i1_2026-01-01', 'ni el precio de un insumo');
+  no('tablet', 'list', 'preciosInsumo', 'ni su lista');
+  no('tablet', 'list', 'recetas', 'ni las recetas');
+  no('tablet', 'get', 'recetas/p1_2026-01-01', 'ni una receta');
+  no('tablet', 'get', 'gastos/2026-10', 'ni los gastos del mes');
+  no('tablet', 'list', 'gastos', 'ni su lista');
+  no('carla', 'list', 'insumos', 'una cuenta sin acceso tampoco');
+  no('ines', 'list', 'recetas', 'ni quien perdió el acceso');
+  si('rosa', 'list', 'insumos', 'un dueño lee los insumos');
+  si('felipe', 'list', 'preciosInsumo', 'el externo lee los precios de insumos');
+  si('felipe', 'list', 'recetas', 'y las recetas');
+  si('pedro', 'list', 'gastos', 'y los dueños, los gastos');
+  si('rosa', 'set', 'insumos/i2', 'un dueño agrega un insumo', insumo());
+  si('felipe', 'set', 'insumos/i3', 'el externo también (en litros)', insumo({ nombre: 'Agua', unidad: 'l' }));
+  si('felipe', 'set', 'insumos/i4', 'o por unidad', insumo({ nombre: 'Huevo', unidad: 'un' }));
+  si('rosa', 'update', 'insumos/i2', 'y lo desactiva', { activo: false, en: '@TS' });
+  no('rosa', 'update', 'insumos/i1', 'la unidad de un insumo no cambia', { unidad: 'l', en: '@TS' });
+  no('rosa', 'set', 'insumos/i5', 'unidad conocida (kg, l o un)', insumo({ unidad: 'saco' }));
+  no('rosa', 'set', 'insumos/i5', 'con nombre', insumo({ nombre: '' }));
+  no('rosa', 'set', 'insumos/i5', 'sin campos de más', insumo({ precio: 100 }));
+  no('rosa', 'set', 'insumos/i5', 'con la hora del servidor', insumo({ en: 1 }));
+  no('rosa', 'delete', 'insumos/i1', 'un insumo no se borra (se desactiva)');
+  no('tablet', 'set', 'insumos/i5', 'la tablet no escribe insumos', insumo());
+  si('rosa', 'set', 'preciosInsumo/i2_2026-01-01', 'un dueño anota el precio de factura de un insumo', precioIns('i2', '2026-01-01'));
+  si('felipe', 'set', 'preciosInsumo/i1_2026-12-01', 'el externo anota un alza desde una fecha', precioIns('i1', '2026-12-01', { formato: 25, neto: 20000 }));
+  si('felipe', 'set', 'preciosInsumo/i3_2026-01-01', 'un insumo puede costar $0 (el agua)', precioIns('i3', '2026-01-01', { formato: 1, neto: 0 }));
+  no('rosa', 'set', 'preciosInsumo/i1_2026-12-02', 'el identificador es insumo_fecha', precioIns('i1', '2026-12-01'));
+  no('rosa', 'set', 'preciosInsumo/i1_2026-12-05', 'el formato es mayor que 0', precioIns('i1', '2026-12-05', { formato: 0 }));
+  no('rosa', 'set', 'preciosInsumo/i1_2026-12-05', 'el precio no es negativo', precioIns('i1', '2026-12-05', { neto: -1 }));
+  no('rosa', 'set', 'preciosInsumo/i1_2026-12-05', 'el precio es un número', precioIns('i1', '2026-12-05', { neto: '18.500' }));
+  no('rosa', 'set', 'preciosInsumo/i1_2026-12-5', 'la fecha es AAAA-MM-DD', precioIns('i1', '2026-12-5'));
+  no('rosa', 'set', 'preciosInsumo/i1_2026-12-05', 'sin campos de más', precioIns('i1', '2026-12-05', { iva: 19 }));
+  no('tablet', 'set', 'preciosInsumo/i1_2026-12-05', 'la tablet no anota precios de insumos', precioIns('i1', '2026-12-05'));
+  si('felipe', 'delete', 'preciosInsumo/i1_2026-12-01', 'gestión quita un precio del historial');
+  no('tablet', 'delete', 'preciosInsumo/i1_2026-01-01', 'la tablet no');
+  si('rosa', 'set', 'recetas/u5_2026-01-01', 'un dueño anota la receta de un pan (por tanda)', receta('u5', '2026-01-01', 'rosa', { rendimiento: 192 }));
+  si('felipe', 'set', 'recetas/p1_2027-01-01', 'el externo anota una receta nueva desde una fecha (sin nota)', (() => { const r = receta('p1', '2027-01-01', 'felipe'); delete r.nota; return r; })());
+  si('rosa', 'set', 'recetas/p1_2026-01-01', 'y se corrige la receta de esa fecha', receta('p1', '2026-01-01', 'rosa', { rendimiento: 17 }));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'el identificador es producto_fecha', receta('p1', '2026-01-01', 'rosa'));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'con al menos un ingrediente', receta('p1', '2026-02-01', 'rosa', { items: [] }));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'y hasta 30', receta('p1', '2026-02-01', 'rosa', { items: Array.from({ length: 31 }, (x, i) => ({ insumoId: 'i' + i, cantidad: 1 })) }));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'los ingredientes van en una lista', receta('p1', '2026-02-01', 'rosa', { items: { i1: 12 } }));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'lo que sale es mayor que 0', receta('p1', '2026-02-01', 'rosa', { rendimiento: 0 }));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'y es un número', receta('p1', '2026-02-01', 'rosa', { rendimiento: '16,5' }));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'la nota, si va, con texto', receta('p1', '2026-02-01', 'rosa', { nota: '' }));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'a nombre de quien la guarda', receta('p1', '2026-02-01', 'felipe'));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'con la hora del servidor', receta('p1', '2026-02-01', 'rosa', { en: 1 }));
+  no('rosa', 'set', 'recetas/p1_2026-02-01', 'sin campos de más', receta('p1', '2026-02-01', 'rosa', { costo: 600 }));
+  no('tablet', 'set', 'recetas/p1_2026-02-01', 'la tablet no escribe recetas', receta('p1', '2026-02-01', 'tablet'));
+  si('felipe', 'delete', 'recetas/p1_2027-01-01', 'gestión quita una versión de la receta');
+  si('rosa', 'set', 'gastos/2026-11', 'un dueño anota los gastos del mes', gastos('2026-11', 'rosa'));
+  si('felipe', 'set', 'gastos/2026-10', 'el externo los corrige, también en un mes cerrado', gastos('2026-10', 'felipe', { items: [{ nombre: 'Gas', monto: 190000 }] }));
+  si('felipe', 'set', 'gastos/2026-12', 'un mes puede quedar sin líneas', gastos('2026-12', 'felipe', { items: [] }));
+  no('rosa', 'set', 'gastos/2026-11', 'el mes del documento es el de su nombre', gastos('2026-10', 'rosa'));
+  no('rosa', 'set', 'gastos/noviembre', 'el nombre es un mes (AAAA-MM)', gastos('noviembre', 'rosa'));
+  no('rosa', 'set', 'gastos/2026-11', 'hasta 30 líneas', gastos('2026-11', 'rosa', { items: Array.from({ length: 31 }, (x, i) => ({ nombre: 'G' + i, monto: 1 })) }));
+  no('rosa', 'set', 'gastos/2026-11', 'las líneas van en una lista', gastos('2026-11', 'rosa', { items: { Gas: 1 } }));
+  no('rosa', 'set', 'gastos/2026-11', 'a nombre de quien los guarda', gastos('2026-11', 'pedro'));
+  no('rosa', 'set', 'gastos/2026-11', 'con su nombre', gastos('2026-11', 'rosa', { quien: '' }));
+  no('rosa', 'set', 'gastos/2026-11', 'con la hora del servidor', gastos('2026-11', 'rosa', { en: 1 }));
+  no('rosa', 'set', 'gastos/2026-11', 'sin campos de más', gastos('2026-11', 'rosa', { total: 1080000 }));
+  no('rosa', 'delete', 'gastos/2026-11', 'los gastos de un mes no se borran');
+  no('tablet', 'set', 'gastos/2026-11', 'la tablet no anota gastos', gastos('2026-11', 'tablet'));
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

@@ -38,11 +38,16 @@ El pan queda elegido: el siguiente canasto es solo el número y **Guardar**. Si 
 | Cerrar el mes (desde el día 1 del mes siguiente) | **Entregas** → **Cerrar** (nombre del mes) → confirmar |
 | Ver cómo va el mes, el año y las metas | **Números** → **El mes** / **Año y metas** |
 | Cambiar un precio | **Más → Catálogo** → el pan → **Cambiar precio** (neto, sin IVA, y desde qué día) |
+| Anotar los insumos y su precio de factura (neto) | **Más → Costos y margen → Insumos** → **Agregar insumo** |
+| Anotar la receta de un pan (una tanda y lo que sale) | **Más → Catálogo** → el pan → **Anotar receta** |
+| Ver el costo y el margen de un pan, o simular otro precio | **Más → Catálogo** → el pan → **Simular precio** |
+| Anotar los gastos del mes y ver el resultado | **Más → Costos y margen → El mes** → **Anotar gastos** |
 | Descargar el respaldo semanal | La franja **Descargar**, o **Más → Exportar a Excel y respaldo** |
 | Dar o quitar un acceso (solo dueños) | **Más → Accesos** |
 
 - Conviene **cerrar cada mes**: los números quedan fijos y la app trabaja más liviana.
-- El **respaldo** tiene precios y ventas: guárdalo en un lugar privado, no lo compartas.
+- El **respaldo** tiene precios, ventas y costos: guárdalo en un lugar privado, no lo compartas.
+- Si sube un insumo o cambia una receta (por ejemplo, la levadura de verano), anótalo **con la fecha desde la que rige**: los meses anteriores no cambian. El Excel de **Entregas** sale sin costos (es el de la contadora).
 
 ## 4. Si algo no funciona
 

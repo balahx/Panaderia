@@ -27,6 +27,11 @@ const GESTION = [
     '<p><b>Año y metas</b>: el año contra el anterior. <b>Ajustar proyección</b> calcula lo esperado; <b>Usar la proyección como metas</b> las fija. Tocando un mes se escribe su meta a mano.</p>'),
   tema('precios', 'Cambiar un precio', pasos(['<b>Más → Catálogo</b>, toca el pan.', '<b>Cambiar precio</b>: escribe el precio <b>neto</b> (sin IVA) y desde qué día rige.', '<b>Guardar precio</b>.']) +
     '<p>Los días anteriores mantienen el precio que tenían.</p>'),
+  tema('costos', 'Costos y margen de cada pan', pasos(['<b>Más → Costos y margen → Insumos</b>: agrega harina, margarina, sal, levadura… con el precio <b>neto de factura</b> (cuánto trae el saco o la caja y cuánto cuesta).',
+    '<b>Más → Catálogo</b>, toca un pan y luego <b>Anotar receta</b>: lo que lleva <b>una tanda</b> («250 g» también vale) y cuántos kilos (o unidades) salen.',
+    'En la ficha del pan se ve el costo por kilo y el margen; <b>Simular precio</b> calcula el margen con otro precio, o el precio para ganar un %.']) +
+    '<p><b>Costos y margen → El mes</b>: venta, ingredientes y margen de cada pan; anota ahí los <b>gastos del mes</b> (gas, luz, sueldos, arriendo) para ver el resultado. Si sube un insumo o cambia la receta (por ejemplo, la levadura de verano), anótalo con la fecha desde la que rige: los meses anteriores no cambian.</p>' +
+    '<p>El Excel de <b>Entregas</b> sale sin costos (para la contadora); el de <b>El mes</b>, con costos.</p>'),
   tema('respaldo', 'Respaldo semanal', '<p>Cuando la app lo pida (una vez por semana), toca <b>Descargar</b> en la franja o ve a <b>Más → Exportar a Excel y respaldo</b>. Guarda el archivo en un lugar privado: tiene precios y ventas.</p>')
 ];
 const ACCESOS = tema('accesos', 'Dar acceso a alguien (solo dueños)', pasos(['La persona abre la app, entra con su cuenta de Google y toca <b>Pedir acceso</b>.',

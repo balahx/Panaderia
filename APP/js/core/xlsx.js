@@ -8,15 +8,15 @@
      hoja  = { nombre, columnas: [anchos], filas: [[celda, …], …], congelar: filas fijas arriba, filtro: true (filtro en la fila 1) }
      celda = null | 'texto' | número | { v, s, f }
              v: valor (una fecha 'AAAA-MM-DD' con s: 'fecha' se guarda como fecha de Excel) · f: fórmula sin «=» (con v como resultado)
-             s: estilo: 'cab' 'titulo' 'b' 'fecha' 'entero' 'kilos' 'pesos' 'precio' 'b-entero' 'b-kilos' 'b-pesos'
+             s: estilo: 'cab' 'titulo' 'b' 'fecha' 'entero' 'kilos' 'pesos' 'precio' 'b-entero' 'b-kilos' 'b-pesos' 'pct' 'b-pct' (fracción: 0,3 = 30 %)
    El texto siempre va como texto (nunca como fórmula): un nombre que empiece con «=» no se ejecuta. */
 const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', NSR = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const PKG = 'http://schemas.openxmlformats.org/package/2006/', XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 export const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 /* Estilos: índice en cellXfs. Formatos: 3 = #,##0 · 4 = #,##0.00 (de Excel) · 164 fecha · 165 pesos · 166 precio con decimales */
-export const ESTILOS = { '': 0, cab: 1, fecha: 2, entero: 3, kilos: 4, pesos: 5, precio: 6, b: 7, 'b-entero': 8, 'b-kilos': 9, 'b-pesos': 10, titulo: 11 };
-const XF = [[0, 0, 0], [0, 1, 2], [164, 0, 0], [3, 0, 0], [4, 0, 0], [165, 0, 0], [166, 0, 0], [0, 1, 0], [3, 1, 0], [4, 1, 0], [165, 1, 0], [0, 2, 0]];   // [formato, letra, relleno]
+export const ESTILOS = { '': 0, cab: 1, fecha: 2, entero: 3, kilos: 4, pesos: 5, precio: 6, b: 7, 'b-entero': 8, 'b-kilos': 9, 'b-pesos': 10, titulo: 11, pct: 12, 'b-pct': 13 };
+const XF = [[0, 0, 0], [0, 1, 2], [164, 0, 0], [3, 0, 0], [4, 0, 0], [165, 0, 0], [166, 0, 0], [0, 1, 0], [3, 1, 0], [4, 1, 0], [165, 1, 0], [0, 2, 0], [10, 0, 0], [10, 1, 0]];   // [formato, letra, relleno] · 10 = 0.00 % (Fase 9: margen)
 function estilos() {
   const xf = XF.map(([n, f, r]) => '<xf numFmtId="' + n + '" fontId="' + f + '" fillId="' + r + '" borderId="0" xfId="0"' + (n ? ' applyNumberFormat="1"' : '') + (f ? ' applyFont="1"' : '') + (r ? ' applyFill="1"' : '') + '/>').join('');
   return XML + '<styleSheet xmlns="' + NS + '">' +
