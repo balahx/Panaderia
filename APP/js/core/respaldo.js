@@ -3,16 +3,16 @@
    por eso es un botón, y la app avisa con una franja si pasó una semana sin respaldo (config/respaldo guarda el último).
    Parte pura (sin pantalla): se prueba con Node (tests/ventas-unit.js). Leer de la nube lo hace pantallas/datos.js. */
 export const FORMATO = 'panaderia-respaldo', VERSION = 1, AVISO_DIAS = 7;
-/* Respaldo por año (Fase 8, rendimiento): los canastos y la bitácora crecen unos 15 mil documentos al año, y cada uno es una lectura de la
+/* Respaldo por año (Fase 8, rendimiento): los canastos, la bitácora y los planes del día (Fase 10) crecen unos 15 mil documentos al año, y cada uno es una lectura de la
    cuota gratuita diaria (50 mil). Por eso, por omisión, se respaldan solo los del AÑO ACTUAL (los años anteriores ya quedaron en sus
    respaldos y no cambian); lo demás (catálogo, precios, cierres, metas, accesos) va siempre completo. «Todo» sigue disponible. */
-export const POR_FECHA = ['pesajes', 'cambios'], ANIO_INICIO = 2026;
+export const POR_FECHA = ['pesajes', 'cambios', 'planes'], ANIO_INICIO = 2026;   // planes: Fase 10 (uno por día, con su `fecha`)
 /* Años que se pueden elegir: del actual hacia atrás, hasta el primero de la app. */
 export const anios = hoy => { const a = Number(String(hoy).slice(0, 4)), l = []; for (let y = a; y >= ANIO_INICIO; y--) l.push(y); return l; };
 
 /* Qué se respalda. Los dueños además guardan los accesos (el externo no puede leerlos: las reglas se lo niegan). */
 export const DOCUMENTOS = ['config/negocio', 'config/respaldo'];
-export const COLECCIONES = ['productos', 'precios', 'trabajadores', 'clientes', 'pesajes', 'dias', 'cambios', 'cierres', 'proyeccion', 'insumos', 'preciosInsumo', 'recetas', 'gastos'];   // las 4 últimas: costos (Fase 9)
+export const COLECCIONES = ['productos', 'precios', 'trabajadores', 'clientes', 'pesajes', 'dias', 'cambios', 'cierres', 'proyeccion', 'insumos', 'preciosInsumo', 'recetas', 'gastos', 'planes'];   // insumos…gastos: costos (Fase 9) · planes: plan de producción (Fase 10)
 export const DE_DUENOS = ['miembros', 'solicitudes'];
 export const colecciones = perfil => COLECCIONES.concat(perfil === 'dueno' ? DE_DUENOS : []);
 

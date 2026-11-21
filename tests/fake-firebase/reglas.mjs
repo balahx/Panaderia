@@ -15,6 +15,7 @@ const todas = (o, ks) => ks.every(k => k in o);
 const dia = ms => new Date(ms).toISOString().slice(0, 10);
 export const esHoy = (fecha, ahora) => fecha === dia(ahora - 3 * 3600000) || fecha === dia(ahora - 4 * 3600000);
 export const esAyer = (fecha, ahora) => fecha === dia(ahora - 27 * 3600000) || fecha === dia(ahora - 28 * 3600000);
+export const esManana = (fecha, ahora) => fecha === dia(ahora + 21 * 3600000) || fecha === dia(ahora + 20 * 3600000);   // Fase 10
 const fechaValida = f => typeof f === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(f);
 const mapa = v => !!v && typeof v === 'object' && !Array.isArray(v) && !esTS(v);
 const entero = v => Number.isInteger(v);
@@ -177,6 +178,15 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
   if (col === 'proyeccion') {
     if (leerOp) return gestion;
     return escribir && gestion && proyeccionValida(id, d, q);
+  }
+  if (col === 'planes') {   // Fase 10: plan de producción del día
+    if (leerOp) return gestion || (pesaje && op === 'get' && esHoy(id, ahora));
+    const hoyOManana = esHoy(id, ahora) || esManana(id, ahora);
+    if (op === 'delete') return gestion && hoyOManana;
+    const K = ['fecha', 'items', 'nota', 'por', 'quien', 'en'];
+    return escribir && gestion && hoyOManana && fechaValida(id) && solo(d, K) && todas(d, ['fecha', 'items', 'por', 'quien', 'en']) && d.fecha === id
+      && Array.isArray(d.items) && d.items.length >= 1 && d.items.length <= 60 && (!('nota' in d) || texto(d.nota, 1, 200))
+      && d.por === q.uid && texto(d.quien, 1, 60) && esTS(d.en);
   }
   const co = costos(col, id, op, d, prev, q, gestion);
   if (co !== null) return co;

@@ -6,6 +6,8 @@
    y de uno por cerrar, y Hoy en un mes cerrado), Accesos y el Catálogo con sus hojas y formularios, y comprueba que no hay desborde lateral, que todo lo tocable
    mide al menos 44 px, que todo botón tiene nombre y todo campo su etiqueta, y que el texto tiene contraste suficiente.
    Fase 8: el aviso de privacidad (desde el ingreso y desde «Más»), la Ayuda (temas cerrados y abiertos) y una pasada a 320 px.
+   Fase 10: Hoy con el plan del día (bajo, cumplido y sobre el plan), la hoja del plan (con sugerencias y con error), el plan de mañana y
+   la pestaña Pesaje con el plan de hoy y «faltan …» en los botones.
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
 const { crear } = require('../tools/servidor.js'), { fakeGoogle } = require('./fake-firebase/google.js');
@@ -40,6 +42,8 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
 const HOY = dia(Date.now()), pes = (id, hora, n, prod, cant, unidad, mas) => ['pesajes/' + id, Object.assign({ fecha: HOY, hora, entregaN: n, productoId: prod, cantidad: cant, unidad, trabajadorId: 't1', anulado: false, creadoPor: 'u-1001', en: 1794600000000 + Number(hora.replace(':', '')) }, mas || {})];
 Object.assign(SEMILLA, Object.fromEntries([pes('h1', '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', '05:20', 1, 'p2', 1200, 'un', { nota: 'Canasto con una nota bastante larga para ver cómo se corta en la lista' }),
   pes('h3', '05:30', 1, 'p3', 123.45, 'kg'), pes('h4', '08:00', 2, 'p1', 20.25, 'kg'), pes('h5', '08:05', 2, 'p1', 99, 'kg', { anulado: true })]), { ['dias/' + HOY]: { entregaN: 2, por: 'u-1001', en: 1 },
+  ['planes/' + HOY]: { fecha: HOY, items: [{ productoId: 'p1', cantidad: 100, unidad: 'kg', tandas: 5.7 }, { productoId: 'p2', cantidad: 1150, unidad: 'un', tandas: 6 }, { productoId: 'p3', cantidad: 100, unidad: 'kg', tandas: null }],   // Fase 10: bajo, cumplido y sobre el plan
+    nota: 'Viernes: más hallulla y una nota bastante larga para ver cómo se corta', por: 'u-1001', quien: 'Rosa Dueña con un nombre largo', en: 1 },
   'cambios/k1': { tipo: 'corregir', pesajeId: 'h1', fecha: HOY, antes: { cantidad: 18, nota: 'Una nota anterior bastante larga para ver cómo se corta' }, despues: { cantidad: 18.5 }, por: 'u-3003', quien: 'Tablet Panadería con un nombre largo', en: 1794600000000 } });   // p3 (Hallulla) no tiene precio: sale la franja de «vendido sin precio»
 const CHECK = () => {
   const lum = c => { const a = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; };
@@ -95,7 +99,10 @@ const CHECK = () => {
     await look('ingreso');
     await hoja('ingreso: aviso de privacidad', '#lnkPrivacidad', '#privacidad'); await cerrar();
     await fakeGoogle(page, {}); await tocar('#btnGoogle'); await page.waitForSelector('#appRoot:not([hidden])'); await page.waitForSelector('#avisoAccesos');
-    await page.waitForSelector('#hoyTotales'); await look('hoy: con datos');
+    await page.waitForSelector('#hoyTotales'); await page.waitForSelector('#hoyPlan .plan-f.est-sobre'); await page.waitForSelector('#planManana'); await look('hoy: con datos y plan (bajo, cumplido y sobre el plan)');
+    await hoja('plan: hoja de hoy', '#planArmar', '#pl-p1'); await page.waitForFunction(() => !/Calculando/.test((document.querySelector('#plSug') || {}).textContent || '')); await look('plan: hoja con sugerencias');
+    await page.fill('#pl-p2', '12,5'); await tocar('#dlg [data-act="plan-guardar"]'); await page.waitForSelector('#dlg .form-error:not([hidden])'); await look('plan: con error'); await cerrar();
+    await hoja('plan: de mañana', '#planManana button', '#pl-p1'); await cerrar();
     await tocar('#hoyEntregas .entrega[data-n="1"] summary'); await look('hoy: canastos de una entrega');
     await hoja('canasto: ficha', '#hoyEntregas .entrega[data-n="1"] .pes-fila', '#canDetalle');
     await tocar('#dlg [data-act="can-corregir"]'); await page.waitForSelector('#cCant'); await page.fill('#cCant', 'x'); await tocar('#dlg [data-act="can-guardar"]'); await look('canasto: corregir con error'); await cerrar();
@@ -112,7 +119,7 @@ const CHECK = () => {
     await hoja('números: meta de un mes', '#anioMeses .anio-fila', '#pyMeta'); await cerrar();
     await tocar('[data-act="ind-vista"][data-v="mes"]'); await page.waitForSelector('#indMes');
     await tocar('#nav button[data-tab="pesaje"]'); await page.waitForSelector('#pesQuien'); await look('pesaje: quién pesa (letra grande)');
-    await tocar('#pesQuien .pes-op'); await page.waitForSelector('#pesPanes'); await look('pesaje: elegir pan');
+    await tocar('#pesQuien .pes-op'); await page.waitForSelector('#pesPanes'); await page.waitForSelector('#pesPlan'); await look('pesaje: elegir pan, con el plan de hoy');
     await tocar('#pesPanes .pes-op:nth-child(1)'); for (const k of ['2', '5', ',', '5']) await tocar('#pesTeclado [data-k="' + k + '"]'); await page.waitForSelector('#pesAviso'); await look('pesaje: teclado con aviso');
     await hoja('pesaje: nota', '#pesNota', '#pNota'); await cerrar();
     await tocar('#pesPanes .pes-op:nth-child(2)'); await look('pesaje: teclado por unidad');

@@ -134,6 +134,7 @@ D:\APP Panaderia\            (raíz del repositorio público «Panaderia»)
 | `preciosInsumo/{insumoId_desde}` | `insumoId`, `formato` (cantidad comprada en su unidad, p. ej. 25), `neto` (precio neto del formato), `desde` (Fase 9) | Dueños y externo | Dueños y externo; se puede quitar |
 | `recetas/{productoId_desde}` | `productoId`, `desde`, `items` ([{ insumoId, cantidad }], ≤ 30), `rendimiento` (kg o unidades, según el pan), `nota`, `por`, `en` (Fase 9) | Dueños y externo | Dueños y externo; se puede quitar una versión |
 | `gastos/{aaaa-mm}` | `mes`, `items` ([{ nombre, monto }], ≤ 30, pesos enteros netos), `por`, `quien`, `en` (Fase 9) | Dueños y externo | Dueños y externo, también en meses cerrados; no se borra |
+| `planes/{fecha}` | `fecha`, `items` ([{ productoId, cantidad, unidad, tandas }], 1 a 60; `tandas` calculadas al guardar con la receta vigente, o `null`), `nota`, `por`, `quien`, `en` (Fase 10) | Dueños y externo; pesaje: **solo el de hoy** | Dueños y externo, solo para hoy o mañana (hora del servidor); se puede quitar |
 | `cambios/{id}` | bitácora: tipo (`corregir`/`anular`/`reactivar`), pesajeId, fecha, antes, despues, por, `quien` (nombre de la cuenta, opcional, Fase 5), en | Dueños y externo | Se crea con cada corrección (la tablet, solo de lo del día) |
 
 Reglas: todo lo no permitido queda prohibido; el perfil se comprueba en el servidor; la fecha de un pesaje de la tablet debe ser la del día según la hora del servidor.
@@ -203,8 +204,8 @@ Cada fase termina con pruebas en verde, versión subida, `ESTADO.md` actualizado
 - Aviso de privacidad, accesibilidad, rendimiento, ~~App Check obligatorio~~ (se decidió no usarlo), revisión final de seguridad, `LEEME.md` y guía breve para la familia.
 - Hecho (19-nov-2026, versión 0.8.0): aviso de privacidad (ingreso, espera y Más), Ayuda por perfil en la app y `GUIA-FAMILIA.md` para imprimir, títulos y foco por pantalla y revisión a 320 px, respaldo por año (cuota de lecturas), Diagnóstico con comprobante de App Check, bloqueos y tiempos, cabecera CORP y pruebas de higiene, `LEEME.md`. La revisión de consolas: `GUIA-FIREBASE.md`, paso 23 (ESTADO.md, decisiones de la Fase 8).
 
-### Fase 9 · Costos y margen por pan — chat 10 ◐
-Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas). **Hecho (20-nov-2026, versión 0.9.0):** todo lo de abajo, más el primer precio y la primera receta desde el 1 ene 2026 por omisión y el Excel de Entregas siempre sin costos. Falta que Felipe publique y verifique (`GUIA-FIREBASE.md`, paso 24). Detalle en `ESTADO.md`.
+### Fase 9 · Costos y margen por pan — chat 10 ✔
+Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas). **Hecho (20-nov-2026, versión 0.9.0):** todo lo de abajo, más el primer precio y la primera receta desde el 1 ene 2026 por omisión y el Excel de Entregas siempre sin costos. Verificada por Felipe el 20-nov-2026 (`GUIA-FIREBASE.md`, paso 24: las 6 casillas, emulador en verde). Detalle en `ESTADO.md`.
 
 **Qué se mide**
 - **Margen de cada pan** = venta neta − **ingredientes**. El costo de los ingredientes sale de la **receta por tanda** (por kilos de masa). Los envases no entran.
@@ -233,7 +234,43 @@ Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas
 **Listo cuando:** la receta da el mismo costo por kg que el cálculo a mano; un alza de la harina con fecha nueva no cambia los meses anteriores (y una receta nueva tampoco); en el Excel del mes, la suma de los costos de la hoja Ventas es igual a los ingredientes de Costos → El mes; resultado = venta − ingredientes − gastos; la tablet no puede leer insumos, recetas ni gastos (emulador); las vistas nuevas están en `a11y.js`; la versión 0.9.0 tiene el Diagnóstico con 0 bloqueos.
 
 **Fuera de la fase:** envases, reparto de gastos entre panes, inventario de insumos (lista de futuros), margen en Números y vista del año en Costos (se puede agregar después).
-### Fase 10 · Plan de producción diario — chat 11
+### Fase 10 · Plan de producción diario — chat 11 ✔
+Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas). Versión de llegada: **0.10.0**. **Desarrollada el 20-nov-2026** (chat 11); lo que se decidió al desarrollarla está en ESTADO.md («Decisiones de la Fase 10 · desarrollo»). Falta la verificación de Felipe (GUIA-FIREBASE.md, paso 25).
+
+**Qué se planifica**
+- **Por pan, el total del día** (no por entrega): cuánto se quiere tener pesado de cada pan ese día. Las entregas siguen armándose solas con los pesajes.
+- **En kilos o unidades, según el catálogo** (como se pesa). Con la receta vigente de la Fase 9 la app muestra **las tandas**: tandas = cantidad ÷ rendimiento (1 decimal). Un pan sin receta se planifica igual, sin tandas.
+- **Para hoy y mañana**: se arma la noche anterior o en la mañana y se puede cambiar durante el día. Los días pasados quedan solo para mirar, con lo que se planificó.
+- Lo arman **dueños y externo**. La tablet **ve el plan de hoy** (nunca el de mañana) y no lo cambia.
+
+**Sugerencia** (`core/plan.js`, lógica pura)
+- Para cada pan activo: **promedio de lo pesado el mismo día de la semana en las 4 semanas anteriores** (F − 7, − 14, − 21, − 28). Cuentan solo los días **con pesajes** (un día cerrado o festivo no baja el promedio); en un día trabajado, un pan no pesado cuenta 0. Los anulados no cuentan.
+- **Redondeo a tandas completas, hacia arriba**, con el rendimiento de la receta vigente ese día (3,4 tandas → 4 tandas, en kilos o unidades). Sin receta: al kilo entero hacia arriba, o a la decena de unidades hacia arriba. Promedio 0 → sin sugerencia (en blanco).
+- La hoja muestra la sugerencia al lado de cada campo (con «promedio de N días») y el botón **«Usar sugerencias»** llena los campos vacíos; cada número se corrige antes de guardar.
+- Lectura: solo los 4 días de muestra (4 consultas por fecha, una vez al abrir la hoja), no las 4 semanas completas.
+
+**Comparación con lo pesado**
+- Por pan del plan: **planificado** (y sus tandas), **pesado** (canastos no anulados del día), **falta** (lo que queda, nunca negativo) y **% de avance** = pesado ÷ plan.
+- Estados (solo informan, no bloquean): **bajo 95 %** normal («faltan 18 kg»); **95 % a 110 %** verde, «cumplido»; **sobre 110 %** aviso, «sobre el plan (+ 8 kg)».
+- Un pan pesado que no estaba en el plan aparece aparte como **«fuera del plan»**. Totales del día en kg y en unidades por separado.
+- Las cantidades salen de los mismos pesajes que «Pesado hoy» y «Hoy»: los totales cuadran con ellos.
+
+**Dónde se ve**
+- **Hoy (dueños y externo):** bloque **«Plan del día»** con la comparación por pan, al momento. Botón «Armar plan» (o «Cambiar plan») para el día que se mira si es hoy, y **«Plan de mañana»** (con aviso «sin plan» cuando falta). En un día pasado, el plan y su comparación solo se miran.
+- **Hoja «Plan»** (`pantallas/plan.js`): una fila por pan activo en el orden del catálogo, con el campo (kg con 2 decimales o unidades), la sugerencia, las tandas en vivo, «Usar sugerencias», nota opcional y «Quitar plan». En blanco = ese pan no va en el plan.
+- **Tablet de pesaje:** con letra grande, **«Plan de hoy»**: por pan, plan (con tandas), pesado y lo que falta, con el mismo verde y el mismo aviso; y en el botón de cada pan, en vez de «kilos», la línea corta **«faltan 18 kg»** (o «✓ cumplido»). Sin plan, la tablet queda como hoy. Nunca muestra precios ni costos.
+
+**Datos nuevos** (PLAN §7): `planes/{AAAA-MM-DD}` = `{ fecha, items: [{ productoId, cantidad, unidad, tandas }] (1 a 60), nota?, por, quien, en }`.
+- `tandas` (número o `null`) se **calcula y guarda al armar el plan**: así la tablet ve las tandas sin leer recetas. Si después cambia la receta, el plan ya guardado conserva sus tandas (se recalculan al volver a guardarlo).
+- Reglas: **lectura** dueños y externo, todo; tablet, **solo el de hoy** (`esHoy`, como `dias`). **Escritura** (crear, cambiar, quitar) solo dueños y externo, y solo para **hoy o mañana** según la hora del servidor (`esManana`, nueva, con la misma holgura de medianoche que `esHoy`). Forma revisada (lista, unidad `kg`/`un`, cantidad > 0, a nombre de quien guarda, hora del servidor, sin campos de más); cada ítem lo revisa la app.
+- `app.js`: escucha `planes/{fecha}` junto con los pesajes del día (`vigilarDia` → `ctx.dia.plan`); ~~el de mañana se lee al abrir su hoja~~ → **al desarrollar:** dueños y externo, mirando hoy, escuchan también el de mañana (un documento, `ctx.dia.planManana`): así Hoy sabe si falta («Plan de mañana: sin plan») y la hoja abre con lo guardado sin otra lectura. Entra en el **respaldo** (por fecha), en el **aviso de privacidad** («plan de producción del día»), en la **Ayuda** (tema «Plan de producción», también en la de la tablet) y en `GUIA-FAMILIA.md`.
+
+**Pruebas:** `plan-unit.js` (sugerencia contra un cálculo a mano de 4 semanas, con un día sin pesajes y un pan no pesado; redondeo a tandas, sin receta, kg y unidades; avance y estados en 94,9 / 95 / 110 / 110,1 %; fuera del plan; tandas guardadas) · `plan-e2e.js` (armar con sugerencias, cambiar durante el día, plan de mañana, Hoy en vivo, tablet con «faltan» y cumplido, externo, día pasado solo lectura) · casos nuevos en `reglas-casos.js` (tablet lee hoy y no mañana ni ayer, ni escribe; gestión escribe hoy y mañana, no ayer ni pasado mañana; forma) · vistas nuevas en `a11y.js` (Hoy con plan, hoja Plan, plan de mañana, tablet con plan, con sus estados en claro y oscuro).
+
+**Listo cuando:** la sugerencia de un pan es igual al cálculo a mano (promedio de los días trabajados, redondeado a tandas); con lo pesado, «falta» y el % cuadran con «Pesado hoy»; el verde aparece desde 95 % y el aviso sobre 110 %; la tablet ve el plan de hoy con tandas y lo que falta, y no puede leer el de mañana ni escribir planes (emulador); un día pasado no se puede cambiar; la versión 0.10.0 tiene el Diagnóstico con 0 bloqueos.
+
+**Fuera de la fase:** plan por entrega, días más allá de mañana, pedido del supermercado, hoja de insumos del día (harina, levadura según las recetas), cumplimiento del mes en Números y plan en el Excel. Quedan como futuros si hacen falta.
+
 
 ## 11. Organización de los chats
 

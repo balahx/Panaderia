@@ -83,7 +83,7 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   const leidas = [], falso = { doc: async r => { leidas.push(r); return r === 'config/negocio' ? { duenos: ['u1'] } : null; }, col: async r => { leidas.push(r); return r === 'pesajes' ? pes : []; } };
   const dueno = await R.reunir(falso, 'dueno'), ext = await R.reunir(falso, 'externo');
   ok(Object.keys(dueno.datos).includes('miembros') && !Object.keys(ext.datos).includes('miembros') && !Object.keys(ext.datos).includes('solicitudes'), 'los dueños respaldan también los accesos; el externo no (no puede leerlos)');
-  ok(dueno.lecturas === 2 + 6 + 14 && ext.lecturas === 2 + 6 + 12, 'cuenta las lecturas (al menos una por consulta, como cobra Firestore; desde la Fase 9 también insumos, sus precios, recetas y gastos)');
+  ok(dueno.lecturas === 2 + 6 + 15 && ext.lecturas === 2 + 6 + 13 && 'planes' in dueno.datos, 'cuenta las lecturas (al menos una por consulta, como cobra Firestore; desde la Fase 9 también insumos, sus precios, recetas y gastos, y desde la Fase 10 los planes del día)');
   const arch = R.armar(dueno.datos, { por: { uid: 'u1' }, perfil: 'dueno', lecturas: dueno.lecturas, creado: '2026-11-16T10:00:00Z' });
   ok(R.esRespaldo(arch) && arch.conteos.pesajes === 6 && arch.conteos.miembros === 0 && R.nombreArchivo('2026-11-16') === 'respaldo-panaderia-2026-11-16.json', 'el archivo tiene cabecera, conteos y nombre con la fecha');
   /* Por año (Fase 8): canastos y bitácora con una consulta por fecha; días de entrega del año; lo demás completo */
@@ -93,8 +93,9 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   const delAnio = await R.reunir(porRango, 'externo', null, 2026);
   ok(delAnio.datos.pesajes.map(x => x.id).join() === 'b,c' && delAnio.datos.cambios.map(x => x.id).join() === 'b,c' && delAnio.datos.dias.map(x => x.id).join() === '2026-03-02' && delAnio.datos.precios.length === 1 && delAnio.datos.cierres.length === 1,
     'respaldo de un año: canastos, correcciones y días de ese año; catálogo, precios y cierres completos');
-  ok(pedidos.includes('rango pesajes fecha 2026-01-01 2026-12-31') && pedidos.includes('rango cambios fecha 2026-01-01 2026-12-31') && !pedidos.includes('col pesajes') && delAnio.lecturas === 2 + 2 + 2 + 2 + 10,
-    'los canastos de otros años ni se leen (consulta por fecha): solo se pagan las lecturas del año');
+  ok(pedidos.includes('rango pesajes fecha 2026-01-01 2026-12-31') && pedidos.includes('rango cambios fecha 2026-01-01 2026-12-31') && pedidos.includes('rango planes fecha 2026-01-01 2026-12-31') && !pedidos.includes('col pesajes') && !pedidos.includes('col planes')
+    && delAnio.datos.planes.map(x => x.id).join() === 'b,c' && delAnio.lecturas === 2 + 2 + 2 + 2 + 2 + 10,
+    'los canastos y los planes de otros años ni se leen (consulta por fecha): solo se pagan las lecturas del año');
   const arA = R.armar(delAnio.datos, { anio: 2026 });
   ok(arA.anio === 2026 && R.armar(dueno.datos, {}).anio === null && R.nombreArchivo('2026-11-19', 2026) === 'respaldo-panaderia-2026-11-19-de-2026.json' && R.esRespaldo(arA), 'el archivo dice de qué año es (null = todo) y lo lleva en el nombre');
   ok(R.anios('2026-11-19').join() === '2026' && R.anios('2028-01-05').join() === '2028,2027,2026', 'años para elegir: del actual hacia atrás hasta 2026');

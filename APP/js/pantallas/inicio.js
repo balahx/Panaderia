@@ -1,7 +1,8 @@
 /* Hoy (dueños y externo): lo pesado en un día, al momento. Totales, venta del día con el precio vigente de ESE día, por pan,
    entregas (cada una con sus canastos y su venta; se arman solas con los pesajes), por trabajador y anulados. Se puede mirar otro día.
    Tocar un canasto abre su ficha para corregirlo o anularlo (con constancia en la bitácora). «＋ Anotar canasto» agrega uno en el día
-   que se mira (fecha pasada, Fase 5). Los montos salen de core/ventas.js: los mismos del Excel y de Entregas. */
+   que se mira (fecha pasada, Fase 5). Los montos salen de core/ventas.js: los mismos del Excel y de Entregas.
+   Fase 10: el bloque «Plan del día» (pantallas/plan.js) compara lo pesado con el plan, al momento; hoy se arma o cambia, y se ve el de mañana. */
 import { esc, fechaTexto, kilos } from '../core/formato.js';
 import { emptyHTML, errorHTML, svg } from '../core/iconos.js';
 import * as cat from '../core/catalogo.js';
@@ -10,6 +11,7 @@ import * as V from '../core/ventas.js';
 import * as canasto from './pesaje-hoja.js';
 import * as anotar from './anotar.js';
 import { cerradoEl, textoOrigen } from '../core/cierres.js';
+import * as plan from './plan.js';
 
 let sel = '';   // día elegido ('' = seguir el día de hoy, también pasada la medianoche)
 export const fecha = c => (sel && sel <= c.hoy ? sel : c.hoy);
@@ -76,18 +78,18 @@ export function html(c) {
   const avisoPend = pend ? '<p class="note warn" id="hoyPendientes">' + plural(pend, 'registro anotado en este equipo falta', 'registros anotados en este equipo faltan') + ' por enviar.</p>' : '';
   if (!todos.length) {
     return cab + emptyHTML('pesa', f === c.hoy ? 'Sin pesajes todavía' : 'Sin pesajes ese día', f === c.hoy ? 'Lo que se pese en la panadería aparece aquí al momento, sin recargar.' : 'Ese día no se registraron canastos. Si se vendió, anótalo aquí.') +
-      (cat.activos(k.productos).length ? botonAnotar(f, c, 'centro') : '<div class="actions centro"><button class="btn" id="inicioCatalogo" data-act="ir" data-tab="catalogo">Abrir el catálogo</button></div>');
+      (cat.activos(k.productos).length ? botonAnotar(f, c, 'centro') + plan.bloqueHoy(c, f, d) : '<div class="actions centro"><button class="btn" id="inicioCatalogo" data-act="ir" data-tab="catalogo">Abrir el catálogo</button></div>');
   }
   const M = venta(c, todos);
   return cab + avisoPend + botonAnotar(f, c, 'arriba') +
     '<div class="stats" id="hoyTotales"><div class="stat"><b>' + R.canastos + '</b><span>' + (R.canastos === 1 ? 'canasto' : 'canastos') + '</span></div>' +
     '<div class="stat"><b>' + esc(kilos(R.kg)) + '</b><span>kilos</span></div>' + (R.un ? '<div class="stat"><b>' + esc(P.textoCantidad(R.un, 'un').replace(' un', '')) + '</b><span>unidades</span></div>' : '') + '</div>' +
-    (R.canastos ? montos(c, M) + porPan(c, R, M) : '') + entregas(c, f, R, todos, M);
+    plan.bloqueHoy(c, f, d) + (R.canastos ? montos(c, M) + porPan(c, R, M) : '') + entregas(c, f, R, todos, M);
 }
 
 export function alActuar(act, el, c) {
   if (act === 'recargar') { location.reload(); return true; }
-  if (canasto.alActuar(act, el, c) || anotar.alActuar(act, el, c)) return true;
+  if (canasto.alActuar(act, el, c) || anotar.alActuar(act, el, c) || plan.alActuar(act, el, c)) return true;
   if (act !== 'hoy-dia') return false;
   const n = Number(el.dataset.d), f = fecha(c);
   sel = n === 0 ? '' : P.sumarDias(f, n);
@@ -95,6 +97,7 @@ export function alActuar(act, el, c) {
   return 'repintar';
 }
 export function alEscribir(el, c) {
+  if (plan.alEscribir(el, c)) return;
   if (el.id !== 'hoyFecha' || !cat.esFecha(el.value)) return;
   sel = el.value >= c.hoy ? '' : el.value;
   return 'repintar';

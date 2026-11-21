@@ -5,6 +5,7 @@ rules_version = '2';
 // «Gestión» = dueño o externo. La cuenta de pesaje nunca lee precios, clientes, cierres, proyecciones ni costos.
 // Cada cambio se prueba con el emulador: tests/rules-emulator.js (casos en tests/reglas-casos.js).
 // Fase 6: cierres mensuales. Fase 7: forma de la proyección y las metas. Fase 9: insumos, precios de insumos, recetas y gastos del mes.
+// Fase 10: plan de producción del día (la tablet lee solo el de hoy y no escribe).
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -35,6 +36,10 @@ service cloud.firestore {
     // se aceptan ambas (solo difieren durante una hora, alrededor de la medianoche).
     function esHoy(fecha) {
       return fecha == diaDe(request.time - duration.value(3, 'h')) || fecha == diaDe(request.time - duration.value(4, 'h'));
+    }
+    // Mañana (Fase 10, plan de producción), con la misma holgura de la medianoche que esHoy: el día de hoy + 24 horas.
+    function esManana(fecha) {
+      return fecha == diaDe(request.time + duration.value(21, 'h')) || fecha == diaDe(request.time + duration.value(20, 'h'));
     }
 
     // ---------- Negocio ----------
@@ -343,6 +348,28 @@ service cloud.firestore {
         && texto(nuevo().quien, 1, 60)
         && nuevo().en == request.time;
       allow delete: if false;
+    }
+    // ---------- Plan de producción del día (Fase 10) ----------
+    // planes/{AAAA-MM-DD} = { fecha, items: [{ productoId, cantidad, unidad, tandas }] (1 a 60), nota?, por, quien, en }: cuánto se quiere
+    // pesar de cada pan ese día. Lo arman, cambian y quitan dueños y externo, solo para HOY o MAÑANA (hora del servidor): un día pasado
+    // queda como se planificó. La tablet lee solo el de hoy (nunca el de mañana) y no escribe. La revisión de cada ítem la hace la app
+    // (core/plan.js: las reglas no recorren listas); aquí, la forma.
+    function planValido(fecha) {
+      return fechaValida(fecha)
+        && nuevo().keys().hasOnly(['fecha', 'items', 'nota', 'por', 'quien', 'en'])
+        && nuevo().keys().hasAll(['fecha', 'items', 'por', 'quien', 'en'])
+        && nuevo().fecha == fecha
+        && nuevo().items is list && nuevo().items.size() >= 1 && nuevo().items.size() <= 60
+        && (!('nota' in nuevo()) || texto(nuevo().nota, 1, 200))
+        && nuevo().por == request.auth.uid
+        && texto(nuevo().quien, 1, 60)
+        && nuevo().en == request.time;
+    }
+    function hoyOManana(fecha) { return esHoy(fecha) || esManana(fecha); }
+    match /planes/{fecha} {
+      allow read: if esGestion() || (esPesaje() && esHoy(fecha));
+      allow create, update: if esGestion() && hoyOManana(fecha) && planValido(fecha);
+      allow delete: if esGestion() && hoyOManana(fecha);
     }
     // Bitácora de correcciones: se agrega junto con cada corrección, anulación o reactivación de un pesaje; nunca se cambia ni se borra.
     // La tablet deja constancia solo de lo del día. `quien` (opcional, Fase 5): nombre de la cuenta, para el registro general.

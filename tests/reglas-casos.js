@@ -28,6 +28,8 @@ const insumo = (mas) => Object.assign({ nombre: 'Levadura', unidad: 'kg', activo
 const precioIns = (insumoId, desde, mas) => Object.assign({ insumoId, formato: 0.5, neto: 2250, desde, en: '@TS' }, mas || {});
 const receta = (productoId, desde, por, mas) => Object.assign({ productoId, desde, items: [{ insumoId: 'i1', cantidad: 12.5 }, { insumoId: 'i2', cantidad: 0.13 }], rendimiento: 16.5, nota: 'Levadura: invierno 130 g', por, en: '@TS' }, mas || {});
 const gastos = (mes, por, mas) => Object.assign({ mes, items: [{ nombre: 'Gas', monto: 180000 }, { nombre: 'Sueldos', monto: 900000 }], por, quien: 'Nombre', en: '@TS' }, mas || {});
+const plan = (fecha, por, mas) => Object.assign({ fecha, items: [{ productoId: 'p1', cantidad: 120, unidad: 'kg', tandas: 7.3 }, { productoId: 'u5', cantidad: 600, unidad: 'un', tandas: null }], nota: 'Viernes: más hallulla', por, quien: 'Nombre', en: '@TS' }, mas || {});   // Fase 10
+const sumarDias = (f, n) => { const d = new Date(f + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const cambio = (tipo, fecha, por, mas) => Object.assign({ tipo, pesajeId: 'hoy1', fecha, antes: { cantidad: 18.5 }, despues: { cantidad: 19 }, por, en: '@TS' }, mas || {});
 
 function semilla(HOY, ANTES, AYER) {
@@ -54,7 +56,10 @@ function semilla(HOY, ANTES, AYER) {
     'insumos/i1': { nombre: 'Harina', unidad: 'kg', activo: true, en: '@TS' },                                    // Fase 9: costos
     'preciosInsumo/i1_2026-01-01': { insumoId: 'i1', formato: 25, neto: 18500, desde: '2026-01-01', en: '@TS' },
     'recetas/p1_2026-01-01': receta('p1', '2026-01-01', 'rosa'),
-    'gastos/2026-10': gastos('2026-10', 'rosa')
+    'gastos/2026-10': gastos('2026-10', 'rosa'),
+    ['planes/' + HOY]: plan(HOY, 'rosa'),                                                                          // Fase 10: plan del día
+    ['planes/' + sumarDias(HOY, 1)]: plan(sumarDias(HOY, 1), 'rosa'),
+    ['planes/' + ANTES]: plan(ANTES, 'rosa')
   };
 }
 
@@ -401,6 +406,41 @@ function casos(HOY, ANTES, AYER) {
   no('rosa', 'set', 'gastos/2026-11', 'sin campos de más', gastos('2026-11', 'rosa', { total: 1080000 }));
   no('rosa', 'delete', 'gastos/2026-11', 'los gastos de un mes no se borran');
   no('tablet', 'set', 'gastos/2026-11', 'la tablet no anota gastos', gastos('2026-11', 'tablet'));
+
+  /* Fase 10. MANANA = hoy + 1 y PASADO = hoy + 2 según el día chileno. Los días pasados se prueban con ANTES (hace tres días): cerca de
+     la medianoche «ayer» puede valer como «hoy» (ver esHoy). */
+  const MANANA = sumarDias(HOY, 1), PASADO = sumarDias(HOY, 2);
+  t('14. Plan de producción del día (Fase 10)');
+  si('tablet', 'get', 'planes/' + HOY, 'la tablet lee el plan de hoy');
+  no('tablet', 'get', 'planes/' + MANANA, 'pero no el de mañana');
+  no('tablet', 'get', 'planes/' + ANTES, 'ni el de un día pasado');
+  no('tablet', 'list', 'planes', 'ni la lista de planes');
+  no('tablet', 'set', 'planes/' + HOY, 'la tablet no cambia el plan', plan(HOY, 'tablet'));
+  no('tablet', 'set', 'planes/' + MANANA, 'ni arma el de mañana', plan(MANANA, 'tablet'));
+  no('tablet', 'delete', 'planes/' + HOY, 'ni lo quita');
+  no('carla', 'get', 'planes/' + HOY, 'una cuenta sin acceso no lee el plan');
+  no('ines', 'get', 'planes/' + HOY, 'ni quien perdió el acceso');
+  no('nadie', 'get', 'planes/' + HOY, 'ni sin sesión');
+  si('felipe', 'list', 'planes', 'gestión lee todos los planes');
+  si('rosa', 'get', 'planes/' + ANTES, 'también los de días pasados (para mirar)');
+  si('rosa', 'set', 'planes/' + HOY, 'un dueño cambia el plan de hoy durante el día', plan(HOY, 'rosa', { items: [{ productoId: 'p1', cantidad: 140, unidad: 'kg', tandas: 8.5 }] }));
+  si('felipe', 'set', 'planes/' + MANANA, 'el externo arma el plan de mañana (sin nota)', (() => { const x = plan(MANANA, 'felipe'); delete x.nota; return x; })());
+  si('pedro', 'set', 'planes/' + MANANA, 'y otro dueño lo vuelve a cambiar', plan(MANANA, 'pedro'));
+  no('rosa', 'set', 'planes/' + ANTES, 'un día pasado ya no se cambia', plan(ANTES, 'rosa'));
+  no('rosa', 'delete', 'planes/' + ANTES, 'ni se quita');
+  no('rosa', 'set', 'planes/' + PASADO, 'ni se arma para pasado mañana', plan(PASADO, 'rosa'));
+  no('rosa', 'set', 'planes/' + MANANA, 'la fecha del documento es la de su nombre', plan(HOY, 'rosa'));
+  no('rosa', 'set', 'planes/manana', 'el nombre es una fecha (AAAA-MM-DD)', plan('manana', 'rosa'));
+  no('rosa', 'set', 'planes/' + MANANA, 'con al menos un pan', plan(MANANA, 'rosa', { items: [] }));
+  no('rosa', 'set', 'planes/' + MANANA, 'y hasta 60', plan(MANANA, 'rosa', { items: Array.from({ length: 61 }, (x, i) => ({ productoId: 'p' + i, cantidad: 1, unidad: 'kg', tandas: null })) }));
+  no('rosa', 'set', 'planes/' + MANANA, 'los panes van en una lista', plan(MANANA, 'rosa', { items: { p1: 120 } }));
+  no('rosa', 'set', 'planes/' + MANANA, 'la nota, si va, con texto', plan(MANANA, 'rosa', { nota: '' }));
+  no('rosa', 'set', 'planes/' + MANANA, 'a nombre de quien lo guarda', plan(MANANA, 'felipe'));
+  no('rosa', 'set', 'planes/' + MANANA, 'con su nombre', plan(MANANA, 'rosa', { quien: '' }));
+  no('rosa', 'set', 'planes/' + MANANA, 'con la hora del servidor', plan(MANANA, 'rosa', { en: 1 }));
+  no('rosa', 'set', 'planes/' + MANANA, 'sin campos de más', plan(MANANA, 'rosa', { total: 120 }));
+  si('felipe', 'delete', 'planes/' + MANANA, 'gestión quita el plan de mañana');
+  si('rosa', 'delete', 'planes/' + HOY, 'y el de hoy');
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

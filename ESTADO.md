@@ -15,16 +15,15 @@
 | 6 | Cierres mensuales (importar ene–oct 2026, cerrar mes) | 7 | ✔ Hecha. Paso 21 verificado por Felipe (18-nov-2026): las 6 casillas (10 meses cerrados desde Excel, cada neto = total del Excel), Diagnóstico con 0 bloqueos y versión 0.6.0, emulador en verde con los 235 casos |
 | 7 | Indicadores, proyección y metas | 8 | ✔ Hecha. Paso 22 verificado por Felipe (19-nov-2026): las 6 casillas (octubre = su cierre, noviembre = Entregas, 2025 importado y comparado, metas fijadas y a mano, externo sí y tablet no), Diagnóstico con 0 bloqueos y versión 0.7.0, emulador en verde con los 261 casos |
 | 8 | Cierre y entrega (App Check: se decidió no usarlo) | 9 | ✔ Hecha. Paso 23 verificado por Felipe (20-nov-2026): tabla C (5 casillas) y tabla B de consolas completas, Diagnóstico con versión 0.8.0, 0 bloqueos y «App Check: Sin configurar» en los tres tipos de equipo |
-| 9 | Costos y margen por pan | 10 | ◐ Código, pruebas, guía y documentos hechos (20-nov-2026, versión 0.9.0). Falta que Felipe ejecute `GUIA-FIREBASE.md`, paso 24 (publicar con las reglas, cargar insumos, recetas y gastos, verificar) |
-| 10 | Plan de producción diario | 11 | Después |
+| 9 | Costos y margen por pan | 10 | ✔ Hecha. Paso 24 verificado por Felipe (20-nov-2026): las 6 casillas (costo por kg de la hallulla = cálculo a mano, simulador, alza de mañana sin efecto hoy, El mes con resultado = margen − gastos, Excel con hoja «Resultado» y Entregas sin costos, externo sí y tablet no), Diagnóstico con 0 bloqueos y versión 0.9.0, emulador en verde |
+| 10 | Plan de producción diario | 11 | ◐ Desarrollada (20-nov-2026, versión 0.10.0): 28 pruebas en verde y 355 casos de reglas. **Falta la verificación de Felipe: paso 25** de `GUIA-FIREBASE.md` (emulador en GitHub Actions y las 6 casillas) |
 
-Versión de la app: **0.9.0** (caché 2026.11.20.1) · 26 pruebas, todas bien (20-nov-2026, con Firebase, Google y Firestore simulados) · 325 casos de reglas (64 nuevos de la Fase 9; el emulador corre en GitHub Actions)
+Versión de la app: **0.10.0** (caché 2026.11.20.2) · 28 pruebas, todas bien (20-nov-2026, con Firebase, Google y Firestore simulados) · 355 casos de reglas (30 nuevos de la Fase 10; **el emulador no se pudo correr desde el chat**: corre en GitHub Actions)
 
-## Qué falta para cerrar la Fase 9 (lo hace Felipe, con `GUIA-FIREBASE.md`, paso 24)
+## Qué sigue: verificar la Fase 10 (paso 25)
 
-1. `npm test` (26 pruebas), subir a GitHub y ver **Actions** en verde, sobre todo **«Reglas de Firestore (emulador)»**: las reglas **cambiaron** (325 casos) y desde el chat no se pudieron correr con el emulador.
-2. `firebase deploy --only hosting,firestore:rules` y actualizar cada equipo a 0.9.0.
-3. Cargar insumos (con precio neto de factura), las recetas y los gastos del mes, y marcar la tabla del paso 24 (6 casillas).
+1. Felipe: `npm test` (28 pruebas), subir a GitHub y ver **«Reglas de Firestore (emulador)»** en verde (355 casos) **antes** de publicar; luego `firebase deploy --only hosting,firestore:rules`, actualizar cada equipo y marcar las 6 casillas del **paso 25**.
+2. Con eso, las fases 0 a 10 del plan quedan cerradas. Lo que sigue son los **futuros** (PLAN §3 y «Fuera de la fase» de las Fases 9 y 10): hoja de insumos del día según el plan y las recetas, varios clientes, conexión con la balanza, plan en el Excel o cumplimiento del mes en Números. Cada uno, en su propio chat y con su planificación.
 
 ## Decisiones tomadas
 
@@ -42,6 +41,27 @@ Versión de la app: **0.9.0** (caché 2026.11.20.1) · 26 pruebas, todas bien (2
 - Seguridad de la auditoría aplicada desde el inicio (PLAN §9).
 - Commits y PR: autor Felipe González con su correo, sin coautoría, sin Claude-Session ni enlace de sesión.
 - Carpetas: app en `APP\`; `privado\` y `app de muestra\` fuera del repositorio.
+
+### Decisiones de la Fase 10 · desarrollo (20-nov-2026, versión 0.10.0)
+
+- **Datos y reglas** (PLAN §7): `planes/{AAAA-MM-DD}` = `{ fecha, items: [{ productoId, cantidad, unidad, tandas }] (1 a 60), nota?, por, quien, en }`. Reglas nuevas: `esManana` (hora del servidor + 21 h o + 20 h, la misma holgura de medianoche que `esHoy`) y `hoyOManana`; **lectura** gestión todo, tablet solo `get` del de hoy (ni mañana, ni otros días, ni la lista); **escritura y borrado** solo gestión y solo hoy o mañana; forma revisada (fecha = nombre, lista de 1 a 60, nota con texto si va, a nombre de quien guarda, `quien`, hora del servidor, sin campos de más). Cada ítem lo revisa la app (las reglas no recorren listas). 30 casos nuevos (sección 14); `reglas-unit.js` revisa también `esManana` y que la tablet no tenga escritura en `planes`.
+- **Cálculo** (`core/plan.js`, lógica pura): sugerencia = promedio (a centésimos) de lo pesado los 4 mismos días de la semana anteriores, **contando solo los días con al menos un canasto vigente** (un día con solo anulados tampoco cuenta) y 0 para un pan no pesado en un día trabajado; redondeo **hacia arriba** a tandas completas con la receta vigente **ese día** (sin el error de los decimales: 2,9999… tandas son 3), sin receta al kilo entero o a la decena de unidades; promedio 0 → sin sugerencia. `tandas` guardadas = cantidad ÷ rendimiento con 1 decimal (o `null`). **Estados en números enteros** (centésimos de kilo o unidades, sin dividir): 95 % exacto es verde aunque la división dé 94,9999…; el % se muestra sin decimales y hacia abajo (94,9 % se ve «94 %»). «Falta» nunca es negativo; sobre el 110 % se muestra el exceso («sobre el plan (+ 8 kg)»).
+- **Pantallas** (`pantallas/plan.js`): bloque **«Plan del día»** en **Hoy** (después de los totales; también en un día sin canastos), con barra (verde = cumplido; el aviso con el color de las franjas), «Fuera del plan», totales (planificado, pesado del plan, pesado fuera del plan; kg y unidades por separado), nota y quién lo armó. **Plan de mañana** como una línea al pie del bloque («sin plan» o «N panes», con «Armar» / «Ver o cambiar»). Un día pasado muestra su plan sin botones (y nada si no tuvo). **Hoja «Plan»**: una fila por pan activo (más los desactivados que ya estaban en el plan), campo, línea con las tandas en vivo y la sugerencia («Sugerido: 66 kg · 4 tandas (promedio de 3 días: 55,33 kg)»), «Usar sugerencias» (solo campos vacíos; apagado si no hay sugerencias), nota y «Quitar plan» (con confirmación). Los cambios del plan **exigen conexión** (como el catálogo: `enviar`), así una escritura sin internet no queda esperando y luego rechazada pasada la medianoche. **Tablet** (`pantallas/pesaje.js`): «faltan 18 kg» / «✓ cumplido» / «sobre el plan» en el botón de cada pan del plan (los demás siguen con «kilos»/«unidades») y el bloque **«Plan de hoy»** debajo del teclado (no empuja el pesaje hacia abajo). Sin plan, nada cambia.
+- **Lecturas:** la sugerencia lee los 4 días de muestra con `nube.consultarRango` (una consulta por fecha; sin conexión usa la copia del equipo y lo dice) y se guarda 10 minutos. **Mejora respecto del plan:** el plan de mañana no se lee al abrir su hoja, sino que dueños y externo lo **escuchan** mirando hoy (un documento): así Hoy sabe si falta y la hoja abre con lo guardado.
+- `app.js`: `vigilarDia` escucha `planes/{fecha}` (`ctx.dia.plan`: `undefined` = aún no llega, `null` = sin plan; si falla, sin plan) y, para gestión mirando hoy, `planes/{mañana}` (`ctx.dia.planManana`). **Respaldo** con `planes` (por fecha: en el respaldo de un año, solo los de ese año). **Aviso de privacidad** («el plan de producción del día»; la tablet «ve lo pesado hoy y el plan de hoy»; vigente desde el 20-nov-2026, mismo día), **Ayuda** (tema «Plan de producción» también en la tablet, y «Armar el plan del día» para gestión), `GUIA-FAMILIA.md` y `LEEME.md` actualizados. `sw.js` con los dos archivos nuevos.
+- Pruebas: `plan-unit.js` (sugerencia contra el cálculo a mano con un feriado de solo un anulado y un pan no pesado, redondeo, formulario, estados en 94,9 / 95 / 110 / 110,1 % y 5.000 combinaciones contra la cuenta en enteros, fuera del plan, 300 días donde plan + fuera = «Pesado hoy», tandas guardadas y el documento contra la copia de las reglas) y `plan-e2e.js` (armar con sugerencias = cálculo a mano, tandas en vivo, Hoy en vivo con cumplido y sobre el plan, cambiar durante el día, plan de mañana y quitarlo, día pasado solo lectura, externo, tablet con «faltan» y cumplido, y sin plan). `a11y.js` recorre **84 vistas** (Hoy con plan en sus tres estados, hoja con sugerencias y con error, plan de mañana, Pesaje con plan). Se actualizaron `ventas-unit.js` (lecturas del respaldo con `planes`) y `privacidad-e2e.js` (temas de la Ayuda).
+
+### Decisiones de la Fase 10 · planificación (20-nov-2026)
+
+Respuestas de Felipe (el detalle está en PLAN «Fase 10»):
+- **Qué:** por pan, el **total del día** (no por entrega).
+- **Unidad:** **kilos o unidades** según el catálogo; la app muestra las **tandas** con la receta vigente (Fase 9). Un pan sin receta se planifica sin tandas.
+- **Origen:** la app **sugiere** (promedio del mismo día de la semana en las 4 semanas anteriores, solo días con pesajes) y el dueño ajusta. **Redondeo a tandas completas hacia arriba**; sin receta, al kilo o a la decena de unidades.
+- **Días:** **hoy y mañana**; los pasados solo se miran. Lo arman dueños y externo.
+- **Dónde se compara:** **Hoy** (dueños y externo) y la **tablet** (plan con tandas, pesado y lo que falta; «faltan 18 kg» en el botón de cada pan). La tablet ve solo el plan de hoy; las tandas se guardan en el plan para que no lea recetas.
+- **Avance:** bajo 95 % normal, **95 % a 110 % verde** («cumplido»), **sobre 110 % aviso** («sobre el plan»). Solo informa.
+- Propuestas incluidas en el plan: «Usar sugerencias», «fuera del plan» para lo pesado sin plan, aviso «Plan de mañana: sin plan» en Hoy, y la lectura de solo 4 días para la sugerencia.
+- Fuera: plan por entrega, más allá de mañana, pedido del supermercado, hoja de insumos del día, cumplimiento del mes y plan en el Excel.
 
 ### Decisiones de la Fase 9 · desarrollo (20-nov-2026, versión 0.9.0)
 
@@ -190,7 +210,6 @@ Respuestas de Felipe (el detalle está en PLAN «Fase 9»):
 ## Pendientes de información (PLAN §13)
 
 - Opcional: cifras del Diagnóstico de la tablet («Apertura de la app» y «Pantalla más lenta»). En el paso 23 se marcaron sin anotar los números.
-- Precios netos reales de los insumos (las pruebas usan precios inventados; las recetas son las de la panadería, 20-nov-2026). Los carga Felipe en el paso 24.
 - Noviembre de 2026 se cierra desde Entregas a partir del 1 de diciembre; con noviembre y diciembre cerrados se puede proyectar todo 2027.
 - «Ajustes» del plan (§8) aún no existe como pantalla: el IVA quedó dentro de Catálogo → Cliente e IVA.
 
@@ -202,7 +221,7 @@ Respuestas de Felipe (el detalle está en PLAN «Fase 9»):
 | `GUIA-FIREBASE.md` | Paso a paso: consola, publicación, instalación, repositorio, seguridad (paso 23: revisión final; 23.D: App Check, si algún día se activa), problemas frecuentes |
 | `GUIA-FAMILIA.md` | Guía breve para la familia, para imprimir (instalar, tablet, dueños, si algo falla). La misma está en la app: Más → Ayuda |
 | `firebase.json` | Hosting publica `APP\`; cabeceras de seguridad (CSP, antimarcos, COOP, CORP) y de caché |
-| `firestore.rules` | Reglas por perfil de las 16 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días, bitácora (con `quien`), `config/respaldo`, cierres (meses cerrados), proyección con metas y costos (insumos, sus precios, recetas y gastos, Fase 9); todo lo demás cerrado |
+| `firestore.rules` | Reglas por perfil de las 17 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días, bitácora (con `quien`), `config/respaldo`, cierres (meses cerrados), proyección con metas, costos (insumos, sus precios, recetas y gastos, Fase 9) y planes del día (`esManana`, Fase 10); todo lo demás cerrado |
 | `package.json` · `.gitignore` · `.gitattributes` | Scripts npm, exclusiones, finales de línea |
 | `tools\plantillas-github\` · `.github\` | `ci.yml` (pruebas y reglas con emulador en GitHub Actions) y `dependabot.yml`. Las dos copias de `ci.yml` deben ser iguales |
 | `APP\index.html` | Cáscara: CSP, `#gate` (ingreso), `#appRoot` (app), `#dlg`, `#toast` |
@@ -213,7 +232,7 @@ Respuestas de Felipe (el detalle está en PLAN «Fase 9»):
 | `APP\css\tokens.css` | Tipografías y paleta cálida (claro, oscuro, escala de letra) |
 | `APP\css\base.css` | Página, títulos, cabecera, barra de navegación, escritorio |
 | `APP\css\componentes.css` | Tarjetas, botones, campos, hojas, ingreso, listas, estados, avisos, accesos, catálogo (`.seg`, `.precio-hoy`, `.hist`, `.radios`), pesaje (`.pes-*`, dos columnas desde 700 px) y Hoy (`.stats`, `.entrega`, `.dia-nav`) |
-| `APP\js\app.js` | Arranque, sesión, acceso por perfil (escuchas en vivo), catálogo en vivo (`vigilarCatalogo` → `ctx.cat`), pesajes del día en vivo (`vigilarDia` → `ctx.dia`), del período (`vigilarPeriodo` → `ctx.per`), marca del respaldo (`ctx.respaldo`), franjas (`pintarBanner`), pestañas (`TABS`, con `oculta`, `permiso`, `datos` y `grande`), reparto de acciones (`alActuar`), escritura (`alEscribir`) y teclado (`alTeclear`), cambio de día, cerrar sesión con aviso de datos sin enviar |
+| `APP\js\app.js` | Arranque, sesión, acceso por perfil (escuchas en vivo), catálogo en vivo (`vigilarCatalogo` → `ctx.cat`), pesajes del día y su plan en vivo (`vigilarDia` → `ctx.dia`, con `plan` y `planManana`), del período (`vigilarPeriodo` → `ctx.per`), marca del respaldo (`ctx.respaldo`), franjas (`pintarBanner`), pestañas (`TABS`, con `oculta`, `permiso`, `datos` y `grande`), reparto de acciones (`alActuar`), escritura (`alEscribir`) y teclado (`alTeclear`), cambio de día, cerrar sesión con aviso de datos sin enviar |
 | `APP\js\core\nube.js` | Único contacto con Firebase: sesión, Firestore con caché sin conexión (`vigilarDoc`, `vigilarCol`, `vigilarDonde` con `_pend`, `vigilarRango`), lecturas del servidor (`leerCol`, `leerRango`, `leerDoc`), lectura única con copia del equipo (`consultarRango`, Fase 7), accesos, escrituras generales (`guardar`, `guardarVarios`, `borrar`, `ajustarNegocio`), `pendientes()`, App Check opcional con comprobante al iniciar (`estado().appCheckToken`, `appCheckConfigurado`), `estado()` |
 | `APP\js\core\perfil.js` | Perfiles, permisos (`puede`) y `resolver` (qué pantalla corresponde). Lógica pura |
 | `APP\js\core\pesaje.js` | Pesaje, lógica pura: teclado (`teclear`), `validarCantidad` (aviso 20 kg, confirmar 50 kg), `nuevoPesaje`, `soloPesaje`, `diferencia`, `constancia` (bitácora, con `quien`) y `describirCambio` (bitácora legible), `entregaEnCurso`, `entregaActual`, **`resumen`** (totales por pan, entrega y trabajador), `horaChile`, `sumarDias` |
@@ -221,6 +240,7 @@ Respuestas de Felipe (el detalle está en PLAN «Fase 9»):
 | `APP\js\core\excel.js` · `xlsx.js` | Excel de ventas: las seis hojas (`libro`), y con `costos` (Fase 9) columnas de costo y margen y la hoja «Resultado» · escritor .xlsx propio sin librerías (`crear`, ZIP sin comprimir, estilos —con `pct`—, fórmulas) |
 | `APP\js\core\xlsx-leer.js` · `cierres.js` | Lector .xlsx propio (ZIP comprimido con `DecompressionStream`, textos compartidos, fechas, límites) · cierres, lógica pura: `interpretar` (formatos de Excel), `clave`/`emparejar`/`preparar` (nombres con el catálogo, cuadre con el total del Excel), `documento`, `desdeApp` («Cerrar mes»), `cerradoEl`, `estadoMes`, `plantilla` |
 | `APP\js\core\costos.js` | Costos y margen (Fase 9), lógica pura: insumos (`validarInsumo`), precios de insumos con vigencia (`precioVigente`, `porUnidad`, `validarPrecio`), `cantidad` («250 g»), recetas con vigencia (`recetaVigente`, `validarReceta`, `costoReceta`, `costoUnitario`), `conCostos` y `totalesCosto` (líneas de venta), `resumenMes` (venta, ingredientes, margen por pan, gastos y resultado; Excel estimado), gastos (`filasGastos`, `validarGastos`), simulador (`simular`, `precioPara`), `INICIO` |
+| `APP\js\core\plan.js` | Plan de producción (Fase 10), lógica pura: `fechasMuestra`, `editable`, `sugerencias` (promedio de los días trabajados) y `redondear` (tandas completas hacia arriba), `panesDelForm`, `cantidad`, `validar` (con tandas), `documento`, `usarSugerencias`, `avance` (por pan, fuera del plan, totales), `estado` (en enteros), `lineaCorta` («faltan 18 kg»), textos |
 | `APP\js\core\indicadores.js` | Indicadores, proyección y metas, lógica pura: `resumenMes` (cierre o pesajes; por pan, por día, semana, trabajador, promedio, ritmo), `comparar`, `variacion`, `pctTexto`, `leerProyeccion`, `validarPct`, `proyectarMes`, `objetivo`, `avance`, `metasDesde`, `tablaAnio`, `documentoProyeccion`, `validarMeta` |
 | `APP\js\core\respaldo.js` | Respaldo: qué se lee por perfil y año (`reunir`, `anios`, `POR_FECHA`), archivo (`armar`, con `anio`), nombre, marca (`marcaNueva`) y franja semanal (`toca`, `textoMarca`) |
 | `APP\js\core\catalogo.js` | Catálogo, lógica pura: `numero`, `pesos`, `montos` (con `redondearPesos`), `ivaDe`, validaciones, orden (`mover`), **`precioVigente`**, `historial`, `idPrecio`, `clientePrincipal`, `nuevoId` |
@@ -234,7 +254,8 @@ Respuestas de Felipe (el detalle está en PLAN «Fase 9»):
 | `APP\js\pantallas\accesos.js` | Solo dueños: solicitudes, aprobar con perfil, cambiar, quitar, devolver; `aviso()` |
 | `APP\js\pantallas\catalogo.js` | Catálogo (dueños y externo): listas de productos con precio, trabajadores, cliente e IVA, y sus hojas |
 | `APP\js\pantallas\catalogo-producto.js` | Hojas de un producto: ficha con historial, formulario, precio con vigencia, orden, activar; ayudas comunes de las hojas (`enviar`, `error`, `pieHoja`) |
-| `APP\js\pantallas\inicio.js` | **Hoy** (dueños y externo): lo pesado en un día en vivo, venta con el precio vigente, por pan, entregas con sus canastos y su neto, por trabajador, anulados; otro día (‹ › y calendario); «＋ Anotar canasto» |
+| `APP\js\pantallas\inicio.js` | **Hoy** (dueños y externo): lo pesado en un día en vivo, **plan del día** (Fase 10), venta con el precio vigente, por pan, entregas con sus canastos y su neto, por trabajador, anulados; otro día (‹ › y calendario); «＋ Anotar canasto» |
+| `APP\js\pantallas\plan.js` | **Plan de producción** (Fase 10): bloque de Hoy (`bloqueHoy`, con el plan de mañana), de la tablet (`bloqueTablet`) y línea del botón de cada pan (`lineaPan`); hoja «Plan» con sugerencias, tandas en vivo, guardar y quitar |
 | `APP\js\pantallas\anotar.js` | Hoja «Anotar canasto» (fecha pasada o hoy) para dueños y externo |
 | `APP\js\pantallas\entregas.js` | **Entregas**: el mes por día y entrega, venta del mes, «Descargar Excel del mes» |
 | `APP\js\pantallas\registro.js` | **Registro general**: período, filtros, canastos de a 100 y bitácora de correcciones |
@@ -243,7 +264,7 @@ Respuestas de Felipe (el detalle está en PLAN «Fase 9»):
 | `APP\js\pantallas\indicadores.js` · `proyeccion.js` · `meses-datos.js` | **Números** (Indicadores): el mes con los nueve indicadores · «Año y metas»: gráfico y lista del año contra el anterior, proyección (hoja con factores y vista previa), fijar metas, meta de un mes · datos de cada mes (cierre, en vivo o lectura única guardada 10 minutos) |
 | `APP\js\pantallas\costos.js` · `costos-mes.js` · `costos-receta.js` | **Costos y margen** (Fase 9): Insumos (lista, ficha, precio con vigencia) · El mes (venta, ingredientes, margen por pan, gastos con «Copiar del mes anterior», resultado, Excel con costos) · receta por tanda (ver, cambiar, versiones) y simulador de precio; `resumenFicha` (bloque de la ficha del pan) |
 | `APP\js\pantallas\avisos.js` | Franjas: accesos por revisar, vendido sin precio, respaldo semanal («Más tarde») |
-| `APP\js\pantallas\pesaje.js` | **Pesaje** (tablet, letra grande): quién pesa, entrega en curso con «Cerrar entrega» / «Volver a abrir», panes, teclado propio y físico, nota, «Pesado hoy» con «Por enviar» |
+| `APP\js\pantallas\pesaje.js` | **Pesaje** (tablet, letra grande): quién pesa, entrega en curso con «Cerrar entrega» / «Volver a abrir», panes (con «faltan …» si hay plan), teclado propio y físico, nota, «Plan de hoy», «Pesado hoy» con «Por enviar» |
 | `APP\js\pantallas\pesaje-hoja.js` | Hojas comunes de un canasto (del día o del período): ficha, corregir, anular, reactivar (con constancia en `cambios`); nota del próximo canasto; `filaCanasto` («anotado el …»), `anotadoDespues`, `rechazo` |
 | `APP\js\pantallas\mas.js` | Cuenta y perfil, grupos Catálogo · Registros · Datos · Cuenta (Accesos, Ayuda, Aviso de privacidad), diagnóstico (perfil, UID, datos, App Check con comprobante, qué se bloqueó, apertura y pantalla más lenta), actualización |
 | `APP\js\pantallas\ayuda.js` · `privacidad.js` | **Ayuda** por perfil (temas que se abren de a uno) · **Aviso de privacidad** (hoja; `abrir`, `texto`, `lineaRecaptcha` para el ingreso) |
@@ -256,21 +277,19 @@ Respuestas de Felipe (el detalle está en PLAN «Fase 9»):
 | `tests\ventas-unit.js` · `xlsx-unit.js` · `leer-xlsx.js` | Sin navegador: líneas de venta, redondeo, meses, filtros, **Excel que cuadra con las entregas** (también un mes al azar) y respaldo · escritor .xlsx (ZIP, CRC, XML, fechas, fórmulas) · ayuda para abrir los .xlsx en las pruebas |
 | `tests\cierres-unit.js` · `cierres-e2e.js` · `fixtures\` | Sin navegador: lector, formatos, emparejar, documento con la copia de las reglas, «Listo cuando» con 10 meses · con navegador: importar, cerrar, reabrir, externo, tablet · Excel de ejemplo (LibreOffice y openpyxl) |
 | `tests\costos-unit.js` · `costos-e2e.js` | Sin navegador: las cuatro recetas de la panadería contra el cálculo a mano, vigencia, cantidades, margen, meses (Excel estimado), gastos, simulador y Excel con «Resultado» · con navegador: Costos de punta a punta (insumos, receta, simulador, El mes, gastos, Excel, externo y tablet) |
+| `tests\plan-unit.js` · `plan-e2e.js` | Sin navegador: sugerencia contra el cálculo a mano, redondeo a tandas, estados en 94,9 / 95 / 110 / 110,1 %, fuera del plan, totales = «Pesado hoy», documento con la copia de las reglas · con navegador: el plan de punta a punta (sugerencias, Hoy en vivo, mañana, día pasado, externo y tablet) |
 | `tests\indicadores-unit.js` · `indicadores-e2e.js` | Sin navegador: indicadores = Entregas = cierres (también 300 meses al azar), ritmo, comparaciones, proyección, metas, año y documento con la copia de las reglas · con navegador: Números de punta a punta (mes, cerrado, año, proyección, metas, externo, tablet) |
 | `tests\ventas-e2e.js` | Con navegador: Entregas, sin precio con franja, anotar en fecha pasada, registro con filtros y bitácora, corrección con nombre, Excel = Entregas, respaldo y su franja, sin conexión, externo y tablet |
 | `tests\reglas-casos.js` · `rules-emulator.js` | Casos de reglas compartidos · prueba contra las reglas reales con el emulador (CI o `npm run reglas`) |
-| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 80 vistas en 320, 360 (claro y oscuro) y 390 px |
+| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 84 vistas en 320, 360 (claro y oscuro) y 390 px |
 | `tests\privacidad-e2e.js` · `rendimiento.js` | Con navegador: aviso de privacidad (ingreso, espera, Más, cada perfil), Ayuda por perfil, títulos y foco, App Check (aviso de reCAPTCHA, insignia oculta, comprobante y su falla) y «Qué se bloqueó» · tamaño de la descarga, cálculos de un año y dibujo de cada pantalla con datos reales |
 | `tests\fake-firebase\` | Dobles de prueba de Firebase, Google, Firestore (`window.__fakeDb`; con `setDoc`, `updateDoc`, `deleteDoc`, lotes, consultas `where` de igualdad y de rango, lecturas del servidor, escrituras pendientes sin conexión y conteo de lecturas), App Check (con `getToken`; falla con `localStorage['fake.appCheckFalla']`) y la copia a mano de las reglas (`reglas.mjs`) |
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
 
 ```
-Proyecto App Panadería, Fase 10 (plan de producción diario). Lee D:\APP Panaderia\ESTADO.md y de
-PLAN.md solo las secciones 3, 7, 9, 12 y "Fase 10". De APP lee: js/app.js, js/core/catalogo.js,
-js/core/ventas.js, js/core/costos.js, js/core/indicadores.js, js/pantallas/pesaje.js, js/pantallas/inicio.js,
-firestore.rules, tests/reglas-casos.js y tests/a11y.js.
-Resultado del paso 24 de GUIA-FIREBASE.md: [pegar la tabla de 6 casillas y si «Reglas de Firestore
-(emulador)» quedó en verde].
-Planifica la Fase 10 con preguntas primero (qué se planifica, en kilos, tandas o canastos, cómo se compara con lo pesado).
+Proyecto App Panadería, Fase 10: verifiqué el paso 25 de GUIA-FIREBASE.md. Resultado: [emulador en GitHub Actions
+verde/rojo · casillas marcadas y las que no, con lo que se vio · versión y bloqueos del Diagnóstico].
+Lee D:\APP Panaderia\ESTADO.md y de PLAN.md solo "Fase 10". Si algo falló, lee además js/core/plan.js,
+js/pantallas/plan.js y lo que indique el error; corrige, prueba y deja ESTADO.md actualizado.
 ```

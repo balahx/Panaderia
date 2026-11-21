@@ -317,3 +317,31 @@ h1[tabindex="-1"]:focus { outline: none; }
 .rec-f .lab .muted { font-weight: 400; }
 .check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 8px 0; cursor: pointer; }
 .check input { flex: none; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--gold); }
+/* Plan de producción del día (Fase 10): cada pan con su plan, lo pesado, el % y lo que falta. Verde desde 95 % («cumplido»), aviso sobre
+   110 % («sobre el plan»): el estado va siempre en palabras, el color solo acompaña. En la tablet, con letra grande (escala en em). */
+.plan-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 8px; }
+.plan-h h2 { margin: 0; }
+.plan-lista { display: grid; gap: 0; }
+.plan-f { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.plan-f:last-child { border-bottom: 0; }
+.plan-l { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.plan-l b { font-weight: 600; overflow-wrap: anywhere; }
+.plan-l .badge { flex: none; }
+.plan-n { display: flex; flex-wrap: wrap; gap: 2px 14px; color: var(--muted); font-size: .92em; margin-top: 2px; }
+.plan-n b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.plan-pct { margin-left: auto; font: 700 1.1em/1.2 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.plan-falta { margin: 4px 0 0; font-weight: 600; }
+.est-cumplido .plan-falta { color: var(--ok); }
+.est-sobre .plan-falta { color: var(--warn-ink); background: var(--warn-bg); display: inline-block; padding: 2px 8px; border-radius: 8px; }
+.barra.sobre .barra-valor { fill: var(--warn-ink); }
+.plan-fuera-t { margin: 14px 0 4px; }
+.plan-tot { margin-top: 10px; background: var(--surface2); border-radius: 10px; }
+.plan-man { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.plan-campo { margin: 0 0 4px; }
+.plan-campo .lab .muted { font-weight: 400; }
+.plan-info { margin: 4px 0 10px; min-height: 1.2em; }
+.pes-plan { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+.pes-plan h2 { margin-top: 0; }
+.pes-op small.pes-plan-l { font-weight: 600; color: var(--ink); }
+.pes-op small.pes-plan-l.est-cumplido { color: var(--ok); }
+.pes-op small.pes-plan-l.est-sobre { color: var(--warn-ink); background: var(--warn-bg); border-radius: 6px; padding: 0 4px; align-self: flex-start; }

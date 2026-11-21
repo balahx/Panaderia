@@ -22,6 +22,8 @@ La primera vez, la app pide **acceso**: escribe tu nombre y toca **Pedir acceso*
 
 El pan queda elegido: el siguiente canasto es solo el número y **Guardar**. Si pasa de 20 kg la app avisa, pero se puede guardar igual.
 
+**Plan de hoy:** si los dueños armaron el plan, el botón de cada pan dice cuánto falta (**«faltan 18 kg»**) y más abajo aparece **Plan de hoy** con el plan, las tandas, lo pesado y lo que falta. Desde el 95 % sale en verde, **«✓ cumplido»**; sobre el 110 %, **«sobre el plan»**. Solo informa: se sigue pesando igual.
+
 **Corregir o anular:** en **Pesado hoy**, toca el canasto. La tablet corrige solo lo de **hoy**; lo de días anteriores lo corrigen los dueños.
 
 **Cerrar la entrega:** cuando sale el pedido, **Cerrar entrega** y confirmar. Lo que se pese después va a la entrega siguiente. Si fue un error y la nueva aún no tiene canastos: **Volver a abrir la entrega**.
@@ -33,6 +35,8 @@ El pan queda elegido: el siguiente canasto es solo el número y **Guardar**. Si 
 | Quiero… | Dónde |
 |---|---|
 | Ver lo pesado hoy, por pan, entrega y trabajador | **Hoy** (con ‹ › o el calendario, otro día) |
+| Armar el plan del día (cuánto hacer de cada pan) | **Hoy** → **Plan del día** → **Armar plan** → **Usar sugerencias** → revisar → **Guardar plan** |
+| Armar el plan de mañana | **Hoy** → **Plan de mañana** → **Armar** |
 | Agregar algo que no se pesó en la tablet | **Hoy** → el día → **Anotar canasto** |
 | Ver el mes y bajar el Excel para la contadora | **Entregas** → **Descargar Excel del mes** |
 | Cerrar el mes (desde el día 1 del mes siguiente) | **Entregas** → **Cerrar** (nombre del mes) → confirmar |
@@ -45,6 +49,7 @@ El pan queda elegido: el siguiente canasto es solo el número y **Guardar**. Si 
 | Descargar el respaldo semanal | La franja **Descargar**, o **Más → Exportar a Excel y respaldo** |
 | Dar o quitar un acceso (solo dueños) | **Más → Accesos** |
 
+- El **plan** se arma solo para hoy o mañana. La sugerencia es el promedio del mismo día de la semana en las 4 semanas anteriores, redondeado a tandas completas: revísala antes de guardar. Las tandas salen de la receta del pan.
 - Conviene **cerrar cada mes**: los números quedan fijos y la app trabaja más liviana.
 - El **respaldo** tiene precios, ventas y costos: guárdalo en un lugar privado, no lo compartas.
 - Si sube un insumo o cambia una receta (por ejemplo, la levadura de verano), anótalo **con la fecha desde la que rige**: los meses anteriores no cambian. El Excel de **Entregas** sale sin costos (es el de la contadora).

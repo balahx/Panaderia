@@ -2,7 +2,8 @@
    Quién pesa (queda elegido en el equipo) → 1 Pan → 2 Kilos o unidades con el teclado propio → 3 Guardar canasto.
    El pan queda elegido para el canasto siguiente. Arriba, la entrega en curso con «Cerrar entrega»; abajo, lo pesado hoy.
    La pantalla se redibuja sola cuando cambian los datos (app.js): lo que se está tecleando vive aquí (st), no en la página.
-   Sin conexión todo sigue igual: Firestore guarda en el equipo y envía al volver internet («Por enviar»). Nunca muestra precios. */
+   Sin conexión todo sigue igual: Firestore guarda en el equipo y envía al volver internet («Por enviar»). Nunca muestra precios.
+   Fase 10: con plan de hoy, cada pan del plan dice en su botón cuánto falta («faltan 18 kg», «✓ cumplido») y abajo va el «Plan de hoy». */
 import { esc, fechaTexto } from '../core/formato.js';
 import { svg, emptyHTML, errorHTML } from '../core/iconos.js';
 import { $, ask, cerrarHoja, toast } from '../core/ui.js';
@@ -10,6 +11,7 @@ import * as nube from '../core/nube.js';
 import * as cat from '../core/catalogo.js';
 import * as P from '../core/pesaje.js';
 import * as canasto from './pesaje-hoja.js';
+import * as plan from './plan.js';
 
 const st = { prod: '', txt: '', nota: '', eligiendo: false };
 const K_QUIEN = 'pan.pesador';
@@ -37,9 +39,10 @@ function entrega(c) {
     '<button class="btn ghost" data-act="pes-cerrar-entrega"' + (!listo || !ea.canastos || ea.n >= P.MAX_ENTREGAS ? ' disabled' : '') + '>Cerrar entrega</button></div>' +
     (listo && !ea.canastos && ea.n > 1 ? '<button class="lnk" data-act="pes-reabrir">Volver a abrir la entrega n.º ' + (ea.n - 1) + '</button>' : '') + '</section>';
 }
-function panes(prods) {
+function panes(prods, c) {
+  const linea = p => { const x = plan.lineaPan(c, p.id); return x ? '<small class="pes-plan-l est-' + x.estado + '">' + esc(x.texto) + '</small>' : '<small>' + (p.unidad === 'un' ? 'unidades' : 'kilos') + '</small>'; };
   return '<section class="sec"><p class="eyebrow" id="pesPanesT">1 · Pan</p><div class="pes-grid" id="pesPanes" role="group" aria-labelledby="pesPanesT">' +
-    prods.map(p => '<button class="pes-op" data-act="pes-pan" data-id="' + esc(p.id) + '" aria-pressed="' + (p.id === st.prod) + '"><b>' + esc(p.nombre) + '</b><small>' + (p.unidad === 'un' ? 'unidades' : 'kilos') + '</small></button>').join('') + '</div></section>';
+    prods.map(p => '<button class="pes-op" data-act="pes-pan" data-id="' + esc(p.id) + '" aria-pressed="' + (p.id === st.prod) + '"><b>' + esc(p.nombre) + '</b>' + linea(p) + '</button>').join('') + '</div></section>';
 }
 const TECLAS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 function teclado(c) {
@@ -73,7 +76,7 @@ export function html(c) {
   if (st.prod && !prods.some(p => p.id === st.prod)) { st.prod = ''; st.txt = ''; }
   const quien = trabs.find(t => t.id === pesador());
   if (!quien || st.eligiendo) return cab + elegirQuien(trabs, quien);
-  return cab + barraQuien(quien) + entrega(c) + '<div class="pes-trabajo">' + panes(prods) + teclado(c) + '</div>' + lista(c);
+  return cab + barraQuien(quien) + entrega(c) + '<div class="pes-trabajo">' + panes(prods, c) + teclado(c) + '</div>' + plan.bloqueTablet(c) + lista(c);
 }
 const pintar = c => { $('#view').innerHTML = html(c); };
 function pintarTeclado(c) { const t = $('#pesTeclado'); if (t) t.outerHTML = teclado(c); else pintar(c); }

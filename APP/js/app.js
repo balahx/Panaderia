@@ -3,6 +3,7 @@
 import { $, ask, cerrarHoja, toast } from './core/ui.js';
 import { svg } from './core/iconos.js';
 import { diaChile } from './core/formato.js';
+import { sumarDias } from './core/pesaje.js';
 import * as nube from './core/nube.js';
 import * as acceso from './core/acceso.js';
 import * as perfil from './core/perfil.js';
@@ -45,7 +46,7 @@ const TABS = [
 /* S.estado: un perfil ('dueno' | 'externo' | 'pesaje') o lo que falta para tenerlo (ver perfil.resolver). */
 const S = { user: null, tab: 'inicio', gate: { tipo: 'cargando' }, estado: 'comprobando', acc: null, lento: false, sol: null, miem: null, errListas: '',
   cat: null, errCat: '', nivel: '',     // cat: { productos, trabajadores, precios, clientes, insumos, preciosInsumo, recetas } (todo salvo productos y trabajadores, solo gestión)
-  dia: null,                            // dia: { fecha, pesajes, dia (entrega en curso), err } (core/pesaje.js)
+  dia: null,                            // dia: { fecha, pesajes, dia (entrega en curso), plan, planManana, err } (core/pesaje.js; plan: Fase 10, core/plan.js)
   per: null,                            // per: { desde, hasta, pesajes, cambios, err } (Entregas y Registro; solo gestión)
   respaldo: undefined,                  // config/respaldo: undefined = aún no se sabe · null = nunca hubo (core/respaldo.js)
   cierres: null,                        // cierres mensuales [{ id: 'AAAA-MM', … }] (Fase 6; solo gestión) · null = aún no llegan
@@ -181,10 +182,15 @@ function vigilarDia() {
   if (S.dia && S.dia.fecha === f) return;
   soltar(escuchasDia); S.dia = null;
   if (!f) return;
-  const k = S.dia = { fecha: f, pesajes: null, dia: undefined, err: '' };
+  const k = S.dia = { fecha: f, pesajes: null, dia: undefined, plan: undefined, planManana: undefined, err: '' };
   const repintar = () => { if (S.dia === k && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp(); };
   escuchasDia.push(nube.vigilarDonde('pesajes', 'fecha', f, l => { if (S.dia !== k) return; k.pesajes = l; k.err = ''; repintar(); }, cod => { if (S.dia !== k) return; k.err = cod; repintar(); }));
   escuchasDia.push(nube.vigilarDoc('dias/' + f, d => { if (S.dia !== k) return; k.dia = d; repintar(); }, cod => { if (S.dia !== k) return; k.err = cod; repintar(); }));
+  /* Plan de producción (Fase 10): el de ese día, para todos (la tablet solo puede leer el de hoy, y solo lo pide hoy). Dueños y externo,
+     mirando hoy, escuchan además el de mañana (un documento) para el aviso «Plan de mañana: sin plan» y su hoja. Si falla, sin plan. */
+  const plan = (ruta, campo) => escuchasDia.push(nube.vigilarDoc(ruta, d => { if (S.dia !== k) return; k[campo] = d; repintar(); }, () => { if (S.dia !== k) return; k[campo] = null; repintar(); }));
+  plan('planes/' + f, 'plan');
+  if (perfil.puede(S.estado, 'gestion') && f === diaChile(new Date())) plan('planes/' + sumarDias(f, 1), 'planManana');
 }
 /* Pesajes de un período (y su bitácora, si la pantalla la pide), en vivo, mientras se mira Entregas o el Registro general.
    Solo dueños y externo. Cuesta una lectura por documento al abrir: por eso se escucha solo en esas pantallas. */

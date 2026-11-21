@@ -2,8 +2,8 @@
 
 App web instalable (PWA) para una panadería familiar pequeña que fabrica pan y lo entrega a un supermercado. Se instala en iPhone, Android, iPad, tablet y Windows, funciona **con y sin internet**, y guarda los datos en Firebase (plan gratuito).
 
-- **En la panadería**, una tablet registra cada canasto que se pesa: pan, kilos o unidades, quién pesó y la entrega. Letra grande, tres toques por canasto, sin precios a la vista.
-- **Los dueños** (y una persona externa de confianza) ven el día en vivo, las entregas y la venta de cada mes con neto, IVA y total, el registro de correcciones, los cierres mensuales, los indicadores, la proyección y las metas, y los **costos y el margen de cada pan** (receta por tanda, precios de insumos, gastos del mes y resultado, con un simulador de precio); descargan el Excel para la contadora y el respaldo semanal.
+- **En la panadería**, una tablet registra cada canasto que se pesa: pan, kilos o unidades, quién pesó y la entrega. Letra grande, tres toques por canasto, sin precios a la vista. Si hay **plan de producción** del día, cada pan muestra lo que falta («faltan 18 kg»).
+- **Los dueños** (y una persona externa de confianza) ven el día en vivo, las entregas y la venta de cada mes con neto, IVA y total, el registro de correcciones, los cierres mensuales, los indicadores, la proyección y las metas, los **costos y el margen de cada pan** (receta por tanda, precios de insumos, gastos del mes y resultado, con un simulador de precio) y el **plan de producción** de hoy y mañana (sugerido con las 4 semanas anteriores, en tandas, comparado al momento con lo pesado); descargan el Excel para la contadora y el respaldo semanal.
 
 Versión actual: ver `APP/version.js` (o **Más → Diagnóstico** en la app).
 
@@ -13,7 +13,7 @@ Versión actual: ver `APP/version.js` (o **Más → Diagnóstico** en la app).
 |---|---|---|
 | Dueño | Dueño y dueña | Todo, y es el único que aprueba, cambia o quita accesos |
 | Externo | Persona de confianza | Todo, salvo los accesos |
-| Pesaje | La cuenta de Google de la tablet | Solo pesar, y corregir lo del mismo día. Nunca ve precios, ventas ni costos |
+| Pesaje | La cuenta de Google de la tablet | Solo pesar, y corregir lo del mismo día; ve el plan de producción de hoy. Nunca ve precios, ventas ni costos |
 
 Se entra solo con cuenta de Google. Quien entra por primera vez pide acceso y un dueño lo aprueba. Los dueños se definen a mano en la consola de Firebase (`config/negocio`): nadie puede nombrarse dueño desde la app.
 
@@ -83,6 +83,7 @@ Cuota diaria de Cloud Firestore en el plan Spark: 50 mil lecturas, 20 mil escrit
 | Abrir **Entregas** o **Números** de un mes sin cerrar | Una por canasto del mes (hasta ~1.200) |
 | Un mes **cerrado** en Entregas, Números o el año | Casi nada (usa el cierre) |
 | Costos (insumos, sus precios y recetas) | Unas decenas al abrir la app (dueños y externo); **El mes** lee los canastos del mes, como Entregas |
+| Plan de producción | Un documento por día (la tablet lo lee con los canastos de hoy); armarlo lee los canastos de 4 días de muestra (unas decenas) |
 | Respaldo semanal (por omisión, del año actual) | Hasta ~15 mil a fin de año |
 | Respaldo de **todos los años** | ~15 mil más por cada año: usar solo de vez en cuando |
 
@@ -92,6 +93,7 @@ Las escrituras son unas 40 a 100 al día y lo guardado crece unos 10 MB al año.
 
 - **Cada mes:** cerrar el mes anterior, anotar sus gastos (**Más → Costos y margen → El mes**) y descargar el Excel para la contadora (el de **Entregas**, que sale sin costos).
 - **Cuando sube un insumo o cambia una receta:** anotarlo con la fecha desde la que rige (los meses anteriores no cambian).
+- **Cada día (o la noche anterior):** armar o revisar el plan de producción (**Hoy → Plan del día / Plan de mañana**).
 - **Cada semana:** descargar el respaldo (la app lo recuerda con una franja) y guardarlo fuera del computador, en un lugar privado.
 - **Cada tanto:** revisar **Más → Accesos** (quitar a quien ya no corresponde) y aceptar los pull requests de Dependabot (acciones de GitHub) si **Actions** queda en verde.
 - **SDK de Firebase:** fijado en `tools/vendor.js`. Para actualizarlo: `node tools/vendor.js X.Y.Z`, `npm test`, revisar en `GUIA-FIREBASE.md` y publicar como un arreglo.

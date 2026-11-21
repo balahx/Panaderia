@@ -1,6 +1,6 @@
 # Guía paso a paso · Firebase, publicación y repositorio
 
-> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4 · paso 20: Fase 5 · paso 21: Fase 6 · paso 22: Fase 7 · paso 23: Fase 8 · paso 24: Fase 9). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
+> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4 · paso 20: Fase 5 · paso 21: Fase 6 · paso 22: Fase 7 · paso 23: Fase 8 · paso 24: Fase 9 · paso 25: Fase 10). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
 > Tiempo estimado: 60 a 90 minutos la primera vez.
 > Los nombres de botones están en español; entre paréntesis va el nombre en inglés por si tu consola aparece en ese idioma. Google cambia a veces el texto de un botón: si no lo encuentras igual, busca el más parecido.
 
@@ -34,6 +34,7 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 22 | **Fase 7:** publicar la versión 0.7.0 (indicadores, proyección y metas) | Terminal, el computador y el teléfono del dueño |
 | 23 | **Fase 8:** publicar la versión 0.8.0 (privacidad, ayuda, respaldo por año) y revisión final de seguridad | Terminal, cada equipo y consolas |
 | 24 | **Fase 9:** publicar la versión 0.9.0 (costos y margen por pan) y cargar insumos, recetas y gastos | Terminal, el computador y el teléfono del dueño |
+| 25 | **Fase 10:** publicar la versión 0.10.0 (plan de producción diario) y armar el primer plan | Terminal, el teléfono del dueño y la tablet |
 
 ---
 
@@ -815,6 +816,53 @@ firebase deploy --only hosting,firestore:rules
 **Listo cuando:** las seis casillas están marcadas (es el «Listo cuando» de la Fase 9).
 
 **Lecturas:** los insumos, sus precios y las recetas son unas decenas de documentos (se leen al abrir la app, solo en las cuentas de dueños y externo); los gastos, uno por mes. **El mes** lee los canastos del mes que miras, igual que **Entregas**.
+
+---
+
+## Paso 25 · Publicar la versión 0.10.0 (plan de producción diario)
+
+Esta versión agrega el **plan de producción del día** (lo arman dueños y externo; la tablet solo lo mira):
+- **Hoy → Plan del día:** por cada pan, cuánto se quiere tener pesado en el día (**todas las entregas juntas**), en kilos o unidades según el catálogo, con sus **tandas** (de la receta de la Fase 9). Al lado, al momento: **pesado**, **% de avance** y **lo que falta**. Desde el **95 %** sale en verde, **«✓ cumplido»**; sobre el **110 %**, aviso **«sobre el plan (+ 8 kg)»**. Lo pesado que no estaba en el plan sale aparte, **«fuera del plan»**. Solo informa: no bloquea nada.
+- **Armar plan / Cambiar plan** (hoy) y **Plan de mañana → Armar** (con el aviso «sin plan» cuando falta). La hoja tiene una fila por pan, la **sugerencia** de cada uno (el promedio del mismo día de la semana en las 4 semanas anteriores, contando solo los días con pesajes, redondeado **hacia arriba a tandas completas**; sin receta, al kilo o a la decena de unidades) y **Usar sugerencias**, que llena los panes vacíos. Cada número se corrige antes de guardar; en blanco, el pan no va.
+- Se arma **solo para hoy o mañana**. Un día pasado se mira en Hoy (‹ › o el calendario), tal como quedó, con su comparación.
+- **Tablet:** con plan de hoy, el botón de cada pan dice **«faltan 18 kg»** (o «✓ cumplido») y abajo aparece **«Plan de hoy»** con plan, tandas, pesado y lo que falta. Sin plan, la tablet queda como siempre. No ve el plan de mañana ni precios.
+
+Cambian las **reglas** (colección nueva `planes`: dueños y externo leen todo y escriben solo hoy o mañana; la tablet lee solo el de hoy y no escribe): hay que publicarlas junto con la app.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+npm test
+```
+
+Debe terminar con **«28 pruebas … todas bien»**.
+
+2. **Antes de publicar**, sube el código (`git add .`, `git commit -m "Fase 10: plan de producción diario"`, `git push`) y mira en GitHub → **Actions** → **Pruebas** que **«Reglas de Firestore (emulador)»** quede en verde. Ahora son **355 casos** (30 nuevos, del plan) y **desde el chat no se pudieron ejecutar con el emulador**: si queda en rojo, **no publiques** y lleva las líneas con ✗ al chat.
+
+3. Con ese paso en verde:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+4. En **cada equipo** (también la tablet): **Más → Buscar actualización → Actualizar ahora** (debe decir versión 0.10.0).
+
+5. **Armar el primer plan** (teléfono del dueño o computador): **Hoy → Plan del día → Armar plan → Usar sugerencias**, revisa los números y **Guardar plan**. Si un pan no tiene receta, se planifica igual, sin tandas (las recetas se anotan en Catálogo → el pan → Anotar receta).
+
+6. Verifica y marca:
+
+| Comprobación | ✓ / ✗ |
+|---|---|
+| La **sugerencia** de un pan es igual al cálculo a mano: promedio de lo pesado los 4 mismos días de la semana anteriores (solo los días con pesajes; se ven en Hoy con ‹ ›), redondeado hacia arriba a tandas completas | |
+| Con lo pesado, **«falta»** y el **%** de cada pan cuadran con **Pesado hoy** (por pan) | |
+| Un pan pasa a **verde** («✓ cumplido») desde el 95 % y muestra el **aviso** «sobre el plan» sobre el 110 % | |
+| La **tablet** ve el plan de hoy con las tandas y «faltan …» en el botón de cada pan, y no tiene cómo ver el de mañana | |
+| **Plan de mañana**: se arma y queda; en Hoy, un **día pasado** muestra su plan sin «Cambiar plan» | |
+| Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.10.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde (ahí se prueba que la tablet no lee el plan de mañana ni escribe planes) | |
+
+**Listo cuando:** las seis casillas están marcadas (es el «Listo cuando» de la Fase 10).
+
+**Lecturas:** el plan del día es **un documento** (la tablet lo lee junto con los canastos de hoy; dueños y externo, mirando hoy, también el de mañana). Abrir la hoja del plan lee los canastos de los **4 días de muestra** (unas decenas de lecturas, una vez cada 10 minutos). Todo dentro del plan gratuito.
 
 ---
 
