@@ -137,7 +137,7 @@ const nombreNuevo = s => { const t = cat.limpiar(s, 60); return t === t.toUpperC
 async function importar(c) {
   if (I.importando) return;
   if (navigator.onLine === false) { toast('Para importar hace falta internet.'); return; }
-  const k = c.cat || {}, iva = cat.ivaDe(c.negocio), cliente = cat.clientePrincipal(k.clientes), listos = revisar(c).filter(r => r.incluido && !r.problemas.length);
+  const k = c.cat || {}, iva = cat.ivaDe(c.negocio), cliente = cat.clienteOriginal(k.clientes), listos = revisar(c).filter(r => r.incluido && !r.problemas.length);
   if (!listos.length) return;
   const conApp = listos.filter(r => I.conApp.has(r.mes)).map(r => V.mesTexto(r.mes));
   const si = await ask({ title: '¿Importar ' + listos.length + (listos.length === 1 ? ' mes' : ' meses') + '?', ok: 'Importar',

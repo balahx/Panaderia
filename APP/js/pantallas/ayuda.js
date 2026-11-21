@@ -16,6 +16,9 @@ const PESAJE = [
     '<p>La tablet corrige solo lo de <b>hoy</b>. Lo de días anteriores lo corrigen los dueños.</p>'),
   tema('entrega', 'Cerrar la entrega', '<p>Cuando sale el pedido, toca <b>Cerrar entrega</b> y confirma: lo que se pese después va a la entrega siguiente.</p>' +
     '<p>Si la cerraste por error y la nueva todavía no tiene canastos, toca <b>Volver a abrir la entrega</b>.</p>'),
+  tema('para', 'Para qué cliente (y ventas sueltas)', '<p>Si la panadería le vende a más de un cliente, arriba sale <b>Para:</b> con los clientes. Toca el cliente antes de pesar: queda elegido en este equipo (al abrir, el supermercado).</p>' +
+    '<p>Cada cliente tiene <b>su propia entrega</b>: <b>Cerrar entrega</b> cierra solo la del cliente elegido.</p>' +
+    '<p><b>Ventas sueltas</b> (alguien que pasa a comprar): elige <b>Ventas sueltas</b>, pesa y, al guardar, escribe <b>quién compró</b> (basta el nombre de pila; se puede dejar en blanco). No tiene entregas.</p>'),
   tema('sinred', 'Sin internet', '<p>Sigue pesando: los canastos dicen <b>«Por enviar»</b> y se envían solos cuando vuelve la conexión.</p>' +
     '<p><b>No cierres sesión</b> mientras haya canastos por enviar: se perderían.</p>')
 ];
@@ -25,12 +28,18 @@ const GESTION = [
   tema('armar-plan', 'Armar el plan del día', pasos(['En <b>Hoy</b>, toca <b>Armar plan</b> (o <b>Cambiar plan</b>). Para el día siguiente, <b>Plan de mañana → Armar</b>.',
     'Toca <b>Usar sugerencias</b>: llena los panes vacíos con el promedio del mismo día de la semana en las 4 semanas anteriores, redondeado a tandas completas. Corrige lo que quieras; en blanco, el pan no va.',
     '<b>Guardar plan</b>.']) + '<p>Las tandas salen de la receta del pan (Más → Costos y margen) y se ven también en la tablet. El plan se arma solo para hoy o mañana; el de un día pasado se mira en Hoy, tal como quedó.</p>'),
-  tema('entregas', 'Entregas del mes y Excel para la contadora', '<p><b>Entregas</b> muestra el mes día por día, con neto, IVA y total. <b>Descargar Excel del mes</b> baja la planilla con todas las hojas; esa es la que se envía a la contadora.</p>'),
+  tema('entregas', 'Entregas del mes y Excel para la contadora', '<p><b>Entregas</b> muestra el mes día por día, con neto, IVA y total. <b>Descargar Excel del mes</b> baja la planilla con todas las hojas (también <b>Por cliente</b>); esa es la que se envía a la contadora. Para un solo cliente: el filtro <b>Cliente</b>, o <b>Más → Exportar a Excel</b> eligiendo el cliente.</p>'),
   tema('cerrar', 'Cerrar el mes', '<p>Desde el día 1 del mes siguiente, en <b>Entregas</b>, toca <b>Cerrar</b> y el nombre del mes, revisa los totales y confirma. Un mes cerrado ya no se modifica y sus números quedan fijos.</p>' +
     '<p>Conviene cerrar cada mes: los <b>Números</b> se calculan más rápido y usan menos lecturas.</p>'),
   tema('numeros', 'Números y metas', '<p><b>Números → El mes</b>: venta por pan, comparación con el mes anterior y con el mismo mes del año pasado, días más fuertes y kilos por trabajador.</p>' +
     '<p><b>Año y metas</b>: el año contra el anterior. <b>Ajustar proyección</b> calcula lo esperado; <b>Usar la proyección como metas</b> las fija. Tocando un mes se escribe su meta a mano.</p>'),
-  tema('precios', 'Cambiar un precio', pasos(['<b>Más → Catálogo</b>, toca el pan.', '<b>Cambiar precio</b>: escribe el precio <b>neto</b> (sin IVA) y desde qué día rige.', '<b>Guardar precio</b>.']) +
+  tema('clientes', 'Clientes y precios de cada uno', pasos(['<b>Más → Catálogo → Clientes e IVA → Agregar cliente</b>: escribe el nombre (un almacén, otro supermercado, un casino).',
+    'Si quieres, <b>Copiar los precios de</b> otro cliente (los de hoy, desde la fecha que elijas). Después ajusta cada uno en la ficha del pan (<b>Precio por cliente</b>).',
+    'En la panadería se elige <b>Para:</b> antes de pesar; tú, en <b>Anotar canasto</b>.']) +
+    '<p>En <b>Hoy</b>, <b>Entregas</b>, <b>Registro</b> y <b>Números</b> el filtro <b>Cliente</b> muestra el negocio entero o lo de uno. Cada cliente lleva su numeración de entregas. Un cliente no se borra: se desactiva (lo vendido se conserva). El plan de producción, la proyección y las metas son del negocio entero.</p>'),
+  tema('sueltas', 'Ventas sueltas', '<p>Para lo que se vende de vez en cuando a alguien que pasa: <b>Catálogo → Clientes e IVA → Activar ventas sueltas</b> y ponle precios en la ficha de cada pan.</p>' +
+    '<p>Cada venta suelta va una por una (hora, pan, cantidad y quién compró) en Hoy, Entregas y el Excel (columna <b>Comprador</b>). No tiene entregas.</p>'),
+  tema('precios', 'Cambiar un precio', pasos(['<b>Más → Catálogo</b>, toca el pan.', '<b>Cambiar precio</b> (con varios clientes, el del cliente que se muestra): escribe el precio <b>neto</b> (sin IVA) y desde qué día rige.', '<b>Guardar precio</b>.']) +
     '<p>Los días anteriores mantienen el precio que tenían.</p>'),
   tema('costos', 'Costos y margen de cada pan', pasos(['<b>Más → Costos y margen → Insumos</b>: agrega harina, margarina, sal, levadura… con el precio <b>neto de factura</b> (cuánto trae el saco o la caja y cuánto cuesta).',
     '<b>Más → Catálogo</b>, toca un pan y luego <b>Anotar receta</b>: lo que lleva <b>una tanda</b> («250 g» también vale) y cuántos kilos (o unidades) salen.',

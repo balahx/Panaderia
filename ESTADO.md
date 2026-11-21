@@ -17,13 +17,13 @@
 | 8 | Cierre y entrega (App Check: se decidió no usarlo) | 9 | ✔ Hecha. Paso 23 verificado por Felipe (20-nov-2026): tabla C (5 casillas) y tabla B de consolas completas, Diagnóstico con versión 0.8.0, 0 bloqueos y «App Check: Sin configurar» en los tres tipos de equipo |
 | 9 | Costos y margen por pan | 10 | ✔ Hecha. Paso 24 verificado por Felipe (20-nov-2026): las 6 casillas (costo por kg de la hallulla = cálculo a mano, simulador, alza de mañana sin efecto hoy, El mes con resultado = margen − gastos, Excel con hoja «Resultado» y Entregas sin costos, externo sí y tablet no), Diagnóstico con 0 bloqueos y versión 0.9.0, emulador en verde |
 | 10 | Plan de producción diario | 11 | ✔ Hecha. Paso 25 verificado por Felipe (20-nov-2026): las 6 casillas (sugerencia = cálculo a mano, «falta» y % cuadran con Pesado hoy, verde desde 95 % y aviso sobre 110 %, tablet con el plan de hoy y sin el de mañana, plan de mañana y día pasado solo lectura), Diagnóstico con 0 bloqueos y versión 0.10.0, emulador en verde |
-| 11 | Varios clientes y ventas sueltas | 12 | ◐ Planificada (20-nov-2026, dos rondas de preguntas). Falta desarrollarla (versión 0.11.0) |
+| 11 | Varios clientes y ventas sueltas | 12 | ◐ Desarrollada (21-nov-2026, versión 0.11.0, 30 pruebas en verde). Falta que Felipe la verifique: `GUIA-FIREBASE.md`, **paso 26** (con el emulador en verde en GitHub Actions antes de publicar) |
 
-Versión de la app: **0.10.0** (caché 2026.11.20.2) · 28 pruebas, todas bien (20-nov-2026, con Firebase, Google y Firestore simulados) · 355 casos de reglas (30 nuevos de la Fase 10), emulador en verde en GitHub Actions (20-nov-2026)
+Versión de la app: **0.11.0** (caché 2026.11.21.1) · 30 pruebas, todas bien (21-nov-2026, con Firebase, Google y Firestore simulados) · 395 casos de reglas (40 nuevos de la Fase 11); **el emulador aún no corre con ellos** (desde el chat no se pudo: se ve en GitHub Actions al subir)
 
-## Qué sigue: desarrollar la Fase 11 (chat 12)
+## Qué sigue: verificar la Fase 11 (paso 26)
 
-Las fases 0 a 10 quedaron cerradas el 20-nov-2026. La **Fase 11 (varios clientes y ventas sueltas)** está planificada en PLAN «Fase 11» (lo decidido, en `decisiones/fase-11.md`). Al terminar: pruebas, versión 0.11.0, reglas (`clientes` legible por la tablet, `clienteId` en pesajes, `dias/{fecha}_{clienteId}`, cierres por cliente; casos en `reglas-casos.js`), `a11y.js`, guía con el **paso 26** y este archivo actualizado. Los otros futuros (hoja de insumos del día, balanza, plan en el Excel, cumplimiento del mes en Números) siguen en su propio chat, con preguntas primero.
+La Fase 11 quedó desarrollada el 21-nov-2026 (lo decidido, en `decisiones/fase-11.md` «Desarrollo»). Falta: subir a GitHub y ver **«Reglas de Firestore (emulador)»** en verde (395 casos; si sale algo en rojo, **no publicar** y traer las líneas con ✗ a un chat de arreglo), publicar app y reglas juntas, actualizar cada equipo y marcar las 6 casillas del **paso 26**. Los otros futuros (hoja de insumos del día, balanza, plan en el Excel, cumplimiento del mes en Números) siguen en su propio chat, con preguntas primero.
 
 ## Decisiones generales
 
@@ -31,6 +31,7 @@ Las fases 0 a 10 quedaron cerradas el 20-nov-2026. La **Fase 11 (varios clientes
 - Tablet con una cuenta de Google; quien pesa toca su nombre; corrige solo lo del día.
 - Pesaje por canasto, kg con 2 decimales o unidades según catálogo, aviso sobre 20 kg, nota opcional, día calendario chileno.
 - Varias entregas por día; se arman solas con los pesajes. Sin guías, mermas ni pagos.
+- Varios clientes (Fase 11): cada uno con su lista de precios y su numeración de entregas; «Ventas sueltas» con quién compró; lo pesado antes es del supermercado; total del negocio + filtro por cliente; plan, proyección y metas del negocio entero.
 - Precios netos + IVA; historial de vigencia.
 - Cierres ene–oct 2026 desde Excel; noviembre por fecha pasada; «Cerrar mes» en adelante.
 - Proyección: mismo mes del año anterior × factor (general y por pan) + factor de precio; metas con seguimiento.
@@ -66,21 +67,16 @@ Las fases 0 a 10 quedaron cerradas el 20-nov-2026. La **Fase 11 (varios clientes
 
 - Opcional: cifras del Diagnóstico de la tablet («Apertura de la app» y «Pantalla más lenta»). En el paso 23 se marcaron sin anotar los números.
 - Noviembre de 2026 se cierra desde Entregas a partir del 1 de diciembre; con noviembre y diciembre cerrados se puede proyectar todo 2027.
-- «Ajustes» del plan (§8) aún no existe como pantalla: el IVA quedó dentro de Catálogo → Cliente e IVA.
+- «Ajustes» del plan (§8) aún no existe como pantalla: el IVA quedó dentro de Catálogo → Clientes e IVA.
+- Fase 11: falta ver en el Excel de Windows la hoja «Por cliente» y la columna «Comprador» (probadas con el lector propio de las pruebas).
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
 
-Para desarrollar la Fase 11:
+Si el paso 26 falla en algo (arreglo):
 ```
-Proyecto App Panadería, Fase 11 (varios clientes y ventas sueltas): desarrollarla completa según PLAN «Fase 11»,
-cerrando con pruebas, versión 0.11.0, guía (paso 26) y ESTADO.md actualizado.
-Lee D:\APP Panaderia\ESTADO.md, MAPA.md, decisiones/fase-11.md, fase-03.md, fase-04.md, fase-05.md y fase-06.md,
-y de PLAN.md solo las secciones 7, 9, 12 y "Fase 11". De APP lee: js/app.js,
-js/core/catalogo.js, js/core/ventas.js, js/core/pesaje.js, js/core/cierres.js, js/core/indicadores.js, js/core/excel.js,
-js/pantallas/catalogo.js, js/pantallas/catalogo-producto.js, js/pantallas/pesaje.js, js/pantallas/pesaje-hoja.js,
-js/pantallas/anotar.js, js/pantallas/inicio.js, js/pantallas/entregas.js, js/pantallas/registro.js, js/pantallas/datos.js,
-sw.js, firestore.rules, tests/reglas-casos.js, tests/fake-firebase/reglas.mjs y tests/a11y.js. Si se alarga,
-divídela en dos chats: (1) datos, reglas, catálogo y tablet; (2) Hoy, Entregas, Números, cierres y Excel.
+Proyecto App Panadería, arreglo de la Fase 11: [qué casilla del paso 26 falló, o las líneas con ✗ del emulador].
+Lee D:\APP Panaderia\ESTADO.md, MAPA.md y decisiones/fase-11.md, y solo los archivos que toca el arreglo;
+corrige, prueba, sube la versión (Z) y deja ESTADO.md actualizado.
 ```
 
 Para un arreglo:

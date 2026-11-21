@@ -130,7 +130,7 @@ Object.fromEntries([pes('h1', HOY, '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', HOY,
   const x1 = await descarga('#datExcel');
   ok(x1.nombre === 'ventas-' + MES + '.xlsx', 'baja «' + x1.nombre + '»');
   let L = null; try { L = leer(x1.bytes); } catch (e) { console.log('    ' + e.message); }
-  ok(!!L && L.orden.join() === 'Resumen,Ventas,Entregas,Por día,Por pan,Canastos', 'el archivo es un Excel válido con sus seis hojas');
+  ok(!!L && L.orden.join() === 'Resumen,Ventas,Entregas,Por día,Por pan,Por cliente,Canastos', 'el archivo es un Excel válido con sus siete hojas (con «Por cliente», Fase 11)');
   const T2 = await esperado(rMes.desde, hastaMes), H = L.hojas, nV = H.Ventas.filas.length - 2, nE = H.Entregas.filas.length - 2;
   ok(H.Ventas.filas[nV + 1][11] === T2.total && H.Entregas.filas[nE + 1][9] === T2.total && sumaCol(H.Ventas.filas, 9, 1, 1 + nV) === sumaCol(H.Entregas.filas, 7, 1, 1 + nE) && sumaCol(H.Ventas.filas, 9, 1, 1 + nV) === T2.neto && T2.iva === Math.round(T2.neto * 19 / 100), 'Ventas = suma de las entregas (neto) y el IVA es el 19 % del neto del mes: total ' + C.pesos(T2.total));
   ok(H.Ventas.filas.slice(1, 1 + nV).some(f => f[4] === 'Hallulla' && f[12] === 'Sin precio ese día: no suma') && H.Ventas.filas[1][3] === 'Supermercado', 'con cliente, y la Hallulla sin precio marcada');
@@ -146,7 +146,7 @@ Object.fromEntries([pes('h1', HOY, '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', HOY,
   ok(x3.nombre === (V5.slice(0, 7) === HOY.slice(0, 7) && V5.endsWith('-01') ? 'ventas-' + HOY.slice(0, 7) + '.xlsx' : 'ventas-' + V5 + '_a_' + HOY + '.xlsx') && (f => f[f.length - 1][11])(leer(x3.bytes).hojas.Ventas.filas) === T3.total, 'un período a elección: ' + x3.nombre);
   await page.check('#datCostos');
   const x5 = await descarga('#datExcel'), L5 = leer(x5.bytes);
-  ok(L5.orden.join() === 'Resumen,Resultado,Ventas,Entregas,Por día,Por pan,Canastos' && L5.hojas.Ventas.filas[0][12] === 'Costo ingredientes' && !L5.hojas.Resultado.filas.some(f => f[0] === 'Total de gastos'), 'con la casilla marcada: hoja «Resultado» y columnas de costo (con otras fechas, sin gastos del mes)');
+  ok(L5.orden.join() === 'Resumen,Resultado,Ventas,Entregas,Por día,Por pan,Por cliente,Canastos' && L5.hojas.Ventas.filas[0][12] === 'Costo ingredientes' && !L5.hojas.Resultado.filas.some(f => f[0] === 'Total de gastos'), 'con la casilla marcada: hoja «Resultado» y columnas de costo (con otras fechas, sin gastos del mes)');
 
   console.log('6. Respaldo');
   const ANIO = HOY.slice(0, 4), delAnio = l => l.filter(x => String(x.fecha).startsWith(ANIO));
@@ -187,7 +187,7 @@ Object.fromEntries([pes('h1', HOY, '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', HOY,
   const r2 = JSON.parse((await descarga('#datRespaldo')).bytes.toString('utf8'));
   ok(r2.datos.pesajes.length > 0 && !('miembros' in r2.datos) && !('solicitudes' in r2.datos) && r2.perfil === 'externo', 'su respaldo trae los datos, pero no los accesos (no puede leerlos)');
   const x4 = await descarga('#datExcel');
-  ok(leer(x4.bytes).orden.length === 7, 'y también descarga el Excel (con costos, por omisión)');
+  ok(leer(x4.bytes).orden.length === 8, 'y también descarga el Excel (con costos, por omisión; con «Por cliente»)');
 
   console.log('9. La tablet no ve nada de esto');
   await salir(); await entrar(TABLET); await page.waitForSelector('#pesQuien');

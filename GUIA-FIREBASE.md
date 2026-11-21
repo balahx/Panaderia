@@ -35,6 +35,7 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 23 | **Fase 8:** publicar la versión 0.8.0 (privacidad, ayuda, respaldo por año) y revisión final de seguridad | Terminal, cada equipo y consolas |
 | 24 | **Fase 9:** publicar la versión 0.9.0 (costos y margen por pan) y cargar insumos, recetas y gastos | Terminal, el computador y el teléfono del dueño |
 | 25 | **Fase 10:** publicar la versión 0.10.0 (plan de producción diario) y armar el primer plan | Terminal, el teléfono del dueño y la tablet |
+| 26 | **Fase 11:** publicar la versión 0.11.0 (varios clientes y ventas sueltas) y crear el primer cliente nuevo | Terminal, el teléfono del dueño, el computador y la tablet |
 
 ---
 
@@ -863,6 +864,56 @@ firebase deploy --only hosting,firestore:rules
 **Listo cuando:** las seis casillas están marcadas (es el «Listo cuando» de la Fase 10).
 
 **Lecturas:** el plan del día es **un documento** (la tablet lo lee junto con los canastos de hoy; dueños y externo, mirando hoy, también el de mañana). Abrir la hoja del plan lee los canastos de los **4 días de muestra** (unas decenas de lecturas, una vez cada 10 minutos). Todo dentro del plan gratuito.
+
+---
+
+## Paso 26 · Publicar la versión 0.11.0 (varios clientes y ventas sueltas)
+
+Esta versión permite venderle a **más clientes** además del supermercado, y anotar **ventas sueltas**:
+- **Catálogo → Clientes e IVA** (antes «Cliente e IVA»): la lista de clientes, **Agregar cliente** (con **Copiar los precios de** otro cliente: los de hoy, desde la fecha que elijas), cambiar nombre, desactivar o reactivar (nada se borra) y **Activar ventas sueltas** (un cliente fijo, «Ventas sueltas»). En la ficha de cada pan: **Precio por cliente** (tocando un cliente se ve y se cambia su precio y su historial); en Productos, **Precios de** elige de qué cliente es la lista.
+- **Tablet:** con más de un cliente activo aparece **«Para:»** arriba (el supermercado viene marcado; la elección queda en el equipo; con más de 3 clientes se elige en una hoja). La **entrega en curso** y **Cerrar entrega** son las del cliente elegido (cada cliente con su numeración). Con **Ventas sueltas** no hay entregas y, al guardar, pregunta **«¿Quién compró?»** (opcional; basta el nombre de pila). **Con un solo cliente la tablet queda igual que antes.** Nunca ve precios.
+- **Hoy, Entregas, Registro y Números:** el **total del negocio** y el filtro **Cliente** (Todos o uno). Con «Todos», la venta dice cuánto es de cada cliente, las entregas van agrupadas por cliente y las ventas sueltas una por una. **Números → El mes** suma el indicador **Por cliente** (neto, participación y variación). El **plan de producción**, la **proyección** y las **metas** siguen siendo del negocio entero.
+- **Anotar canasto** (Hoy) pide también **Para**; al **corregir** un canasto se puede cambiar el cliente (queda en la bitácora: «cliente: Supermercado → Almacén Rosa»).
+- **Excel:** columna **Cliente** en Ventas, Entregas y Canastos; en las ventas sueltas, una fila por venta con **Comprador**; hoja nueva **Por cliente**. En Datos (o con el filtro de Entregas) se puede bajar el **Excel de un solo cliente**.
+- **Cerrar mes:** un solo cierre con las líneas **por pan y por cliente** y el resumen por cliente; el IVA sigue siendo el 19 % del neto del mes.
+- **Lo ya guardado no cambia:** todo lo pesado antes de esta versión es del **supermercado** (aunque algún día se desactive), su entrega sigue en el mismo documento de siempre, y los cierres de enero a octubre (Excel) son del supermercado.
+
+Cambian las **reglas** (la tablet lee `clientes`, que no tiene montos; `clienteId` en los pesajes —el cliente debe existir y estar activo—; `dias/{fecha}_{cliente}` para la entrega de cada otro cliente; cierres con líneas por cliente): hay que publicarlas junto con la app. **Publica la app y las reglas juntas** (el mismo comando): la tablet con la versión anterior sigue funcionando mientras se actualiza.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+npm test
+```
+
+Debe terminar con **«30 pruebas … todas bien»**.
+
+2. **Antes de publicar**, sube el código (`git add .`, `git commit -m "Fase 11: varios clientes y ventas sueltas"`, `git push`) y mira en GitHub → **Actions** → **Pruebas** que **«Reglas de Firestore (emulador)»** quede en verde. Ahora son **395 casos** (40 nuevos, de clientes) y **desde el chat no se pudieron ejecutar con el emulador**: si queda en rojo, **no publiques** y lleva las líneas con ✗ al chat.
+
+3. Con ese paso en verde:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+4. En **cada equipo** (también la tablet): **Más → Buscar actualización → Actualizar ahora** (debe decir versión 0.11.0). Antes de crear un cliente, mira la tablet: **debe verse igual que antes** (sin «Para:»).
+
+5. **Crear el primer cliente** (computador o teléfono del dueño): **Más → Catálogo → Clientes e IVA → Agregar cliente**, escribe el nombre y en **Copiar los precios de** elige **Supermercado**. Luego, en la ficha de cada pan, **Precio por cliente** → el cliente nuevo → **Cambiar precio** si su precio es distinto. Si se venden ventas sueltas: **Activar ventas sueltas** y ponles precio igual.
+
+6. Verifica y marca:
+
+| Comprobación | ✓ / ✗ |
+|---|---|
+| Con un cliente nuevo y una venta suelta pesados hoy, **cada línea usa el precio de su cliente** (en Hoy, «Por cliente»: cantidad × su precio, a mano) | |
+| El **total del día** en Hoy y el **del mes** en Entregas = la suma de los clientes de «Por cliente»; **Números → El mes** dice lo mismo; el **Excel** (hoja «Por cliente» y «Ventas») también | |
+| Lo **pesado antes** de la versión 0.11.0 sigue siendo del **supermercado** (Hoy de un día anterior, filtro Cliente = Supermercado) | |
+| En la **tablet**: «Para:» aparece; **Cerrar entrega** con el cliente nuevo elegido **no cambia** la entrega del supermercado; con **Ventas sueltas** pide «¿Quién compró?»; **no se ve ningún precio** | |
+| El **plan de producción** de hoy cuenta lo pesado para **todos** los clientes y las ventas sueltas | |
+| Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.11.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde (ahí se prueba que la tablet lee clientes pero no precios, que no anota para un cliente desactivado y que cada cliente tiene su entrega) | |
+
+**Listo cuando:** las seis casillas están marcadas (es el «Listo cuando» de la Fase 11). El **cierre de noviembre** (desde el 1 de diciembre, en Entregas) ya sale con las líneas por cliente.
+
+**Lecturas:** los clientes son unos pocos documentos (ahora también los lee la tablet) y cada cliente regular agrega **un documento por día** (su entrega en curso). El resto sigue igual. Todo dentro del plan gratuito.
 
 ---
 

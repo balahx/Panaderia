@@ -8,6 +8,9 @@
    Fase 8: el aviso de privacidad (desde el ingreso y desde «Más»), la Ayuda (temas cerrados y abiertos) y una pasada a 320 px.
    Fase 10: Hoy con el plan del día (bajo, cumplido y sobre el plan), la hoja del plan (con sugerencias y con error), el plan de mañana y
    la pestaña Pesaje con el plan de hoy y «faltan …» en los botones.
+   Fase 11: Catálogo con los clientes (lista, agregar copiando precios, ficha) y el precio por cliente; Hoy, Entregas, Números, Registro y
+   Datos con el filtro «Cliente» y «Por cliente»; anotar para un cliente o una venta suelta; la tablet con «Para:», la venta suelta con
+   «¿Quién compró?» y, con más de tres clientes, la hoja de clientes.
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
 const { crear } = require('../tools/servidor.js'), { fakeGoogle } = require('./fake-firebase/google.js');
@@ -164,7 +167,7 @@ const CHECK = () => {
     await hoja('trabajador: agregar', '[data-act="cat-trab-nuevo"]', '#tNombre'); await cerrar();
     await hoja('trabajador: ficha', '#listaTrabajadores .mrow', '[data-act="cat-trab-activar"]'); await cerrar();
     await sub('negocio'); await look('catálogo: cliente e IVA');
-    await hoja('cliente', '[data-act="cat-cliente"]', '#cNombre'); await cerrar();
+    await hoja('cliente', '[data-act="cat-cli"]', '#cNombre'); await cerrar();
     await hoja('IVA', '[data-act="cat-iva"]', '#ivaNuevo'); await cerrar();
     await sub('productos');   // costos y margen (Fase 9): la ficha del pan, la receta, el simulador, insumos, el mes y sus gastos
     await hoja('producto: ficha con costo', '#listaProductos .mrow:nth-child(1)', '#costoHoy');
@@ -183,9 +186,34 @@ const CHECK = () => {
     await page.fill('#cosMes', '2026-10'); await page.dispatchEvent('#cosMes', 'input'); await page.waitForSelector('#cosFuente'); await look('costos: mes cerrado desde Excel');
     await page.fill('#cosMes', '2026-08'); await page.dispatchEvent('#cosMes', 'input'); await page.waitForSelector('#cosSinGastos'); await look('costos: mes sin ventas');
     await tocar('.seg [data-sub="insumos"]'); await page.waitForSelector('#listaInsumos');
-    await tocar('.volver'); await tocar('#irCatalogo'); await page.waitForSelector('#listaProductos .mrow'); await sub('negocio');
+    /* Fase 11: varios clientes y ventas sueltas (catálogo, Hoy, Entregas, Números, Registro, Datos y la tablet con «Para:») */
+    await page.evaluate(h => { const D = window.__fakeDb;
+      D.poner('clientes/c2', { nombre: 'Almacén Rosa con un nombre bastante largo', activo: true, tipo: 'regular', en: 2 }); D.poner('clientes/cs', { nombre: 'Ventas sueltas', activo: true, tipo: 'suelta', en: 3 });
+      D.poner('precios/p1_c2_2026-01-01', { productoId: 'p1', clienteId: 'c2', neto: 1500, desde: '2026-01-01', en: 1 }); D.poner('precios/p1_cs_2026-01-01', { productoId: 'p1', clienteId: 'cs', neto: 2000, desde: '2026-01-01', en: 1 });
+      D.poner('pesajes/k1', { fecha: h, hora: '09:00', entregaN: 1, clienteId: 'c2', productoId: 'p1', cantidad: 5, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: 'u-1001', en: 1794600090000 });
+      D.poner('pesajes/k2', { fecha: h, hora: '10:42', entregaN: 1, clienteId: 'cs', productoId: 'p1', cantidad: 2, unidad: 'kg', trabajadorId: 't1', nota: 'Sra. Marta con un apellido bastante largo', anulado: false, creadoPor: 'u-1001', en: 1794600100000 }); }, HOY);
+    await tocar('.volver'); await tocar('#irCatalogo'); await page.waitForSelector('#catLista'); await look('catálogo: precios de un cliente');
+    await hoja('producto: precio por cliente', '#listaProductos .mrow:nth-child(1)', '#precioClientes'); await cerrar();
+    await sub('negocio'); await page.waitForSelector('#listaClientes'); await look('catálogo: clientes');
+    await hoja('cliente: agregar copiando precios', '[data-act="cat-cli-nuevo"]', '#cCopiar'); await cerrar();
+    await hoja('cliente: ficha', '#listaClientes [data-id="c2"]', '#cCopiarCaja'); await tocar('#cCopiarCaja summary'); await look('cliente: copiar precios'); await cerrar();
+    await tocar('#nav button[data-tab="inicio"]'); await page.waitForSelector('#hoyCliente'); await page.waitForSelector('#hoyPorCliente'); await look('hoy: varios clientes, agrupado por cliente');
+    await hoja('hoy: anotar para un cliente', '#hoyAnotar', '#anCliente'); await page.selectOption('#anCliente', 'cs'); await page.waitForSelector('#anEntregaCaja[hidden]', { state: 'attached' }); await look('hoy: anotar venta suelta'); await cerrar();
+    await page.selectOption('#hoyCliente', 'c2'); await page.waitForFunction(() => !document.getElementById('hoyPorCliente')); await look('hoy: filtro por cliente'); await page.selectOption('#hoyCliente', '');
+    await tocar('#nav button[data-tab="entregas"]'); await page.waitForSelector('#entCliente'); await page.fill('#entMes', HOY.slice(0, 7)); await page.dispatchEvent('#entMes', 'input'); await page.waitForSelector('#entPorCliente'); await look('entregas: por cliente');
+    await tocar('#nav button[data-tab="indicadores"]'); await page.waitForSelector('#indMes'); await page.fill('#indMes', HOY.slice(0, 7)); await page.dispatchEvent('#indMes', 'input'); await page.waitForSelector('#indClientes'); await look('números: por cliente');
+    await page.selectOption('#indCliente', 'c2'); await page.waitForSelector('#indMetaCli'); await look('números: filtro por cliente'); await page.selectOption('#indCliente', '');
+    await tocar('#nav button[data-tab="pesaje"]'); await page.waitForSelector('#pesPara'); await look('pesaje: «Para:» con tres clientes');
+    await tocar('#pesPara [data-id="cs"]'); await page.waitForSelector('#pesEntrega'); await tocar('#pesPanes .pes-op:nth-child(1)'); await tocar('#pesTeclado [data-k="2"]'); await look('pesaje: venta suelta');
+    await hoja('pesaje: ¿quién compró?', '#pesGuardar', '#pComprador'); await cerrar();
+    await page.evaluate(() => { const D = window.__fakeDb; D.poner('clientes/c4', { nombre: 'Casino Norte', activo: true, tipo: 'regular', en: 4 }); D.poner('clientes/c5', { nombre: 'Otro supermercado', activo: true, tipo: 'regular', en: 5 }); });
+    await page.waitForSelector('#pesPara .pes-para-b'); await look('pesaje: más de tres clientes');
+    await hoja('pesaje: hoja de clientes', '[data-act="pes-clientes"]', '#pesClientes'); await cerrar();
+    await tocar('#nav button[data-tab="mas"]'); await tocar('#irRegistro'); await page.waitForSelector('#regCliente'); await look('registro: filtro por cliente'); await tocar('.volver');
+    await tocar('#irDatos'); await page.waitForSelector('#datCliente'); await look('datos: excel de un cliente'); await tocar('.volver');
+    await tocar('#irCatalogo'); await page.waitForSelector('#catCuerpo'); await sub('negocio');
     await page.evaluate(() => { const d = window.__fakeDb.todo(); Object.keys(d).filter(r => /^(productos|trabajadores|clientes|precios)\//.test(r)).forEach(r => window.__fakeDb.borrar(r)); });
-    await page.waitForSelector('#tarjetaCliente [data-act="cat-cliente"].btn:not(.ghost)'); await look('catálogo vacío: cliente');
+    await page.waitForSelector('#tarjetaCliente [data-act="cat-cli-nuevo"].btn:not(.ghost)'); await look('catálogo vacío: cliente');
     await sub('productos'); await page.waitForSelector('#faltaCliente'); await look('catálogo vacío: productos');
     await sub('trabajadores'); await look('catálogo vacío: trabajadores');
     await tocar('.volver'); await tocar('[data-act="salir"]'); await page.waitForSelector('dialog.cfm[open]'); await look('cerrar sesión');

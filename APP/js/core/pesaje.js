@@ -3,6 +3,8 @@
    Pesaje (un canasto):  { fecha 'AAAA-MM-DD' (día chileno), hora 'HH:MM', entregaN, productoId, cantidad, unidad 'kg'|'un',
                            trabajadorId, nota?, anulado, creadoPor (UID de la cuenta), en (hora del servidor) }
    Día:                  dias/{fecha} = { entregaN (la entrega en curso), por, en }. Sin el documento, la entrega en curso es la n.º 1.
+   Fase 11: el pesaje lleva `clienteId` (sin él = el cliente original). Cada cliente regular tiene su propia numeración de entregas:
+   el original sigue en dias/{fecha} y los demás en dias/{fecha}_{clienteId} (rutaDia). «Ventas sueltas» no tiene entregas (entregaN 1).
    Los totales NO se guardan: se calculan aquí con los pesajes (así no hay dos verdades, ni choques entre equipos sin conexión). */
 import { numero } from './catalogo.js';
 import { kilos } from './formato.js';
@@ -72,10 +74,11 @@ export function sumarDias(fecha, n) {
 export function nuevoPesaje(o) {
   const d = { fecha: o.fecha, hora: o.hora, entregaN: o.entregaN || 1, productoId: o.productoId, cantidad: o.cantidad, unidad: o.unidad,
     trabajadorId: o.trabajadorId, anulado: false, creadoPor: o.creadoPor };
+  if (o.clienteId) d.clienteId = o.clienteId;
   const nota = limpiarNota(o.nota); if (nota) d.nota = nota;
   return d;
 }
-const CAMPOS = ['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'nota', 'anulado', 'creadoPor'];
+const CAMPOS = ['fecha', 'hora', 'entregaN', 'clienteId', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'nota', 'anulado', 'creadoPor'];
 /* Documento para guardar a partir de uno ya leído (sin id, sin marcas de la pantalla, sin `en`). */
 export function soloPesaje(p) {
   const d = {}; for (const k of CAMPOS) if (p[k] !== undefined && p[k] !== null && !(k === 'nota' && !p[k])) d[k] = p[k];
@@ -97,6 +100,13 @@ export function constancia(tipo, p, dif, uid, quien) {
 }
 
 /* ---------- Entregas ---------- */
+/* Documento de la entrega en curso de un cliente un día: dias/{fecha} para el original (o si no se sabe), dias/{fecha}_{clienteId} para otro. */
+export const rutaDia = (fecha, clienteId, originalId) => 'dias/' + fecha + (clienteId && clienteId !== originalId ? '_' + clienteId : '');
+/* Documento de la entrega en curso de un cliente en ctx.dia (app.js): `dia` para el original (o sin cliente), `dias[id]` para otro.
+   undefined = aún no llega · null = no existe (la entrega en curso es la n.º 1). */
+export const diaDoc = (d, clienteId, originalId) => (!d ? undefined : !clienteId || clienteId === originalId ? d.dia : d.dias ? d.dias[clienteId] : undefined);
+/* Los canastos de un cliente (sin `clienteId` = el original). */
+export const delCliente = (pesajes, clienteId, originalId) => (pesajes || []).filter(p => (p.clienteId || originalId) === clienteId);
 export const entregaEnCurso = dia => (dia && Number.isInteger(dia.entregaN) && dia.entregaN >= 1 ? dia.entregaN : 1);
 export const vigentes = l => (l || []).filter(p => p.anulado !== true);
 /* Del más nuevo al más antiguo: por la hora anotada y, en el mismo minuto, por la hora del servidor (estimada si aún no se envía). */
@@ -116,41 +126,54 @@ export function porPan(pesajes, productos) {
   const o = id => (orden.has(id) ? orden.get(id) : 1e9);
   return [...panes.values()].sort((a, b) => o(a.productoId) - o(b.productoId) || a.nombre.localeCompare(b.nombre, 'es'));
 }
-/* Resumen de los pesajes de un día (los anulados no cuentan): totales, por pan, por entrega (con sus canastos) y por trabajador. */
-export function resumen(pesajes, productos, trabajadores) {
-  const v = vigentes(pesajes), total = suma(), entregas = new Map(), gente = new Map();
+/* Resumen de los pesajes de un día (los anulados no cuentan): totales, por pan, por entrega (con sus canastos) y por trabajador.
+   Fase 11: `clientes` (lista, opcional): cada entrega es de un cliente (clienteId; las ventas sueltas van juntas con n = 0) y hay `porCliente`. */
+export function resumen(pesajes, productos, trabajadores, clientes) {
+  const v = vigentes(pesajes), total = suma(), entregas = new Map(), gente = new Map(), cls = Array.isArray(clientes) ? clientes : [];
+  const orig = (cls.filter(c => c.tipo !== 'suelta').sort((a, b) => (a.en || 0) - (b.en || 0) || String(a.id).localeCompare(String(b.id)))[0] || {}).id || null;
+  const suelta = id => cls.some(c => c.id === id && c.tipo === 'suelta');
   for (const p of v) {
     sumar(total, p);
-    const n = p.entregaN || 1;
-    if (!entregas.has(n)) entregas.set(n, Object.assign(suma(), { n, items: [], desde: p.hora, hasta: p.hora }));
-    const e = entregas.get(n); sumar(e, p); e.items.push(p);
+    const cid = cls.length ? p.clienteId || orig : null, s = suelta(cid), n = s ? 0 : p.entregaN || 1, k = cid + '|' + n;   // sin la lista de clientes, como antes
+    if (!entregas.has(k)) entregas.set(k, Object.assign(suma(), { n, clienteId: cid, suelta: s, items: [], desde: p.hora, hasta: p.hora }));
+    const e = entregas.get(k); sumar(e, p); e.items.push(p);
     if (p.hora < e.desde) e.desde = p.hora;
     if (p.hora > e.hasta) e.hasta = p.hora;
     if (!gente.has(p.trabajadorId)) gente.set(p.trabajadorId, Object.assign(suma(), { trabajadorId: p.trabajadorId, nombre: nombreDe(trabajadores, p.trabajadorId) }));
     sumar(gente.get(p.trabajadorId), p);
   }
-  const porEntrega = [...entregas.values()].sort((a, b) => a.n - b.n);
-  porEntrega.forEach(e => { e.porPan = porPan(e.items, productos); e.items = recientes(e.items); });
-  return Object.assign(total, { porPan: porPan(v, productos), porEntrega, porTrabajador: [...gente.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')) });
+  const pos = id => { const i = cls.findIndex(c => c.id === id); return id === orig ? -1 : i < 0 ? 1e6 : i + (suelta(id) ? 1e5 : 0); };
+  const porEntrega = [...entregas.values()].sort((a, b) => pos(a.clienteId) - pos(b.clienteId) || a.n - b.n);
+  porEntrega.forEach(e => { e.cliente = cls.length ? nombreDe(cls, e.clienteId) : ''; e.porPan = porPan(e.items, productos); e.items = recientes(e.items); });
+  const porCliente = [];
+  for (const e of porEntrega) {
+    let x = porCliente.find(y => y.clienteId === e.clienteId);
+    if (!x) porCliente.push(x = Object.assign(suma(), { clienteId: e.clienteId, cliente: e.cliente, suelta: e.suelta, entregas: 0 }));
+    x.canastos += e.canastos; x.kg = Math.round((x.kg + e.kg) * 100) / 100; x.un += e.un; if (!e.suelta) x.entregas++;
+  }
+  return Object.assign(total, { porPan: porPan(v, productos), porEntrega, porCliente, porTrabajador: [...gente.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')) });
 }
-/* Lo que lleva la entrega en curso (para el botón «Cerrar entrega»). */
-export function entregaActual(pesajes, dia) {
-  const n = entregaEnCurso(dia), t = suma();
-  vigentes(pesajes).filter(p => (p.entregaN || 1) === n).forEach(p => sumar(t, p));
+/* Lo que lleva la entrega en curso (para el botón «Cerrar entrega»). Con `clienteId`, solo la de ese cliente (Fase 11). */
+export function entregaActual(pesajes, dia, clienteId, originalId) {
+  const n = entregaEnCurso(dia), t = suma(), mios = clienteId ? delCliente(pesajes, clienteId, originalId) : pesajes;
+  vigentes(mios).filter(p => (p.entregaN || 1) === n).forEach(p => sumar(t, p));
   return Object.assign(t, { n });
 }
 export const textoTotales = t => [t.kg ? kilos(t.kg) + ' kg' : '', t.un ? textoCantidad(t.un, 'un') : ''].filter(Boolean).join(' · ') || '—';
 
 /* ---------- Bitácora legible ----------
    Texto de una constancia (cambios/{id}) para el registro general: { titulo, detalle }. Solo lo que cambió, con nombres. */
-const NOMBRES = { productoId: 'pan', cantidad: 'cantidad', trabajadorId: 'quién pesó', entregaN: 'entrega', nota: 'nota', fecha: 'día', hora: 'hora' };
-export function describirCambio(c, productos, trabajadores, unidad) {
+const NOMBRES = { clienteId: 'cliente', productoId: 'pan', cantidad: 'cantidad', trabajadorId: 'quién pesó', entregaN: 'entrega', nota: 'nota', fecha: 'día', hora: 'hora' };
+export function describirCambio(c, productos, trabajadores, unidad, clientes) {
   const titulo = { corregir: 'Corregido', anular: 'Anulado', reactivar: 'Reactivado' }[c.tipo] || 'Cambio';
   const A = c.antes || {}, B = c.despues || {}, u = unidad || B.unidad || A.unidad;   // si la unidad no cambió, es la del canasto
+  const orig = (clientes || []).filter(x => x.tipo !== 'suelta').sort((a, b) => (a.en || 0) - (b.en || 0) || String(a.id).localeCompare(String(b.id)))[0];
   const ver = (k, v, un) => {
+    if (k === 'clienteId' && !v && orig) return orig.nombre;   // lo anotado antes de la Fase 11 (sin cliente) es del cliente original
     if (v === undefined || v === null || v === '') return '—';
     if (k === 'productoId') return nombreDe(productos, v);
     if (k === 'trabajadorId') return nombreDe(trabajadores, v);
+    if (k === 'clienteId') return nombreDe(clientes, v);
     if (k === 'cantidad') return textoCantidad(v, un || u);
     if (k === 'entregaN') return 'n.º ' + v;
     return String(v);

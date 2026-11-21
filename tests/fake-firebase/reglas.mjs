@@ -22,13 +22,13 @@ const entero = v => Number.isInteger(v);
 /* Fase 6: el mes de una fecha está cerrado si cierres/{AAAA-MM} tiene cerrado == true. */
 const mesAbierto = (f, leer) => { const c = leer('cierres/' + String(f).slice(0, 7)); return !c || c.cerrado !== true; };
 const mesTerminado = (mes, ahora) => mes + '-31' < dia(ahora - 3 * 3600000);
-const CIERRE = ['mes', 'origen', 'cerrado', 'clienteId', 'cliente', 'iva', 'lineas', 'neto', 'ivaMonto', 'total', 'kg', 'un', 'canastos', 'dias', 'sinPrecio', 'archivo', 'hoja',
+const CIERRE = ['mes', 'origen', 'cerrado', 'clienteId', 'cliente', 'clientes', 'iva', 'lineas', 'neto', 'ivaMonto', 'total', 'kg', 'un', 'canastos', 'dias', 'sinPrecio', 'archivo', 'hoja',
   'reabiertoPor', 'reabiertoQuien', 'reabiertoEn', 'por', 'quien', 'en'];
 function cierreValido(id, d, q, ahora) {
   return /^20[0-9]{2}-(0[1-9]|1[0-2])$/.test(id) && mesTerminado(id, ahora) && solo(d, CIERRE)
     && todas(d, ['mes', 'origen', 'cerrado', 'iva', 'lineas', 'neto', 'ivaMonto', 'total', 'kg', 'un', 'por', 'quien', 'en']) && d.mes === id
     && ['excel', 'app'].includes(d.origen) && d.cerrado === true && num(d.iva) && d.iva >= 0 && d.iva <= 100
-    && Array.isArray(d.lineas) && d.lineas.length >= 1 && d.lineas.length <= 200 && entero(d.neto) && d.neto >= 0 && entero(d.ivaMonto) && d.ivaMonto >= 0
+    && Array.isArray(d.lineas) && d.lineas.length >= 1 && d.lineas.length <= 600 && (!('clientes' in d) || (Array.isArray(d.clientes) && d.clientes.length <= 50)) && entero(d.neto) && d.neto >= 0 && entero(d.ivaMonto) && d.ivaMonto >= 0
     && d.total === d.neto + d.ivaMonto && num(d.kg) && d.kg >= 0 && entero(d.un) && d.un >= 0
     && (!('clienteId' in d) || texto(d.clienteId, 1, 60)) && (!('cliente' in d) || texto(d.cliente, 1, 60))
     && (!('archivo' in d) || texto(d.archivo, 1, 200)) && (!('hoja' in d) || texto(d.hoja, 1, 100)) && d.por === q.uid && texto(d.quien, 1, 60) && esTS(d.en);
@@ -138,33 +138,41 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
     return gestion && solo(d, K) && todas(d, K) && texto(d.productoId, 1, 60) && texto(d.clienteId, 1, 60) && num(d.neto) && d.neto > 0 && d.neto <= 100000000
       && typeof d.desde === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d.desde) && id === d.productoId + '_' + d.clienteId + '_' + d.desde && esTS(d.en);
   }
-  if (col === 'trabajadores' || col === 'clientes') {
-    if (leerOp) return col === 'trabajadores' ? acceso : gestion;
+  if (col === 'trabajadores') {
+    if (leerOp) return acceso;
     const K = ['nombre', 'activo', 'en'];
     return escribir && gestion && solo(d, K) && todas(d, K) && texto(d.nombre, 1, 60) && typeof d.activo === 'boolean' && esTS(d.en);
+  }
+  if (col === 'clientes') {   // Fase 11: la tablet los lee; `tipo` opcional ('regular' o 'suelta')
+    if (leerOp) return acceso;
+    return escribir && gestion && solo(d, ['nombre', 'activo', 'tipo', 'en']) && todas(d, ['nombre', 'activo', 'en']) && texto(d.nombre, 1, 60) && typeof d.activo === 'boolean'
+      && (!('tipo' in d) || ['regular', 'suelta'].includes(d.tipo)) && esTS(d.en);
   }
   if (col === 'pesajes') {
     if (op === 'get') return gestion || (pesaje && esHoy(prev.fecha, ahora));
     if (op === 'list') return gestion || (pesaje && esHoy(d.fecha, ahora));   // d: el filtro de la consulta
     if (op === 'delete') return false;
     const prod = leer('productos/' + d.productoId);
-    const valido = solo(d, ['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'nota', 'anulado', 'creadoPor', 'en'])
+    const valido = solo(d, ['fecha', 'hora', 'entregaN', 'clienteId', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'nota', 'anulado', 'creadoPor', 'en'])
       && todas(d, ['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'anulado', 'creadoPor', 'en']) && fechaValida(d.fecha)
       && typeof d.hora === 'string' && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(d.hora)
       && Number.isInteger(d.entregaN) && d.entregaN >= 1 && d.entregaN <= 50
       && texto(d.productoId, 1, 60) && texto(d.trabajadorId, 1, 60)
       && num(d.cantidad) && d.cantidad > 0 && d.cantidad <= 100000 && ['kg', 'un'].includes(d.unidad) && (d.unidad === 'kg' || Number.isInteger(d.cantidad))
-      && (!('nota' in d) || texto(d.nota, 1, 200)) && typeof d.anulado === 'boolean' && esTS(d.en)
+      && (!('nota' in d) || texto(d.nota, 1, 200)) && (!('clienteId' in d) || texto(d.clienteId, 1, 60)) && typeof d.anulado === 'boolean' && esTS(d.en)
       && !!prod && prod.unidad === d.unidad && !!leer('trabajadores/' + d.trabajadorId);
-    if (op === 'create') return valido && d.creadoPor === q.uid && ((gestion && mesAbierto(d.fecha, leer)) || (pesaje && (esHoy(d.fecha, ahora) || esAyer(d.fecha, ahora))));
-    return valido && d.creadoPor === prev.creadoPor && ((gestion && mesAbierto(prev.fecha, leer) && mesAbierto(d.fecha, leer)) || (pesaje && esHoy(prev.fecha, ahora) && d.fecha === prev.fecha));
+    const activo = cid => { const x = leer('clientes/' + cid); return !!x && x.activo === true; };   // Fase 11
+    if (op === 'create') return valido && (!('clienteId' in d) || activo(d.clienteId)) && d.creadoPor === q.uid && ((gestion && mesAbierto(d.fecha, leer)) || (pesaje && (esHoy(d.fecha, ahora) || esAyer(d.fecha, ahora))));
+    return valido && (!('clienteId' in d) || d.clienteId === (prev.clienteId || '') || activo(d.clienteId)) && d.creadoPor === prev.creadoPor && ((gestion && mesAbierto(prev.fecha, leer) && mesAbierto(d.fecha, leer)) || (pesaje && esHoy(prev.fecha, ahora) && d.fecha === prev.fecha));
   }
-  if (col === 'dias') {
-    if (leerOp) return gestion || (pesaje && op === 'get' && esHoy(id, ahora));
+  if (col === 'dias') {   // Fase 11: dias/{fecha} (cliente original) o dias/{fecha}_{clienteId} (otro cliente, que debe existir)
+    const partes = String(id || '').split('_'), f = partes[0];
+    if (leerOp) return gestion || (pesaje && op === 'get' && esHoy(f, ahora));
     if (!escribir) return false;
-    const valido = fechaValida(id) && solo(d, ['entregaN', 'por', 'en']) && todas(d, ['entregaN', 'por', 'en'])
+    const idOk = fechaValida(f) && ((partes.length === 1 && id.length === 10) || (partes.length === 2 && texto(partes[1], 1, 60) && !!leer('clientes/' + partes[1])));
+    const valido = idOk && solo(d, ['entregaN', 'por', 'en']) && todas(d, ['entregaN', 'por', 'en'])
       && Number.isInteger(d.entregaN) && d.entregaN >= 1 && d.entregaN <= 50 && d.por === q.uid && esTS(d.en);
-    const suDia = pesaje && (esHoy(id, ahora) || esAyer(id, ahora));
+    const suDia = pesaje && (esHoy(f, ahora) || esAyer(f, ahora));
     if (op === 'create') return valido && (gestion || (suDia && d.entregaN <= 2));
     return valido && (gestion || (suDia && (d.entregaN === prev.entregaN + 1 || d.entregaN === prev.entregaN - 1)));
   }

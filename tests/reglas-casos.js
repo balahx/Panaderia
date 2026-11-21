@@ -42,6 +42,11 @@ function semilla(HOY, ANTES, AYER) {
     'precios/pr1': { productoId: 'p1', clienteId: 'c1', neto: 1450, desde: '2026-01-01', en: '@TS' },   // sembrado sin pasar por las reglas
     'trabajadores/t1': { nombre: 'Luis', activo: true, en: '@TS' },
     'clientes/c1': { nombre: 'Supermercado', activo: true, en: '@TS' },
+    'clientes/c2': { nombre: 'Almacén Rosa', activo: true, tipo: 'regular', en: '@TS' },          // Fase 11: varios clientes
+    'clientes/cs': { nombre: 'Ventas sueltas', activo: true, tipo: 'suelta', en: '@TS' },
+    'clientes/c9': { nombre: 'Casino cerrado', activo: false, en: '@TS' },
+    ['dias/' + HOY + '_c2']: { entregaN: 1, por: 'tablet', en: '@TS' },
+    'pesajes/hoyc9': pesaje(HOY, 'tablet', { clienteId: 'c9' }),
     'pesajes/hoy1': pesaje(HOY, 'tablet'),
     'pesajes/viejo1': pesaje(ANTES, 'tablet'),
     'productos/u5': { nombre: 'Pan de completo', unidad: 'un', activo: true, en: '@TS' },
@@ -128,8 +133,6 @@ function casos(HOY, ANTES, AYER) {
   no('tablet', 'list', 'precios', 'ni filtrando por producto', null, { productoId: 'p1' });
   no('tablet', 'set', 'precios/p1_c1_2026-12-01', 'ni los escribe', { productoId: 'p1', clienteId: 'c1', neto: 1, desde: '2026-12-01', en: '@TS' });
   no('tablet', 'delete', 'precios/pr1', 'ni los borra');
-  no('tablet', 'get', 'clientes/c1', 'no lee clientes');
-  no('tablet', 'list', 'clientes', 'ni su lista');
   no('tablet', 'get', 'cierres/2026-10', 'no lee cierres mensuales');
   no('tablet', 'list', 'cierres', 'ni su lista');
   no('tablet', 'get', 'proyeccion/2027', 'no lee proyecciones ni metas');
@@ -441,6 +444,54 @@ function casos(HOY, ANTES, AYER) {
   no('rosa', 'set', 'planes/' + MANANA, 'sin campos de más', plan(MANANA, 'rosa', { total: 120 }));
   si('felipe', 'delete', 'planes/' + MANANA, 'gestión quita el plan de mañana');
   si('rosa', 'delete', 'planes/' + HOY, 'y el de hoy');
+
+  t('15. Varios clientes y ventas sueltas (Fase 11)');
+  si('tablet', 'get', 'clientes/c2', 'la tablet lee un cliente (nombre, activo y tipo: sin montos)');
+  si('tablet', 'list', 'clientes', 'y la lista de clientes, para elegir «Para:»');
+  no('tablet', 'list', 'precios', 'pero sigue sin leer precios', null, { clienteId: 'c2' });
+  no('tablet', 'set', 'clientes/c3', 'ni crea clientes', { nombre: 'Almacén', activo: true, en: '@TS' });
+  no('tablet', 'update', 'clientes/c2', 'ni los cambia', { activo: false, en: '@TS' });
+  no('carla', 'list', 'clientes', 'una cuenta sin acceso no los lee');
+  si('felipe', 'set', 'clientes/c3', 'el externo crea un cliente regular', { nombre: 'Casino Norte', activo: true, tipo: 'regular', en: '@TS' });
+  si('rosa', 'set', 'clientes/c4', 'un dueño crea uno sin tipo (= regular)', { nombre: 'Almacén Don Luis', activo: true, en: '@TS' });
+  si('rosa', 'update', 'clientes/c4', 'y lo desactiva', { activo: false, en: '@TS' });
+  no('rosa', 'set', 'clientes/c5', 'el tipo es regular o suelta', { nombre: 'Otro', activo: true, tipo: 'mayorista', en: '@TS' });
+  no('rosa', 'set', 'clientes/c5', 'sin campos de más (los montos no van aquí)', { nombre: 'Otro', activo: true, neto: 1000, en: '@TS' });
+  si('felipe', 'set', 'precios/p1_c2_2026-11-01', 'cada cliente tiene su propia lista de precios', { productoId: 'p1', clienteId: 'c2', neto: 1600, desde: '2026-11-01', en: '@TS' });
+  si('tablet', 'set', 'pesajes/c2a', 'la tablet pesa para otro cliente', pesaje(HOY, 'tablet', { clienteId: 'c2' }));
+  si('tablet', 'set', 'pesajes/csa', 'y una venta suelta con la nota de quién compró', pesaje(HOY, 'tablet', { clienteId: 'cs', nota: 'Sra. Marta' }));
+  si('tablet', 'set', 'pesajes/c1a', 'sin cliente sigue valiendo (= el cliente original)', pesaje(HOY, 'tablet'));
+  no('tablet', 'set', 'pesajes/c9a', 'no para un cliente desactivado', pesaje(HOY, 'tablet', { clienteId: 'c9' }));
+  no('tablet', 'set', 'pesajes/c0a', 'ni para uno que no existe', pesaje(HOY, 'tablet', { clienteId: 'nadie' }));
+  no('rosa', 'set', 'pesajes/c9b', 'tampoco gestión anota para un cliente desactivado', pesaje(ANTES, 'rosa', { clienteId: 'c9' }));
+  no('tablet', 'set', 'pesajes/c0b', 'el cliente es un texto', pesaje(HOY, 'tablet', { clienteId: 7 }));
+  si('tablet', 'update', 'pesajes/hoyc9', 'un canasto de un cliente que se desactivó se corrige igual (sin cambiar el cliente)', { cantidad: 19, en: '@TS' });
+  si('tablet', 'update', 'pesajes/hoyc9', 'y se pasa a un cliente activo', { clienteId: 'c2', en: '@TS' });
+  no('tablet', 'update', 'pesajes/hoyc9', 'pero no se devuelve a uno desactivado', { clienteId: 'c9', en: '@TS' });
+  si('rosa', 'update', 'pesajes/c1a', 'gestión cambia el cliente al corregir', { clienteId: 'c3', en: '@TS' });
+  no('tablet', 'update', 'pesajes/viejo1', 'la tablet sigue sin tocar otros días', { clienteId: 'c2', en: '@TS' });
+  si('tablet', 'get', 'dias/' + HOY + '_c2', 'la tablet lee la entrega en curso de otro cliente (hoy)');
+  si('tablet', 'set', 'dias/' + HOY + '_c2', 'y la cierra de a un paso', { entregaN: 2, por: 'tablet', en: '@TS' });
+  no('tablet', 'set', 'dias/' + HOY + '_c2', 'sin saltar entregas', { entregaN: 4, por: 'tablet', en: '@TS' });
+  si('tablet', 'set', 'dias/' + HOY + '_c3', 'la primera entrega cerrada de un cliente nuevo hoy', { entregaN: 2, por: 'tablet', en: '@TS' });
+  no('tablet', 'set', 'dias/' + HOY + '_c3', 'se cuenta aparte de la del supermercado (sigue siendo de a un paso)', { entregaN: 4, por: 'tablet', en: '@TS' });
+  si('tablet', 'get', 'dias/' + HOY, 'la del supermercado sigue en su documento de siempre');
+  no('tablet', 'get', 'dias/' + ANTES + '_c2', 'la tablet no lee la de otro día');
+  no('tablet', 'set', 'dias/' + ANTES + '_c2', 'ni la escribe', { entregaN: 2, por: 'tablet', en: '@TS' });
+  no('tablet', 'set', 'dias/' + HOY + '_nadie', 'el cliente del documento debe existir', { entregaN: 2, por: 'tablet', en: '@TS' });
+  no('rosa', 'set', 'dias/' + HOY + '_c2_x', 'el nombre es fecha_cliente, nada más', { entregaN: 2, por: 'rosa', en: '@TS' });
+  no('rosa', 'set', 'dias/' + HOY + '_', 'con el cliente escrito', { entregaN: 2, por: 'rosa', en: '@TS' });
+  no('rosa', 'set', 'dias/hoy_c2', 'y una fecha', { entregaN: 2, por: 'rosa', en: '@TS' });
+  si('rosa', 'set', 'dias/' + ANTES + '_c2', 'gestión fija cualquier número, de cualquier día', { entregaN: 3, por: 'rosa', en: '@TS' });
+  const porCli = cierre('2025-06', 'felipe', { origen: 'app', neto: 205000, ivaMonto: 38950, total: 243950, kg: 140,
+    lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', cantidad: 100, precio: 1450, neto: 145000, clienteId: 'c1', cliente: 'Supermercado' },
+      { productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', cantidad: 40, precio: 1500, neto: 60000, clienteId: 'c2', cliente: 'Almacén Rosa' }],
+    clientes: [{ clienteId: 'c1', cliente: 'Supermercado', neto: 145000, kg: 100, un: 0 }, { clienteId: 'c2', cliente: 'Almacén Rosa', neto: 60000, kg: 40, un: 0 }] });
+  si('felipe', 'set', 'cierres/2025-06', 'un cierre con líneas por pan y por cliente, y el resumen por cliente', porCli);
+  no('rosa', 'set', 'cierres/2025-05', 'el resumen por cliente va en una lista', cierre('2025-05', 'rosa', { clientes: { c1: 145000 } }));
+  no('rosa', 'set', 'cierres/2025-05', 'de hasta 50 clientes', cierre('2025-05', 'rosa', { clientes: Array.from({ length: 51 }, (x, i) => ({ clienteId: 'c' + i, neto: 0 })) }));
+  no('rosa', 'set', 'cierres/2025-05', 'pero no más de 600 líneas', cierre('2025-05', 'rosa', { lineas: Array.from({ length: 601 }, (x, i) => ({ productoId: 'p' + i, neto: 0 })) }));
+  si('rosa', 'set', 'cierres/2025-04', 'las líneas pueden ser hasta 600 (panes × clientes)', cierre('2025-04', 'rosa', { lineas: Array.from({ length: 600 }, (x, i) => ({ productoId: 'p' + i, neto: 0 })) }));
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

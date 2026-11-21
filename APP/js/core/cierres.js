@@ -224,17 +224,52 @@ export function documento(prep, o) {
   if (o.hoja) d.hoja = corto(o.hoja, 100);
   return d;
 }
-/* «Cerrar mes» desde los pesajes del mes: una línea por pan (cantidad y neto = suma de sus líneas de venta). */
+/* «Cerrar mes» desde los pesajes del mes: una línea por pan Y POR CLIENTE (Fase 11; cantidad y neto = suma de sus líneas de venta),
+   y el resumen `clientes` (neto, kilos y unidades de cada uno). El IVA sigue siendo IVA % del neto del mes. Con un solo cliente,
+   el documento queda como antes (más `clienteId` y `cliente` en cada línea). `k.clientes`: la lista de clientes (si no, solo `cliente`). */
 export function desdeApp(mes, pesajes, k, cliente, iva, o) {
-  const L = V.lineas(pesajes, k.productos, k.precios, cliente && cliente.id, iva), T = V.totales(L), panes = V.porPan(L, k.productos);
-  const lineas = panes.map(p => ({ productoId: p.productoId, nombre: corto(p.nombre, 60), unidad: p.unidad, cantidad: p.cantidad, precio: p.neto && p.cantidad ? Math.round(p.neto / p.cantidad * 100) / 100 : null, neto: p.neto,
-    ...(p.sinPrecio ? { sinPrecio: true } : {}) }));
-  const d = base0(Object.assign({ cliente }, o), mes, 'app', lineas, T, iva);
+  const L = V.lineas(pesajes, k.productos, k.precios, Array.isArray(k.clientes) ? k.clientes : cliente && cliente.id, iva), T = V.totales(L), C = V.porCliente(L, k.clientes);
+  const lineas = [];
+  for (const g of C) for (const p of V.porPan(g.items, k.productos)) {
+    const l = { productoId: p.productoId, nombre: corto(p.nombre, 60), unidad: p.unidad, cantidad: p.cantidad, precio: p.neto && p.cantidad ? Math.round(p.neto / p.cantidad * 100) / 100 : null, neto: p.neto,
+      ...(p.sinPrecio ? { sinPrecio: true } : {}) };
+    if (g.clienteId) { l.clienteId = g.clienteId; l.cliente = corto(g.cliente || (cliente && cliente.id === g.clienteId ? cliente.nombre : '') || 'Cliente', 60); }
+    lineas.push(l);
+  }
+  const uno = C.length === 1 && C[0].clienteId ? { id: C[0].clienteId, nombre: lineas[0].cliente } : C.length ? null : cliente;
+  const d = base0(Object.assign({}, o, { cliente: uno }), mes, 'app', lineas, T, iva);
+  d.clientes = C.filter(g => g.clienteId).map(g => ({ clienteId: g.clienteId, cliente: corto(g.cliente || 'Cliente', 60), neto: g.neto, kg: kg2(g.kg), un: Math.round(g.un) }));
   d.canastos = T.canastos; d.dias = V.porDia(L).length;
   if (T.sinPrecio) d.sinPrecio = V.faltanPrecios(L).length;
-  return { doc: d, L, T, faltan: V.faltanPrecios(L) };
+  return { doc: d, L, T, faltan: V.faltanPrecios(L), clientes: C };
 }
-
+/* Las líneas de un cierre sumadas por pan (entre clientes): las que usan Indicadores, Costos y el detalle de Cierres. */
+export function panesDeCierre(c) {
+  const m = new Map();
+  for (const l of (c && c.lineas) || []) {
+    if (!m.has(l.productoId)) m.set(l.productoId, { productoId: l.productoId, nombre: l.nombre, unidad: l.unidad, cantidad: 0, neto: 0, sinPrecio: false, nombreExcel: l.nombreExcel });
+    const x = m.get(l.productoId);
+    x.cantidad = x.unidad === 'un' ? x.cantidad + (l.cantidad || 0) : kg2(x.cantidad + (l.cantidad || 0));
+    x.neto += l.neto || 0; if (l.sinPrecio) x.sinPrecio = true;
+  }
+  return [...m.values()].map(x => Object.assign(x, { precio: x.cantidad ? Math.round(x.neto / x.cantidad * 100) / 100 : null }));
+}
+/* Un cierre visto solo para un cliente (filtro «Cliente» de Números, Fase 11): sus líneas y sus totales (del resumen `clientes`).
+   En los importados desde Excel todo es del cliente del cierre (o del original). Sin `clienteId`, el cierre tal cual. */
+export function cierreDeCliente(c, clienteId, originalId) {
+  if (!c || !clienteId) return c;
+  const de = id => (id || c.clienteId || originalId) === clienteId, lineas = (c.lineas || []).filter(l => de(l.clienteId));
+  const g = clientesDeCierre(c).find(x => de(x.clienteId));
+  const kg = kg2(lineas.filter(l => l.unidad !== 'un').reduce((t, l) => t + (l.cantidad || 0), 0)), un = lineas.filter(l => l.unidad === 'un').reduce((t, l) => t + (l.cantidad || 0), 0);
+  return Object.assign({}, c, { lineas, neto: g ? g.neto || 0 : lineas.reduce((t, l) => t + (l.neto || 0), 0), kg: g ? g.kg || 0 : kg, un: g ? g.un || 0 : un,
+    clientes: g ? [g] : [], sinPrecio: lineas.filter(l => l.sinPrecio).length });
+}
+/* Lo de cada cliente en un cierre: `clientes` si lo trae (Fase 11), o todo del cliente del cierre (los importados desde Excel). */
+export function clientesDeCierre(c) {
+  if (!c) return [];
+  if (Array.isArray(c.clientes) && c.clientes.length) return c.clientes.map(x => Object.assign({}, x));
+  return [{ clienteId: c.clienteId || null, cliente: c.cliente || '', neto: c.neto || 0, kg: c.kg || 0, un: c.un || 0 }];
+}
 /* ---------- Estado de los meses ---------- */
 export const cierreDe = (cierres, mes) => (cierres || []).find(x => x.id === mes || x.mes === mes) || null;
 /* El cierre (cerrado) del mes de una fecha, o null. */

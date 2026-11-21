@@ -123,9 +123,53 @@ export function validarNombre(nombre, otros, que) {
   if ((otros || []).some(x => igual(x.nombre, n))) return { error: 'Ya hay ' + (que || 'alguien') + ' con ese nombre.' };
   return { nombre: n };
 }
-/* Cliente de los precios y las ventas: por ahora uno solo (el supermercado). Si hubiera varios, el activo más antiguo. */
+/* ---------- Clientes (Fase 11) ----------
+   clientes/{id} = { nombre, activo, tipo?: 'regular' | 'suelta', en }  (sin `tipo` = regular). Nada se borra: se desactivan.
+   · Cliente ORIGINAL = el regular más antiguo, esté activo o no (el supermercado). Lo pesado sin `clienteId` (antes de la versión 0.11.0)
+     es suyo, aunque después se desactive: así lo antiguo nunca cambia de dueño. Su entrega en curso sigue en dias/{fecha}.
+   · «Ventas sueltas» = un cliente fijo (tipo 'suelta', a lo más uno) para las ventas esporádicas: cada canasto es una venta, con la nota
+     de quién compró; no tiene entregas.
+   · Cada cliente tiene su propia lista de precios (precios/{producto_cliente_desde}). */
 export const CLIENTE_INICIAL = 'Supermercado';
-export function clientePrincipal(clientes) {
-  const l = activos(clientes).slice().sort((a, b) => (a.en || 0) - (b.en || 0) || String(a.id).localeCompare(String(b.id)));
+export const NOMBRE_SUELTAS = 'Ventas sueltas';
+export const esSuelta = c => !!c && c.tipo === 'suelta';
+const porAntiguedad = (a, b) => (a.en || 0) - (b.en || 0) || String(a.id).localeCompare(String(b.id));
+/* El regular más antiguo, activo o no. null si no hay clientes. */
+export function clienteOriginal(clientes) {
+  const l = (clientes || []).filter(c => !esSuelta(c)).sort(porAntiguedad);
   return l[0] || null;
+}
+/* Cliente que se propone por omisión (precios, «Anotar canasto», la tablet): el original si está activo; si no, el regular activo más antiguo. */
+export function clientePrincipal(clientes) {
+  const o = clienteOriginal(clientes);
+  if (o && o.activo !== false) return o;
+  return activos(clientes).filter(c => !esSuelta(c)).sort(porAntiguedad)[0] || null;
+}
+/* Orden de las listas: el original primero, después los regulares por antigüedad y al final «Ventas sueltas». */
+export function ordenarClientes(clientes) {
+  const o = clienteOriginal(clientes);
+  return (clientes || []).slice().sort((a, b) => (esSuelta(a) - esSuelta(b)) || ((o && b.id === o.id) - (o && a.id === o.id)) || porAntiguedad(a, b));
+}
+export const clientesActivos = clientes => ordenarClientes(activos(clientes));
+export const clienteSuelto = clientes => (clientes || []).find(esSuelta) || null;
+/* ¿Hay que elegir cliente? Solo si hay más de un cliente activo (contando «Ventas sueltas»). Con uno solo, todo queda como antes. */
+export const variosClientes = clientes => clientesActivos(clientes).length > 1;
+/* Cliente de un canasto: el suyo o, si no lo trae (anotado antes de la Fase 11), el original. */
+export const clienteDe = (p, originalId) => (p && p.clienteId) || originalId || null;
+export const nombreCliente = (clientes, id) => { const x = (clientes || []).find(c => c.id === id); return x ? x.nombre : id ? '(cliente sin nombre)' : '(sin cliente)'; };
+/* Documento de un cliente para guardar (sin id ni campos de más). */
+export function soloCliente(c) {
+  const d = { nombre: c.nombre, activo: c.activo !== false };
+  if (c.tipo === 'suelta' || c.tipo === 'regular') d.tipo = c.tipo;
+  return d;
+}
+/* Precios para un cliente nuevo copiados de otro: los vigentes de `deId` el día `fecha`, que rigen para `aId` desde `desde`.
+   Devuelve [{ id, datos: { productoId, clienteId, neto, desde } }] (solo productos activos; uno por pan). */
+export function copiarPrecios(precios, productos, deId, aId, fecha, desde) {
+  const out = [];
+  for (const p of activos(productos)) {
+    const v = precioVigente(precios, p.id, deId, fecha);
+    if (v) out.push({ id: idPrecio(p.id, aId, desde), datos: { productoId: p.id, clienteId: aId, neto: v.neto, desde } });
+  }
+  return out;
 }

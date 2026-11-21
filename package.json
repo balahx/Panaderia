@@ -1,6 +1,6 @@
 {
   "name": "panaderia",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "description": "App Panadería (PWA). La aplicación está en APP/ y no necesita compilación; esto es solo para pruebas y herramientas.",
   "scripts": {

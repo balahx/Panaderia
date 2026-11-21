@@ -17,8 +17,8 @@ const leer = k => { try { return localStorage.getItem(k) || ''; } catch (e) { re
 /* Panes vendidos sin precio en lo que se tiene cargado (o [] si falta algo para saberlo). */
 export function faltan(c) {
   const k = c.cat; if (!k || !k.productos || !k.precios || !k.clientes) return [];
-  const cli = cat.clientePrincipal(k.clientes); if (!cli) return [];
-  const iva = cat.ivaDe(c.negocio), de = l => (l ? V.faltanPrecios(V.lineas(l, k.productos, k.precios, cli.id, iva)) : []);
+  if (!k.clientes.length) return [];
+  const iva = cat.ivaDe(c.negocio), de = l => (l ? V.faltanPrecios(V.lineas(l, k.productos, k.precios, k.clientes, iva)) : []);   // cada línea con el precio de su cliente (Fase 11)
   return V.juntarFaltan(de(c.dia && c.dia.pesajes), de(c.per && c.per.pesajes));
 }
 function sinPrecio(c, tab) {

@@ -53,9 +53,9 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   const lib = E.libro({ desde: '2026-11-01', hasta: '2026-11-30', pesajes: pes, productos: prods, trabajadores: [{ id: 't1', nombre: 'Luis' }], precios, cliente: { id: 'c1', nombre: 'Supermercado' }, iva: 19, quien: 'Rosa', ahora: Date.parse('2026-11-16T13:00:00Z') });
   ok(lib.nombre === 'ventas-2026-11.xlsx' && E.nombreArchivo('2026-11-01', '2026-11-16') === 'ventas-2026-11.xlsx' && E.nombreArchivo('2026-10-15', '2026-11-16') === 'ventas-2026-10-15_a_2026-11-16.xlsx', 'nombre del archivo: el mes o el período');
   const X = leer(E.bytes(lib)), H = X.hojas;
-  ok(X.orden.join() === 'Resumen,Ventas,Entregas,Por día,Por pan,Canastos', 'hojas: Resumen, Ventas, Entregas, Por día, Por pan y Canastos');
+  ok(X.orden.join() === 'Resumen,Ventas,Entregas,Por día,Por pan,Por cliente,Canastos', 'hojas: Resumen, Ventas, Entregas, Por día, Por pan, Por cliente (Fase 11) y Canastos');
   const vf = H.Ventas.filas, nV = vf.length - 2;
-  ok(vf[0].join('|') === 'Fecha|Día|Entrega|Cliente|Pan|Unidad|Cantidad|Canastos|Precio neto|Neto|IVA|Total|Observación' && vf[1][3] === 'Supermercado', 'Ventas: con cliente, neto, IVA y total');
+  ok(vf[0].join('|') === 'Fecha|Día|Entrega|Cliente|Pan|Unidad|Cantidad|Canastos|Precio neto|Neto|IVA|Total|Observación|Comprador' && vf[1][3] === 'Supermercado', 'Ventas: con cliente, neto, IVA y total');
   ok(vf[4][12] === 'Sin precio ese día: no suma' && vf[4][9] == null, 'la fila sin precio lo dice y no suma');
   const totV = sumaCol(vf, 9, 1, 1 + nV), totE = sumaCol(H.Entregas.filas, 7, 1, H.Entregas.filas.length - 1), totD = sumaCol(H['Por día'].filas, 6, 1, H['Por día'].filas.length - 1), totP = sumaCol(H['Por pan'].filas, 4, 1, H['Por pan'].filas.length - 1);
   ok(totV === T.neto && totE === T.neto && totD === T.neto && totP === T.neto, 'neto del mes: Ventas = Entregas = Por día = Por pan = $' + T.neto);

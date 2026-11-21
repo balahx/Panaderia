@@ -1,6 +1,8 @@
 /* Catálogo · hojas de un producto: ficha con su precio, su costo y margen (Fase 9, pantallas/costos-receta.js) y el historial, formulario (nuevo o editar), precio con vigencia,
    orden en la lista y activar o desactivar. También las ayudas comunes de las hojas del catálogo (enviar, error, pieHoja).
-   Un precio nuevo rige desde su fecha: los días anteriores conservan el precio que tenían (core/catalogo.js, precioVigente). */
+   Un precio nuevo rige desde su fecha: los días anteriores conservan el precio que tenían (core/catalogo.js, precioVigente).
+   Fase 11: cada cliente tiene su lista de precios. La ficha muestra el precio y el historial de un cliente (data-cli; por omisión el principal)
+   y, con varios clientes, «Precio por cliente»: el de hoy de cada cliente activo, para abrir su historial o cambiarlo. */
 import { esc, fechaTexto, diaChile } from '../core/formato.js';
 import { $, ask, hoja, cerrarHoja, toast } from '../core/ui.js';
 import * as nube from '../core/nube.js';
@@ -11,6 +13,8 @@ const hoy = () => diaChile(new Date());
 const buscar = (lista, id) => (lista || []).find(x => x.id === id);
 const por = p => (p.unidad === 'un' ? 'por unidad' : 'por kilo');
 const conIva = (neto, c) => cat.pesos(Math.round(cat.conIva(neto, cat.ivaDe(c.negocio))));
+/* Cliente de la hoja: el que trae el botón (data-cli) si está, o el principal. */
+const clienteDe = (c, id) => (c.cat.clientes || []).find(x => x.id === id) || cat.clientePrincipal(c.cat.clientes) || cat.clientesActivos(c.cat.clientes)[0] || null;
 
 /* Envía un cambio del catálogo. Exige conexión (igual que los accesos) y deja la hoja abierta hasta saber el resultado.
    o.abierta: no cierra la hoja al terminar (para subir o bajar varias veces seguidas). */
@@ -33,23 +37,34 @@ export const pieHoja = (act, texto, extra) => '<p class="form-error" role="alert
   '<button class="btn ghost" data-act="cerrar-hoja">Cancelar</button></div>';
 
 /* ---------- Ficha del producto ---------- */
-function hojaProducto(p, c) {
-  const k = c.cat, cliente = cat.clientePrincipal(k.clientes), id = ' data-id="' + esc(p.id) + '"';
+function porCliente(p, c, cliente) {
+  const clis = cat.clientesActivos(c.cat.clientes);
+  if (clis.length < 2) return '';
+  return '<p class="eyebrow">Precio por cliente</p><div class="mlist" id="precioClientes">' + clis.map(x => {
+    const v = cat.precioVigente(c.cat.precios, p.id, x.id, hoy());
+    return '<button class="mrow" data-act="cat-prod" data-id="' + esc(p.id) + '" data-cli="' + esc(x.id) + '"' + (cliente && x.id === cliente.id ? ' aria-current="true"' : '') + '><span class="mt"><b>' + esc(x.nombre) + '</b><small>' +
+      (cliente && x.id === cliente.id ? 'Se muestra abajo' : 'Ver su historial') + '</small></span>' + (v ? '<span class="precio"><b>' + esc(cat.pesos(v.neto)) + '</b><small>neto</small></span>' : '<span class="badge warn">Sin precio</span>') + '</button>';
+  }).join('') + '</div>';
+}
+function hojaProducto(p, c, cliId) {
+  const k = c.cat, cliente = clienteDe(c, cliId), id = ' data-id="' + esc(p.id) + '"', cid = cliente ? ' data-cli="' + esc(cliente.id) + '"' : '', varios = cat.clientesActivos(k.clientes).length > 1;
   const h = cliente ? cat.historial(k.precios, p.id, cliente.id) : [], vig = cliente ? cat.precioVigente(k.precios, p.id, cliente.id, hoy()) : null;
   const fut = cliente ? cat.precioFuturo(k.precios, p.id, cliente.id, hoy()) : null, activo = p.activo !== false;
   hoja(p.nombre, '<p class="muted">' + esc(cat.detalleProducto(p)) + (activo ? '' : ' · <b>Desactivado</b>') + '</p>' +
+    (varios && cliente ? '<p class="eyebrow" id="precioDe">Precio para ' + esc(cliente.nombre) + '</p>' : '') +
     (vig ? '<div class="precio-hoy" id="precioHoy"><b>' + esc(cat.pesos(vig.neto)) + '</b><span>neto ' + por(p) + ' · ' + esc(conIva(vig.neto, c)) + ' con IVA</span><small>Rige desde el ' + esc(fechaTexto(vig.desde)) + '</small></div>'
-      : '<div class="note warn" id="precioHoy">' + (cliente ? 'Este producto no tiene precio para hoy.' : 'Para anotar precios primero crea el cliente (Catálogo → Cliente e IVA).') + '</div>') +
+      : '<div class="note warn" id="precioHoy">' + (cliente ? 'Este producto no tiene precio para hoy' + (varios ? ' para ' + esc(cliente.nombre) : '') + '.' : 'Para anotar precios primero crea el cliente (Catálogo → Clientes e IVA).') + '</div>') +
     (fut ? '<p class="muted chico" id="precioFuturo">Desde el ' + esc(fechaTexto(fut.desde)) + ' regirá ' + esc(cat.pesos(fut.neto)) + ' neto.</p>' : '') +
     resumenFicha(p, c) +
     '<p class="form-error" role="alert" hidden></p><div class="actions">' +
-    (cliente ? '<button class="btn" data-act="cat-precio"' + id + '>' + (h.length ? 'Cambiar precio' : 'Poner precio') + '</button>' : '') +
+    (cliente ? '<button class="btn" data-act="cat-precio"' + id + cid + '>' + (h.length ? 'Cambiar precio' : 'Poner precio') + '</button>' : '') +
     '<button class="btn ghost" data-act="cat-editar"' + id + '>Editar</button>' +
     (activo ? '<button class="btn ghost" data-act="cat-mover" data-dir="-1"' + id + '>Subir</button><button class="btn ghost" data-act="cat-mover" data-dir="1"' + id + '>Bajar</button>' : '') +
     '<button class="btn ghost" data-act="cat-activar"' + id + '>' + (activo ? 'Desactivar' : 'Volver a activar') + '</button></div>' +
     '<p class="muted chico">' + (activo ? '«Subir» y «Bajar» cambian su lugar en la lista. Desactivar no borra nada de lo ya registrado.' : 'Desactivado: no aparece para pesar. Lo ya registrado se conserva.') + '</p>' +
-    (h.length ? '<p class="eyebrow">Historial de precios</p><div class="hist" id="historial">' + h.map(x => '<div class="hist-f"><div><b>' + esc(cat.pesos(x.neto)) + '</b><small>Desde el ' + esc(fechaTexto(x.desde)) +
-      (vig && x.id === vig.id ? ' · vigente' : x.desde > hoy() ? ' · aún no rige' : '') + '</small></div><button class="btn sm ghost" data-act="cat-precio-quitar" data-id="' + esc(p.id) + '" data-pid="' + esc(x.id) + '" aria-label="Quitar el precio del ' + esc(fechaTexto(x.desde)) + '">Quitar</button></div>').join('') + '</div>' : ''));
+    porCliente(p, c, cliente) +
+    (h.length ? '<p class="eyebrow">Historial de precios' + (varios ? ' · ' + esc(cliente.nombre) : '') + '</p><div class="hist" id="historial">' + h.map(x => '<div class="hist-f"><div><b>' + esc(cat.pesos(x.neto)) + '</b><small>Desde el ' + esc(fechaTexto(x.desde)) +
+      (vig && x.id === vig.id ? ' · vigente' : x.desde > hoy() ? ' · aún no rige' : '') + '</small></div><button class="btn sm ghost" data-act="cat-precio-quitar" data-id="' + esc(p.id) + '"' + cid + ' data-pid="' + esc(x.id) + '" aria-label="Quitar el precio del ' + esc(fechaTexto(x.desde)) + '">Quitar</button></div>').join('') + '</div>' : ''));
 }
 
 /* ---------- Formulario: producto nuevo o editar ---------- */
@@ -76,14 +91,14 @@ function guardarProducto(p, c, el) {
 }
 
 /* ---------- Precio con vigencia ---------- */
-function hojaPrecio(p, c) {
-  const cliente = cat.clientePrincipal(c.cat.clientes), vig = cat.precioVigente(c.cat.precios, p.id, cliente.id, hoy());
+function hojaPrecio(p, c, cliId) {
+  const cliente = clienteDe(c, cliId), vig = cat.precioVigente(c.cat.precios, p.id, cliente.id, hoy());
   hoja('Precio de ' + p.nombre, '<label class="lab" for="prNeto">Precio neto ' + por(p) + ', sin IVA</label>' +
     '<input class="txt" id="prNeto" data-campo="neto" inputmode="decimal" maxlength="14" autocomplete="off" data-enter="cat-precio-guardar" value="' + esc(vig ? cat.enCampo(vig.neto) : '') + '">' +
     '<p class="muted" id="prConIva" aria-live="polite">' + esc(textoConIva(vig ? cat.enCampo(vig.neto) : '', c)) + '</p>' +
     '<label class="lab" for="prDesde">Rige desde</label><input class="txt" type="date" id="prDesde" data-campo="desde" data-enter="cat-precio-guardar" value="' + hoy() + '">' +
     '<p class="muted chico">Los días anteriores a esa fecha conservan el precio que tenían. Para ' + esc(cliente.nombre) + '.</p>' +
-    pieHoja('cat-precio-guardar', 'Guardar precio', ' data-id="' + esc(p.id) + '"'));
+    pieHoja('cat-precio-guardar', 'Guardar precio', ' data-id="' + esc(p.id) + '" data-cli="' + esc(cliente.id) + '"'));
   $('#prNeto').focus();
 }
 function textoConIva(texto, c) {
@@ -91,16 +106,16 @@ function textoConIva(texto, c) {
   return 'Con IVA (' + cat.enCampo(iva) + ' %): ' + (Number.isNaN(n) || n <= 0 ? '—' : conIva(n, c));
 }
 function guardarPrecio(p, c, el) {
-  const cliente = cat.clientePrincipal(c.cat.clientes), v = cat.validarPrecio({ neto: $('#prNeto').value, desde: $('#prDesde').value });
+  const cliente = clienteDe(c, el.dataset.cli), varios = cat.clientesActivos(c.cat.clientes).length > 1, v = cat.validarPrecio({ neto: $('#prNeto').value, desde: $('#prDesde').value });
   if (v.error) { error(v.error, v.campo); return; }
   const d = v.datos, guardar = () => enviar(() => nube.guardar('precios/' + cat.idPrecio(p.id, cliente.id, d.desde), { productoId: p.id, clienteId: cliente.id, neto: d.neto, desde: d.desde }),
-    p.nombre + ': ' + cat.pesos(d.neto) + ' desde el ' + fechaTexto(d.desde), el);
+    p.nombre + ': ' + cat.pesos(d.neto) + (varios ? ' para ' + cliente.nombre : '') + ' desde el ' + fechaTexto(d.desde), el);
   if (d.desde >= hoy()) { guardar(); return; }
   ask({ title: '¿Precio desde una fecha pasada?', text: 'Regirá desde el ' + fechaTexto(d.desde) + ': cambia los montos de ese día en adelante. Los días anteriores no cambian.', ok: 'Guardar precio' })
     .then(si => { if (si) guardar(); });
 }
 function quitarPrecio(p, c, el) {
-  const cliente = cat.clientePrincipal(c.cat.clientes), h = cat.historial(c.cat.precios, p.id, cliente.id), i = h.findIndex(x => x.id === el.dataset.pid);
+  const cliente = clienteDe(c, el.dataset.cli), h = cat.historial(c.cat.precios, p.id, cliente.id), i = h.findIndex(x => x.id === el.dataset.pid);
   if (i < 0) return;
   const x = h[i], previo = h[i + 1];
   ask({ title: '¿Quitar el precio del ' + fechaTexto(x.desde) + '?', text: 'Desde esa fecha ' + (previo ? 'volverá a regir el anterior (' + cat.pesos(previo.neto) + ').' : 'el producto quedará sin precio.') + ' Los días anteriores no cambian.', ok: 'Quitar', danger: true })
@@ -113,7 +128,7 @@ export function alActuar(act, el, c) {
   else if (act === 'cat-guardar') guardarProducto(p || null, c, el);
   else if (!['cat-prod', 'cat-editar', 'cat-precio', 'cat-precio-guardar', 'cat-precio-quitar', 'cat-mover', 'cat-activar'].includes(act)) return false;
   else if (!p) cerrarHoja();
-  else if (act === 'cat-prod') hojaProducto(p, c);
+  else if (act === 'cat-prod') hojaProducto(p, c, el.dataset.cli);
   else if (act === 'cat-editar') hojaForm(p, c);
   else if (act === 'cat-activar') {
     const activo = p.activo === false;
@@ -122,8 +137,8 @@ export function alActuar(act, el, c) {
     const cambios = cat.mover(k.productos, p.id, Number(el.dataset.dir));
     if (!cambios.length) { toast(Number(el.dataset.dir) < 0 ? 'Ya es el primero de la lista' : 'Ya es el último de la lista'); return true; }
     enviar(() => nube.guardarVarios(cambios.map(x => ({ ruta: 'productos/' + x.id, datos: cat.soloProducto(x) }))), p.nombre + (Number(el.dataset.dir) < 0 ? ' subió un lugar' : ' bajó un lugar'), el, { abierta: true });
-  } else if (!cat.clientePrincipal(k.clientes)) error('Primero crea el cliente (Catálogo → Cliente e IVA).');
-  else if (act === 'cat-precio') hojaPrecio(p, c);
+  } else if (!clienteDe(c, el.dataset.cli)) error('Primero crea el cliente (Catálogo → Clientes e IVA).');
+  else if (act === 'cat-precio') hojaPrecio(p, c, el.dataset.cli);
   else if (act === 'cat-precio-guardar') guardarPrecio(p, c, el);
   else if (act === 'cat-precio-quitar') quitarPrecio(p, c, el);
   return true;

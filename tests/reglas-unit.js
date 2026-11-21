@@ -47,7 +47,10 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
   ok(!/\{document=\*\*\}/.test(rules) && !/allow[^;]*:\s*if true/.test(rules), 'sin comodines ni «if true»: lo no nombrado queda cerrado');
   const precios = (/match \/precios\/\{id\} \{([\s\S]*?)\n    \}/.exec(rules) || [])[1] || '';
   ok(/allow read: if esGestion\(\);/.test(precios) && !/esPesaje|conAcceso|sesion\(\)/.test(precios), 'los precios solo los lee gestión (dueños y externo)');
-  for (const c of ['clientes', 'cierres', 'proyeccion', 'cambios', 'insumos', 'preciosInsumo', 'recetas', 'gastos']) {
+  const clientes = (/match \/clientes\/\{id\} \{([\s\S]*?)\n    \}/.exec(rules) || [])[1] || '';
+  ok(/allow read: if conAcceso\(\);/.test(clientes) && !/allow (create|update|delete)[^;]*(esPesaje|conAcceso)/.test(clientes) && /'suelta'/.test(clientes),
+    'clientes (Fase 11): la tablet los lee (sin montos) y solo gestión los escribe; tipo regular o suelta');
+  for (const c of ['cierres', 'proyeccion', 'cambios', 'insumos', 'preciosInsumo', 'recetas', 'gastos']) {
     const b = (new RegExp('match \\/' + c + '\\/\\{[a-z]+\\} \\{([\\s\\S]*?)\\n    \\}').exec(rules) || [])[1] || '';
     ok(/allow read(, delete)?: if esGestion\(\);/.test(b) && (c === 'cambios' || !/esPesaje|conAcceso|sesion\(\)/.test(b)), c + ': lectura solo de gestión');
   }

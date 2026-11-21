@@ -24,7 +24,8 @@ export function texto() {
     sec('Quién responde', '<p>La panadería, a través de sus dueños. Para cualquier consulta sobre tus datos, o para pedir que se corrijan o se borren, habla con ellos.</p>') +
     sec('Qué datos usa la app', '<ul>' +
       '<li><b>De tu cuenta de Google:</b> tu nombre, tu correo y un identificador de la cuenta. Sirven solo para saber quién eres y para que los dueños aprueben tu acceso. La app no ve tu contraseña (la pide Google), ni tus contactos, fotos, ubicación, cámara o micrófono.</li>' +
-      '<li><b>Del trabajo:</b> el nombre de cada persona que pesa, lo que pesó (pan, kilos o unidades, hora, entrega y nota) y quién anotó o corrigió cada registro.</li>' +
+      '<li><b>Del trabajo:</b> el nombre de cada persona que pesa, lo que pesó (pan, kilos o unidades, hora, entrega, cliente y nota) y quién anotó o corrigió cada registro.</li>' +
+      '<li><b>De las ventas sueltas:</b> el nombre de quien compró, si se anota (es opcional; se recomienda solo el nombre de pila).</li>' +
       '<li><b>Del negocio:</b> productos, precios, ventas, cierres mensuales, metas, costos (insumos, recetas y gastos del mes) y el plan de producción del día (cuánto hacer de cada pan, quién lo armó).</li></ul>') +
     sec('Dónde se guardan', '<p>En Firebase, el servicio de Google que usa la panadería; sus servidores pueden estar fuera de Chile. Cada equipo guarda además una copia para funcionar sin internet, que se borra al cerrar sesión. En la tablet queda anotado quién está pesando.</p>') +
     sec('Quién los ve', '<p>Los dueños y la persona externa de confianza ven todo (solo los dueños manejan los accesos). La tablet de la panadería ve solo lo pesado hoy y el plan de hoy, sin precios, ventas ni costos. La contadora recibe los archivos que le envían los dueños.</p>') +

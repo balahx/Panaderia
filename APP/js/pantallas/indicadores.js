@@ -2,7 +2,9 @@
    participación, comparación con el mes anterior y con el mismo mes del año anterior, promedio diario, días de la semana más fuertes,
    kilos por trabajador y real contra proyectado (o contra la meta)—. «Año y metas» (pantallas/proyeccion.js) muestra el año mes a mes
    contra el anterior, la proyección con sus factores y las metas.
-   Los totales de un mes cerrado son los de su cierre; los de un mes sin cerrar, los de Entregas (pantallas/meses-datos.js). */
+   Los totales de un mes cerrado son los de su cierre; los de un mes sin cerrar, los de Entregas (pantallas/meses-datos.js).
+   Fase 11: indicador «Por cliente» (venta neta y participación de cada cliente, con la variación contra el mes anterior) y el filtro
+   «Cliente» (pantallas/filtro-cliente.js): con un cliente elegido, todo el mes es solo suyo; la meta y la proyección son del negocio entero. */
 import { esc } from '../core/formato.js';
 import { emptyHTML, errorHTML } from '../core/iconos.js';
 import * as cat from '../core/catalogo.js';
@@ -11,6 +13,7 @@ import * as V from '../core/ventas.js';
 import * as I from '../core/indicadores.js';
 import * as D from './meses-datos.js';
 import * as anio from './proyeccion.js';
+import * as FC from './filtro-cliente.js';
 
 let mes = '', vista = 'mes';   // mes elegido ('' = el de hoy) · 'mes' | 'anio'
 const mesSel = c => (mes && mes <= V.mesDe(c.hoy) ? mes : V.mesDe(c.hoy));
@@ -94,6 +97,15 @@ function panes(R, A) {
         (o ? ' ' + flecha(I.variacion(p.neto, o.neto)) : '') + '</small>' + barra(p.neto / max) + '</span>' +
         '<span class="precio"><b>' + (p.sinPrecio && !p.neto ? 'Sin precio' : esc(cat.pesos(p.neto))) + '</b><small>' + esc(I.pctTexto(p.pct, false)) + ' del mes</small></span></div>'; }).join('') + '</div></section>';
 }
+function clientes(R, A) {
+  if ((R.clientes || []).length < 2) return '';
+  const l = R.clientes.slice().sort((a, b) => b.neto - a.neto), max = Math.max(1, ...l.map(x => x.neto)), cmp = !R.enCurso && A && A.fuente !== 'cargando' && A.fuente !== 'error';
+  return '<section class="sec" id="indClientes"><h2>Por cliente</h2><p class="muted chico">Venta neta y participación de cada cliente en el mes' + (cmp ? '; la flecha compara con el mes anterior' : '') + '.</p><div class="mlist">' +
+    l.map(x => { const o = cmp && (A.clientes || []).find(y => y.clienteId === x.clienteId);
+      return '<div class="mrow fija ind-cli" data-cliente="' + esc(x.clienteId || '') + '"><span class="mt"><b>' + esc(x.cliente || '—') + '</b><small>' + esc(P.textoTotales(x)) +
+        (o ? ' ' + flecha(I.variacion(x.neto, o.neto)) : '') + '</small>' + barra(x.neto / max) + '</span>' +
+        '<span class="precio"><b>' + esc(cat.pesos(x.neto)) + '</b><small>' + esc(I.pctTexto(x.pct, false)) + ' del mes</small></span></div>'; }).join('') + '</div></section>';
+}
 function semana(R) {
   if (!R.detalle) return '<section class="sec" id="indSemana"><h2>Días de la semana</h2><p class="muted">Se calcula con lo pesado en la app: un mes importado desde Excel no trae los días.</p></section>';
   const l = R.semana.filter(s => s.veces), max = Math.max(1, ...l.map(s => s.promNeto));
@@ -116,16 +128,18 @@ export function html(c) {
   const err = c.errCat || (per && per.err);
   if (err) return cab + errorHTML('No se pudieron leer los datos (' + err + ').', { retry: 'recargar' });
   if (!D.listos(c) || !c.proy || !per || per.desde !== r.desde || !per.pesajes) return cab + '<div class="spin" role="status" aria-label="Cargando"></div>';
-  const R = D.resumen(c, m, true), A = D.resumen(c, V.sumarMeses(m, -1)), Y = D.resumen(c, V.sumarMeses(m, -12)), a = Number(m.slice(0, 4));
-  if (R.fuente === 'sin-datos') return cab + emptyHTML('prog', 'Sin ventas en ' + V.mesTexto(m), 'Cuando haya canastos pesados o el mes se importe desde Excel, aquí aparecen sus indicadores.') +
+  const cli = FC.elegido(c), R = D.resumen(c, m, true, cli), A = D.resumen(c, V.sumarMeses(m, -1), false, cli), Y = D.resumen(c, V.sumarMeses(m, -12), false, cli), a = Number(m.slice(0, 4));
+  const filtro = FC.selector(c, 'indCliente');
+  if (R.fuente === 'sin-datos') return cab + filtro + emptyHTML('prog', 'Sin ventas en ' + V.mesTexto(m), 'Cuando haya canastos pesados o el mes se importe desde Excel, aquí aparecen sus indicadores.') +
     (m < V.mesDe(c.hoy) ? '<div class="actions centro"><button class="btn ghost" data-act="ir" data-tab="cierres">Importar desde Excel</button></div>' : '');
   const Pr = I.leerProyeccion((c.proy || []).find(x => x.id === String(a)), a), av = I.avance(R, I.objetivo(Pr, m, I.proyectarMes(Y, Pr)), c.hoy);
   const anterior = V.mesTexto(V.sumarMeses(m, -12));
-  return cab + fuente(R, c) + totales(R) + meta(R, av, c, m) +
+  const metaHTML = cli ? '<p class="muted chico" id="indMetaCli">La meta y la proyección son del negocio entero: elige «Todos» para verlas.</p>' : meta(R, av, c, m);
+  return cab + filtro + fuente(R, c) + totales(R) + metaHTML +
     '<section class="card sec" id="indComparar"><p class="eyebrow">Comparación</p>' +
     contra(R, A, V.mesTexto(V.sumarMeses(m, -1)), 'Sin datos de ' + V.mesTexto(V.sumarMeses(m, -1)) + '.') +
     contra(R, Y, anterior, 'Sin datos de ' + anterior + '. Si los tienes en Excel, impórtalos en Más → Cierres mensuales.') + '</section>' +
-    panes(R, A) + semana(R) + trabajadores(R) +
+    (cli ? '' : clientes(R, A)) + panes(R, A) + semana(R) + trabajadores(R) +
     '<p class="muted chico">Montos netos (sin IVA). Un mes cerrado usa los totales de su cierre; uno sin cerrar, lo pesado con el precio vigente de cada día (lo mismo que Entregas).</p>';
 }
 
@@ -140,6 +154,7 @@ export function alActuar(act, el, c) {
 }
 export function alEscribir(el, c) {
   if (vista === 'anio') return anio.alEscribir(el, c);
+  if (FC.alEscribir(el)) return 'repintar';
   if (el.id !== 'indMes' || !V.esMes(el.value)) return;
   mes = el.value >= V.mesDe(c.hoy) ? '' : el.value;
   return 'repintar';

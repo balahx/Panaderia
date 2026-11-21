@@ -29,7 +29,7 @@ export async function cerrarMes(c, mes) {
   if (cerrando) return;
   if (!CI.sePuedeCerrar(mes, c.hoy)) { toast('Un mes se cierra cuando termina.'); return; }
   if (navigator.onLine === false) { toast('Para cerrar el mes hace falta internet: así se cierra con todo lo anotado.'); return; }
-  const k = c.cat || {}, cli = cat.clientePrincipal(k.clientes), ya = CI.cierreDe(c.cierres, mes), iva = cat.ivaDe(c.negocio);
+  const k = c.cat || {}, cli = cat.clienteOriginal(k.clientes), ya = CI.cierreDe(c.cierres, mes), iva = cat.ivaDe(c.negocio);
   if (!k.productos || !k.precios) { toast('Espera a que cargue el catálogo.'); return; }
   if (ya && ya.cerrado) { toast('Ese mes ya está cerrado.'); return; }
   cerrando = mes; repintar();
@@ -40,6 +40,7 @@ export async function cerrarMes(c, mes) {
     const d = R.doc;
     const si = await ask({ title: '¿Cerrar ' + V.mesTexto(mes) + '?',
       text: 'Neto ' + cat.pesos(d.neto) + ' · IVA ' + cat.pesos(d.ivaMonto) + ' (' + cat.enCampo(iva) + ' % del neto del mes) · Total ' + cat.pesos(d.total) + ' · ' + totalesTexto(d) + '. ' +
+        (d.clientes && d.clientes.length > 1 ? 'Por cliente: ' + d.clientes.map(x => x.cliente + ' ' + cat.pesos(x.neto)).join(' · ') + '. ' : '') +
         (R.faltan.length ? 'Ojo: ' + R.faltan.map(x => x.nombre).join(', ') + ' sin precio algún día (no suman). ' : '') +
         'Cerrado, en ese mes ya no se anota ni se corrige' + (puede(c.perfil, 'accesos') ? ' (puedes reabrirlo).' : '; solo un dueño puede reabrirlo.'),
       ok: 'Cerrar el mes' });
@@ -101,7 +102,9 @@ function verMes(c, mes) {
     return;
   }
   const pct = cat.enCampo(typeof x.iva === 'number' ? x.iva : cat.ivaDe(c.negocio));
-  const panes = (x.lineas || []).map(l => '<div class="mrow fija"><span class="mt"><b>' + esc(l.nombre) + '</b><small>' + esc(P.textoCantidad(l.cantidad || 0, l.unidad)) +
+  const cls = CI.clientesDeCierre(x).filter(g => g.clienteId), porCli = x.clientes && x.clientes.length > 1 ? '<h3 class="reg-dia">Por cliente</h3><div class="mlist" id="ciePorCliente">' +
+    cls.map(g => '<div class="mrow fija"><span class="mt"><b>' + esc(g.cliente || cat.nombreCliente(c.cat && c.cat.clientes, g.clienteId)) + '</b><small>' + esc(totalesTexto(g)) + '</small></span><span class="precio"><b>' + esc(cat.pesos(g.neto || 0)) + '</b><small>neto</small></span></div>').join('') + '</div>' : '';
+  const panes = CI.panesDeCierre(x).map(l => '<div class="mrow fija"><span class="mt"><b>' + esc(l.nombre) + '</b><small>' + esc(P.textoCantidad(l.cantidad || 0, l.unidad)) +
     (l.precio != null ? ' · ' + esc(cat.pesos(l.precio)) + (l.unidad === 'un' ? ' c/u' : ' el kg') : '') + (l.nombreExcel && l.nombreExcel !== l.nombre ? ' · en el Excel: ' + esc(l.nombreExcel) : '') + '</small></span>' +
     '<span class="precio"><b>' + (l.sinPrecio && !l.neto ? 'Sin precio' : esc(cat.pesos(l.neto || 0))) + '</b><small>neto</small></span></div>').join('');
   hoja(cap(V.mesTexto(mes)), '<div id="cieDetalle">' +
@@ -110,7 +113,7 @@ function verMes(c, mes) {
     kv('Cerrado por', (x.quien || '—') + (x.en ? ' · ' + cuando(x.en) : '')) + (x.reabiertoQuien ? kv('Reabierto por', x.reabiertoQuien + (x.reabiertoEn ? ' · ' + cuando(x.reabiertoEn) : '')) : '') +
     kv('Neto', cat.pesos(x.neto)) + kv('IVA (' + pct + ' % del neto)', cat.pesos(x.ivaMonto)) + kv('Total', cat.pesos(x.total), 'cieTotal') + kv('Cantidad', totalesTexto(x)) +
     (x.sinPrecio ? '<p class="warn-t">Al cerrar había ' + x.sinPrecio + (x.sinPrecio === 1 ? ' pan vendido' : ' panes vendidos') + ' sin precio: no suman.</p>' : '') +
-    '<h3 class="reg-dia">Por pan</h3><div class="mlist">' + panes + '</div></div>' +
+    porCli + '<h3 class="reg-dia">Por pan' + (porCli ? ' (todos los clientes)' : '') + '</h3><div class="mlist">' + panes + '</div></div>' +
     '<div class="actions">' + ir + (e === 'cerrado' && puede(c.perfil, 'accesos') ? '<button class="btn ghost danger" data-act="cie-reabrir" data-mes="' + mes + '">Reabrir el mes</button>' : '') + '</div>' +
     (e === 'cerrado' && !puede(c.perfil, 'accesos') ? '<p class="muted chico">Solo un dueño puede reabrir un mes cerrado.</p>' : ''));
 }

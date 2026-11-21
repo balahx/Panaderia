@@ -125,7 +125,7 @@ const A_MANO = { hal: 10485 / 16.5, marr: 10005 / 17.5, com: 10005 / 192, dob: 9
   const E = await import('../APP/js/core/excel.js'), X = await import('../APP/js/core/xlsx.js');
   const base = { desde: '2026-11-01', hasta: '2026-11-30', pesajes: pes, productos: PROD, trabajadores: [], precios, cliente: { id: 'c', nombre: 'Supermercado' }, iva: 19, ahora: Date.UTC(2026, 10, 30, 15) };
   const sin = E.libro(base), con = E.libro(Object.assign({}, base, { costos: { k: K, mes: '2026-11', gastos: { items: [{ nombre: 'Gas', monto: 180000 }, { nombre: 'Sueldos', monto: 900000 }] } } }));
-  ok(sin.hojas.length === 6 && !sin.hojas.some(h => h.nombre === 'Resultado') && sin.hojas[1].filas[0].length === 13, 'sin la casilla de costos, el Excel sale igual que antes');
+  ok(sin.hojas.length === 7 && !sin.hojas.some(h => h.nombre === 'Resultado') && sin.hojas[1].filas[0].length === 14, 'sin la casilla de costos, el Excel sale igual que antes (con «Por cliente» y «Comprador», Fase 11)');
   const hV = con.hojas.find(h => h.nombre === 'Ventas'), hR = con.hojas.find(h => h.nombre === 'Resultado'), hP = con.hojas.find(h => h.nombre === 'Por pan'), nV = con.lineas.length;
   ok(con.hojas[1].nombre === 'Resultado' && hV.filas[0].map(x => x.v).slice(12, 16).join('|') === 'Costo ingredientes|Margen|Margen %|Observación', 'con costos: columnas Costo ingredientes, Margen y Margen % en «Ventas», y la hoja «Resultado»');
   const tot = hV.filas[nV + 1];

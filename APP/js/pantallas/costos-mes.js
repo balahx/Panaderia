@@ -29,8 +29,7 @@ export function datosMes(c) {
   const per = c.per, k = c.cat, r = rango(c), m = mesDe(c);
   if (c.errCat || (per && per.err)) return { err: c.errCat || per.err };
   if (!k || !k.productos || !k.precios || !k.clientes || !k.insumos || !k.preciosInsumo || !k.recetas || !per || per.desde !== r.desde || !per.pesajes || !c.cierres || !c.gastos) return { cargando: true };
-  const cli = cat.clientePrincipal(k.clientes);
-  return { R: K.resumenMes(m, { cierre: CI.cierreDe(c.cierres, m), pesajes: per.pesajes, productos: k.productos, precios: k.precios, clienteId: cli && cli.id, iva: cat.ivaDe(c.negocio),
+  return { R: K.resumenMes(m, { cierre: CI.cierreDe(c.cierres, m), pesajes: per.pesajes, productos: k.productos, precios: k.precios, clientes: k.clientes, iva: cat.ivaDe(c.negocio),
     k: { insumos: k.insumos, preciosInsumo: k.preciosInsumo, recetas: k.recetas }, gastos: gastosDe(c, m) }) };
 }
 
@@ -99,7 +98,7 @@ function textoTotal(lista) {
 
 export function alActuar(act, el, c) {
   if (act === 'cos-mes-nav') { mes = V.sumarMeses(mesDe(c), Number(el.dataset.d) || 0); if (mes >= V.mesDe(c.hoy)) mes = ''; return true; }
-  if (act === 'cos-mes-excel') { const r = rango(c); exportar(c, r.desde, r.hasta, true); return true; }
+  if (act === 'cos-mes-excel') { const r = rango(c); exportar(c, r.desde, r.hasta, true, ''); return true; }
   if (act === 'gas-editar') { hojaGastos(c, mesDe(c)); return true; }
   if (act === 'gas-copiar') {
     const antes = gastosDe(c, V.sumarMeses(el.dataset.mes, -1));

@@ -12,6 +12,7 @@
    los precios vigentes ESE día; todo total es suma de líneas (igual que el neto: core/ventas.js), así el Excel cuadra con la pantalla. */
 import { numero, limpiar, esFecha, redondearPesos, enCampo } from './catalogo.js';
 import * as V from './ventas.js';
+import { panesDeCierre } from './cierres.js';
 
 const igual = (a, b) => limpiar(a).toLocaleLowerCase('es') === limpiar(b).toLocaleLowerCase('es');
 const porNombre = (a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es');
@@ -167,7 +168,7 @@ const ultimoDia = mes => V.rangoMes(mes).hasta;
 export function resumenMes(mes, o) {
   o = o || {};
   const c = o.cierre && o.cierre.cerrado === true ? o.cierre : null, k = o.k || {};
-  const L = Array.isArray(o.pesajes) && (!c || c.origen !== 'excel') ? conCostos(V.lineas(o.pesajes, o.productos, o.precios, o.clienteId, o.iva), k, o.productos) : [];
+  const L = Array.isArray(o.pesajes) && (!c || c.origen !== 'excel') ? conCostos(V.lineas(o.pesajes, o.productos, o.precios, o.clientes || o.clienteId, o.iva), k, o.productos) : [];
   const deLineas = new Map();
   for (const l of L) {
     if (!deLineas.has(l.productoId)) deLineas.set(l.productoId, { productoId: l.productoId, nombre: l.nombre, unidad: l.unidad, cantidad: 0, neto: 0, costo: 0, sinCosto: false, sinPrecio: false });
@@ -178,7 +179,7 @@ export function resumenMes(mes, o) {
   }
   let panes, estimado = false;
   if (c) {
-    panes = (c.lineas || []).map(x => {
+    panes = panesDeCierre(c).map(x => {
       const d = deLineas.get(x.productoId), base = { productoId: x.productoId, nombre: x.nombre, unidad: x.unidad, cantidad: x.cantidad || 0, neto: x.neto || 0, sinPrecio: !!x.sinPrecio };
       if (d) return Object.assign(base, { costo: d.sinCosto ? null : d.costo });
       const u = costoUnitario(k, x.productoId, ultimoDia(mes), (o.productos || []).find(p => p.id === x.productoId));

@@ -120,7 +120,7 @@ const INTRUSO = { sub: '4004', email: 'intruso@example.com', name: 'Otra Persona
   ok((await page.textContent('#miPerfil')) === 'Pesaje' && !(await page.$('#irAccesos')), 'la cuenta de pesaje no ve Accesos');
   await db('poner', 'precios/pr1', { productoId: 'p1', clienteId: 'c1', neto: 1450, desde: '2026-01-01', en: 1 });
   await db('poner', 'productos/p1', { nombre: 'Marraqueta', unidad: 'kg', activo: true, en: 1 });
-  ok((await db('pedir', 'get', 'precios/pr1')) === false && (await db('pedir', 'list', 'precios')) === false && (await db('pedir', 'list', 'clientes')) === false && (await db('pedir', 'list', 'cierres')) === false, 'con peticiones directas NO lee precios, clientes ni cierres');
+  ok((await db('pedir', 'get', 'precios/pr1')) === false && (await db('pedir', 'list', 'precios')) === false && (await db('pedir', 'list', 'cierres')) === false, 'con peticiones directas NO lee precios ni cierres (los clientes sí desde la Fase 11: sin montos)');
   ok((await db('pedir', 'list', 'productos')) === true && (await db('pedir', 'list', 'trabajadores')) === true, 'sí lee productos y trabajadores');
   ok(!/1450|1\.450/.test(await page.evaluate(() => document.body.textContent)), 'ningún precio aparece en la pantalla');
   await db('poner', 'miembros/u-5005', { nombre: 'Nora Paz', correo: 'nora@example.com', perfil: 'pesaje', activo: false, por: 'u-1001', en: 2 });

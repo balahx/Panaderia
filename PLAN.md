@@ -273,7 +273,7 @@ Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas
 
 
 ### Fase 11 · Varios clientes y ventas sueltas — chat 12
-Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas). Versión de llegada: **0.11.0**. Hasta ahora todo lo pesado era venta al supermercado (los pesajes no guardan el cliente; los precios sí, por `clienteId`).
+Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas). Versión de llegada: **0.11.0**. **Desarrollada el 21-nov-2026** (chat 12); lo que se decidió al desarrollarla está en `decisiones/fase-11.md` («Desarrollo»). Falta la verificación de Felipe (`GUIA-FIREBASE.md`, paso 26). Hasta ahora todo lo pesado era venta al supermercado (los pesajes no guardan el cliente; los precios sí, por `clienteId`).
 
 **Qué se agrega**
 - **Clientes regulares** nuevos (almacenes, otro supermercado, un casino), cada uno con **su propia lista de precios** con vigencia, igual que el supermercado. Al crear un cliente se puede **copiar los precios de otro** (los vigentes ese día, con la fecha «desde» que se elija; por omisión, hoy) y después ajustar.

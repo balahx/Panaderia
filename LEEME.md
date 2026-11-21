@@ -1,9 +1,9 @@
 # Panadería · app de pesaje, entregas y ventas
 
-App web instalable (PWA) para una panadería familiar pequeña que fabrica pan y lo entrega a un supermercado. Se instala en iPhone, Android, iPad, tablet y Windows, funciona **con y sin internet**, y guarda los datos en Firebase (plan gratuito).
+App web instalable (PWA) para una panadería familiar pequeña que fabrica pan y lo entrega a un supermercado (y, desde la versión 0.11.0, a otros clientes, con ventas sueltas). Se instala en iPhone, Android, iPad, tablet y Windows, funciona **con y sin internet**, y guarda los datos en Firebase (plan gratuito).
 
-- **En la panadería**, una tablet registra cada canasto que se pesa: pan, kilos o unidades, quién pesó y la entrega. Letra grande, tres toques por canasto, sin precios a la vista. Si hay **plan de producción** del día, cada pan muestra lo que falta («faltan 18 kg»).
-- **Los dueños** (y una persona externa de confianza) ven el día en vivo, las entregas y la venta de cada mes con neto, IVA y total, el registro de correcciones, los cierres mensuales, los indicadores, la proyección y las metas, los **costos y el margen de cada pan** (receta por tanda, precios de insumos, gastos del mes y resultado, con un simulador de precio) y el **plan de producción** de hoy y mañana (sugerido con las 4 semanas anteriores, en tandas, comparado al momento con lo pesado); descargan el Excel para la contadora y el respaldo semanal.
+- **En la panadería**, una tablet registra cada canasto que se pesa: pan, kilos o unidades, quién pesó y la entrega. Letra grande, tres toques por canasto, sin precios a la vista. Con varios clientes, se elige **«Para:»** antes de pesar (cada cliente con su entrega; las ventas sueltas, con quién compró). Si hay **plan de producción** del día, cada pan muestra lo que falta («faltan 18 kg»).
+- **Los dueños** (y una persona externa de confianza) ven el día en vivo, las entregas y la venta de cada mes con neto, IVA y total, el registro de correcciones, los cierres mensuales, los indicadores, la proyección y las metas, los **costos y el margen de cada pan** (receta por tanda, precios de insumos, gastos del mes y resultado, con un simulador de precio) el **plan de producción** de hoy y mañana (sugerido con las 4 semanas anteriores, en tandas, comparado al momento con lo pesado) y **varios clientes** (cada uno con su lista de precios, el total del negocio y un filtro por cliente); descargan el Excel para la contadora y el respaldo semanal.
 
 Versión actual: ver `APP/version.js` (o **Más → Diagnóstico** en la app).
 

@@ -1,12 +1,14 @@
 /* Registro general (dueños y externo; PLAN §3.6), desde «Más»: todos los canastos de un período con filtros por pan, trabajador,
    entrega y estado, y la bitácora de correcciones (qué cambió, quién y cuándo). Tocar un canasto abre su ficha para corregirlo.
-   Los datos llegan en vivo en ctx.per (app.js, vigilarPeriodo): pesajes y cambios con la fecha del canasto dentro del período. */
+   Los datos llegan en vivo en ctx.per (app.js, vigilarPeriodo): pesajes y cambios con la fecha del canasto dentro del período.
+   Fase 11: filtro «Cliente» (pantallas/filtro-cliente.js, el mismo de Hoy, Entregas y Números); la bitácora muestra los cambios de cliente. */
 import { esc, fechaTexto, diaChile } from '../core/formato.js';
 import { emptyHTML, errorHTML } from '../core/iconos.js';
 import * as cat from '../core/catalogo.js';
 import * as P from '../core/pesaje.js';
 import * as V from '../core/ventas.js';
 import * as canasto from './pesaje-hoja.js';
+import * as FC from './filtro-cliente.js';
 
 const F = { desde: '', hasta: '', productoId: '', trabajadorId: '', entregaN: '', estado: 'vigentes', ver: 'canastos', limite: 100 };
 const PASO = 100;
@@ -30,6 +32,7 @@ function filtros(c, r, todos) {
     (V.diasEntre(r.desde, r.hasta) > 62 ? '<p class="muted chico">Un período largo usa más lecturas de la cuota diaria gratuita.</p>' : '') +
     '<div class="dos"><div><label class="lab" for="regPan">Pan</label><select class="txt" id="regPan">' + opcion('', 'Todos') + cat.ordenarProductos(k.productos).map(p => opcion(p.id, p.nombre, F.productoId)).join('') + '</select></div>' +
     '<div><label class="lab" for="regQuien">Quién pesó</label><select class="txt" id="regQuien">' + opcion('', 'Todos') + cat.ordenarPersonas(k.trabajadores).map(p => opcion(p.id, p.nombre, F.trabajadorId)).join('') + '</select></div></div>' +
+    FC.selector(c, 'regCliente') +
     '<label class="lab" for="regEntrega">Entrega</label><select class="txt" id="regEntrega">' + opcion('', 'Todas') + Array.from({ length: maxE }, (_, i) => opcion(i + 1, 'N.º ' + (i + 1), F.entregaN)).join('') + '</select>' +
     '<div class="seg seg-abajo" role="group" aria-label="Estado">' + seg('estado', 'vigentes', 'Vigentes') + seg('estado', 'anulados', 'Anulados') + seg('estado', 'todos', 'Todos') + '</div></section>';
 }
@@ -45,12 +48,12 @@ function canastos(c, lista) {
 function bitacora(c, cambios, todos) {
   const k = c.cat, porId = new Map(todos.map(p => [p.id, p]));
   const l = (cambios || []).filter(x => { const p = porId.get(x.pesajeId); return (!F.productoId || (p && p.productoId === F.productoId) || (x.antes && x.antes.productoId === F.productoId) || (x.despues && x.despues.productoId === F.productoId))
-    && (!F.trabajadorId || (p && p.trabajadorId === F.trabajadorId)); }).sort((a, b) => (b.en || 0) - (a.en || 0));
+    && (!F.trabajadorId || (p && p.trabajadorId === F.trabajadorId)) && (!FC.elegido(c) || (p && cat.clienteDe(p, FC.original(c)) === FC.elegido(c)) || (x.antes && x.antes.clienteId === FC.elegido(c))); }).sort((a, b) => (b.en || 0) - (a.en || 0));
   if (!l.length) return emptyHTML('lista', 'Sin correcciones en el período', 'Cada corrección, anulación o reactivación de un canasto queda anotada aquí.');
   const miembro = uid => (c.miembros || []).find(m => m.id === uid);   // solo los dueños tienen la lista de miembros
   const quien = x => (x.por === c.user.uid ? 'Tú' : x.quien || (miembro(x.por) && miembro(x.por).nombre) || ((c.negocio && (c.negocio.duenos || []).includes(x.por)) ? 'Un dueño' : 'Otra cuenta'));
   return '<div class="mlist" id="regBitacora">' + l.map(x => {
-    const p = porId.get(x.pesajeId), D = P.describirCambio(x, k.productos, k.trabajadores, p && p.unidad);
+    const p = porId.get(x.pesajeId), D = P.describirCambio(x, k.productos, k.trabajadores, p && p.unidad, k.clientes);
     const cuando = typeof x.en === 'number' ? fechaTexto(diaChile(new Date(x.en))).replace(/ \d{4}$/, '') + ' ' + hora(x.en) : '';
     return '<button class="mrow cambio" data-act="can-ver" data-id="' + esc(x.pesajeId) + '"' + (p ? '' : ' disabled') + '><span class="mt"><b>' + esc(D.titulo + ' · ' + (p ? nombre(k.productos, p.productoId) : 'canasto') + ' del ' + corto(x.fecha)) + '</b>' +
       (D.detalle ? '<small>' + esc(D.detalle) + '</small>' : '') + '<small>' + esc(quien(x) + (cuando ? ' · ' + cuando : '')) + '</small></span></button>';
@@ -61,8 +64,8 @@ export function html(c) {
   const cab = '<button class="lnk volver" data-act="ir" data-tab="mas">‹ Más</button><span class="eyebrow">Registros</span><h1>Registro general</h1>';
   const per = c.per, k = c.cat, r = rango(c), err = c.errCat || (per && per.err);
   if (err) return cab + errorHTML('No se pudieron leer los datos (' + err + ').', { retry: 'recargar' });
-  if (!k || !k.productos || !k.trabajadores || !per || per.desde !== r.desde || per.hasta !== r.hasta || !per.pesajes || !per.cambios) return cab + '<div class="spin" role="status" aria-label="Cargando"></div>';
-  const todos = per.pesajes, lista = V.ordenRegistro(V.filtrar(todos, F)), nCambios = per.cambios.length;
+  if (!k || !k.productos || !k.trabajadores || !k.clientes || !per || per.desde !== r.desde || per.hasta !== r.hasta || !per.pesajes || !per.cambios) return cab + '<div class="spin" role="status" aria-label="Cargando"></div>';
+  const todos = per.pesajes, lista = V.ordenRegistro(V.filtrar(todos, Object.assign({}, F, { clienteId: FC.elegido(c), original: FC.original(c) }))), nCambios = per.cambios.length;
   const ver = (v, t) => '<button data-act="reg-ver" data-v="' + v + '" aria-pressed="' + (F.ver === v) + '">' + t + '</button>';
   return cab + filtros(c, r, todos) +
     '<div class="seg" role="group" aria-label="Qué ver">' + ver('canastos', 'Canastos (' + lista.length + ')') + ver('bitacora', 'Correcciones (' + nCambios + ')') + '</div>' +
@@ -78,6 +81,7 @@ export function alActuar(act, el, c) {
 }
 const CAMPOS = { regPan: 'productoId', regQuien: 'trabajadorId', regEntrega: 'entregaN', regDesde: 'desde', regHasta: 'hasta' };
 export function alEscribir(el) {
+  if (FC.alEscribir(el)) { F.limite = PASO; return 'repintar'; }
   const k = CAMPOS[el.id]; if (!k) return;
   F[k] = el.value; F.limite = PASO;
   return 'repintar';

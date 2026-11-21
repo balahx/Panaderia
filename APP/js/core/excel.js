@@ -4,10 +4,14 @@
      Ventas    una fila por pan y entrega de cada día: cantidad, canastos, precio neto, neto, IVA, total  ← el detalle
      Entregas  una fila por entrega · Por día · Por pan   (todas son sumas de las filas de «Ventas»: cuadran entre sí)
      Canastos  cada canasto pesado, también los anulados (marcados), con quién pesó, nota y cuándo se anotó
+   Fase 11 (varios clientes): «Ventas» lleva el cliente de cada línea y, en las ventas sueltas (una fila por venta), el «Comprador» (la nota);
+   «Entregas» lleva el cliente; hoja nueva «Por cliente» (también suma lo de todos); el Resumen nombra los clientes del período.
+   Con d.clienteId sale el Excel de un solo cliente (por si la contadora necesita uno).
    Fase 9 (si se piden los costos, d.costos): «Ventas» y «Por pan» suman Costo ingredientes, Margen y Margen % (margen sobre la venta),
    y una hoja más, «Resultado»: venta, ingredientes, margen, gastos del mes (si el período es un mes) y resultado. */
 import * as V from './ventas.js';
 import * as K from './costos.js';
+import * as cat from './catalogo.js';
 import { fechaTexto, diaChile } from './formato.js';
 import * as X from './xlsx.js';
 
@@ -21,40 +25,46 @@ const col = c => String.fromCharCode(c.charCodeAt(0) + 1);
 const ivaTotal = (neto, n, pct, T) => [{ f: 'ROUND(' + neto + (n + 2) + '*' + pct + '/100,0)', v: T.iva, s: 'b-pesos' }, { f: neto + (n + 2) + '+' + col(neto) + (n + 2), v: T.total, s: 'b-pesos' }];
 const nombreDe = (lista, id) => { const x = (lista || []).find(y => y.id === id); return x ? x.nombre : '(sin nombre)'; };
 
-export function nombreArchivo(desde, hasta) {
-  const r = V.rangoMes(V.mesDe(desde));
-  return 'ventas-' + (desde === r.desde && (hasta === r.hasta || V.mesDe(hasta) === V.mesDe(desde)) ? V.mesDe(desde) : desde + '_a_' + hasta) + '.xlsx';
+const slug = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+export function nombreArchivo(desde, hasta, cliente) {
+  const r = V.rangoMes(V.mesDe(desde)), s = cliente ? slug(cliente) : '';
+  return 'ventas-' + (desde === r.desde && (hasta === r.hasta || V.mesDe(hasta) === V.mesDe(desde)) ? V.mesDe(desde) : desde + '_a_' + hasta) + (s ? '-' + s : '') + '.xlsx';
 }
 
-/* d = { desde, hasta, pesajes, productos, trabajadores, precios, cliente, iva, quien, ahora (ms) }
-   Devuelve { nombre, hojas, lineas, totales, faltan } (hojas para xlsx.crear). */
+/* d = { desde, hasta, pesajes, productos, trabajadores, precios, clientes (lista, Fase 11) o cliente (uno), clienteId (solo ese cliente), iva, quien, ahora (ms) }
+   Devuelve { nombre, hojas, lineas, totales, faltan, clientes } (hojas para xlsx.crear). */
 export function libro(d) {
-  const cli = d.cliente || null, co = d.costos || null, l0 = V.lineas(d.pesajes, d.productos, d.precios, cli && cli.id, d.iva), T = V.totales(l0), faltan = V.faltanPrecios(l0);
+  const cls = Array.isArray(d.clientes) ? d.clientes : null, cli = d.cliente || null, orig = cls ? cat.clienteOriginal(cls) : cli, co = d.costos || null;
+  const uno = d.clienteId ? (cls || []).find(c => c.id === d.clienteId) || { id: d.clienteId, nombre: cat.nombreCliente(cls, d.clienteId) } : null;
+  const pesajes = uno ? (d.pesajes || []).filter(p => (p.clienteId || (orig && orig.id)) === uno.id) : d.pesajes || [];
+  const l0 = V.lineas(pesajes, d.productos, d.precios, cls || (cli && cli.id), d.iva), T = V.totales(l0), faltan = V.faltanPrecios(l0);
   const ls = co ? K.conCostos(l0, co.k, d.productos) : l0, TC = co ? K.totalesCosto(ls) : null, sinCosto = co ? K.faltanCostos(ls) : [];
-  const ent = V.porEntrega(ls), dias = V.porDia(ls), panes = V.porPan(ls, d.productos), cliente = cli ? cli.nombre : '(sin cliente)';
-  const nV = ls.length, nE = ent.length, nD = dias.length, nP = panes.length;
+  const ent = V.porEntrega(ls), dias = V.porDia(ls), panes = V.porPan(ls, d.productos), PC = V.porCliente(ls, cls);
+  const nomCli = l => l.cliente || (cli ? cli.nombre : '(sin cliente)');
+  const cliente = uno ? uno.nombre : PC.length === 1 ? nomCli(PC[0]) : PC.length ? 'Todos (' + PC.length + ' clientes)' : cli ? cli.nombre : cls && orig ? orig.nombre : '(sin cliente)';
   const ahora = new Date(d.ahora || Date.now());
+  const nV = ls.length, nE = ent.length, nD = dias.length, nP = panes.length, nC0 = PC.length, nEnt = V.soloEntregas(ent).length;
 
   /* Costo, margen y margen % de una fila (Fase 9); en la fila de totales, margen = neto − costo y % = margen ÷ neto (con su resultado). */
   const costoCeldas = l => (co ? [l.costo == null ? null : C(l.costo, 'pesos'), l.margen == null ? null : C(l.margen, 'pesos'), l.margenPct == null ? null : C(Math.round(l.margenPct * 100) / 10000, 'pct')] : []);
   const costoTotal = (cN, cC, n, costo, neto) => (co ? [suma(cC, n, costo, 'b-pesos'), { f: cN + (n + 2) + '-' + cC + (n + 2), v: neto - costo, s: 'b-pesos' },
     { f: 'IF(' + cN + (n + 2) + '=0,0,' + col(cC) + (n + 2) + '/' + cN + (n + 2) + ')', v: neto ? Math.round((neto - costo) / neto * 10000) / 10000 : 0, s: 'b-pct' }] : []);
-  const obs = l => (l.neto == null ? 'Sin precio ese día: no suma' : co && l.costo == null ? 'Sin costo ese día (sin receta o un insumo sin precio)' : '');
-  const ventas = { nombre: 'Ventas', congelar: 1, filtro: nV + 1, columnas: [11, 5, 8, 16, 26, 10, 11, 9, 12, 13, 12, 13].concat(co ? [13, 13, 10] : []).concat([22]),
-    filas: [cab(['Fecha', 'Día', 'Entrega', 'Cliente', 'Pan', 'Unidad', 'Cantidad', 'Canastos', 'Precio neto', 'Neto', 'IVA', 'Total'].concat(co ? ['Costo ingredientes', 'Margen', 'Margen %'] : []).concat(['Observación']))]
-      .concat(ls.map(l => [C(l.fecha, 'fecha'), V.diaSemana(l.fecha), C(l.entregaN, 'entero'), cliente, l.nombre, unidadTexto(l.unidad), C(l.cantidad, l.unidad === 'un' ? 'entero' : 'kilos'), C(l.canastos, 'entero'),
-        l.precio == null ? null : C(l.precio, 'precio'), l.neto == null ? null : C(l.neto, 'pesos'), l.iva == null ? null : C(l.iva, 'pesos'), l.total == null ? null : C(l.total, 'pesos')].concat(costoCeldas(l)).concat([obs(l)])))
+  const obs = l => [l.suelta ? 'Venta suelta' + (l.hora ? ' de las ' + l.hora : '') : '', l.neto == null ? 'Sin precio ese día: no suma' : co && l.costo == null ? 'Sin costo ese día (sin receta o un insumo sin precio)' : ''].filter(Boolean).join(' · ');
+  const ventas = { nombre: 'Ventas', congelar: 1, filtro: nV + 1, columnas: [11, 5, 8, 18, 26, 10, 11, 9, 12, 13, 12, 13].concat(co ? [13, 13, 10] : []).concat([26, 20]),
+    filas: [cab(['Fecha', 'Día', 'Entrega', 'Cliente', 'Pan', 'Unidad', 'Cantidad', 'Canastos', 'Precio neto', 'Neto', 'IVA', 'Total'].concat(co ? ['Costo ingredientes', 'Margen', 'Margen %'] : []).concat(['Observación', 'Comprador']))]
+      .concat(ls.map(l => [C(l.fecha, 'fecha'), V.diaSemana(l.fecha), l.suelta ? null : C(l.entregaN, 'entero'), nomCli(l), l.nombre, unidadTexto(l.unidad), C(l.cantidad, l.unidad === 'un' ? 'entero' : 'kilos'), C(l.canastos, 'entero'),
+        l.precio == null ? null : C(l.precio, 'precio'), l.neto == null ? null : C(l.neto, 'pesos'), l.iva == null ? null : C(l.iva, 'pesos'), l.total == null ? null : C(l.total, 'pesos')].concat(costoCeldas(l)).concat([obs(l), l.suelta ? l.comprador || '' : ''])))
       .concat(nV ? [[B('Total'), null, null, null, null, null, null, suma('H', nV, T.canastos, 'b-entero'), null, suma('J', nV, T.neto, 'b-pesos')].concat(ivaTotal('J', nV, d.iva, T)).concat(costoTotal('J', 'M', nV, co ? TC.costo : 0, T.neto))] : []) };
 
-  const entregas = { nombre: 'Entregas', congelar: 1, filtro: nE + 1, columnas: [11, 5, 8, 12, 9, 11, 11, 13, 12, 13],
-    filas: [cab(['Fecha', 'Día', 'Entrega', 'Horario', 'Canastos', 'Kilos', 'Unidades', 'Neto', 'IVA', 'Total'])]
-      .concat(ent.map(e => [C(e.fecha, 'fecha'), V.diaSemana(e.fecha), C(e.n, 'entero'), e.desde + (e.hasta && e.hasta !== e.desde ? '–' + e.hasta : ''), C(e.canastos, 'entero'), C(e.kg, 'kilos'), C(e.un, 'entero'), C(e.neto, 'pesos'), C(e.iva, 'pesos'), C(e.total, 'pesos')]))
+  const entregas = { nombre: 'Entregas', congelar: 1, filtro: nE + 1, columnas: [11, 5, 8, 12, 9, 11, 11, 13, 12, 13, 22],
+    filas: [cab(['Fecha', 'Día', 'Entrega', 'Horario', 'Canastos', 'Kilos', 'Unidades', 'Neto', 'IVA', 'Total', 'Cliente'])]
+      .concat(ent.map(e => [C(e.fecha, 'fecha'), V.diaSemana(e.fecha), e.suelta ? 'Sueltas' : C(e.n, 'entero'), e.desde + (e.hasta && e.hasta !== e.desde ? '–' + e.hasta : ''), C(e.canastos, 'entero'), C(e.kg, 'kilos'), C(e.un, 'entero'), C(e.neto, 'pesos'), C(e.iva, 'pesos'), C(e.total, 'pesos'), nomCli(e)]))
       .concat(nE ? [[B('Total'), null, null, null, suma('E', nE, T.canastos, 'b-entero'), suma('F', nE, T.kg, 'b-kilos'), suma('G', nE, T.un, 'b-entero'), suma('H', nE, T.neto, 'b-pesos')].concat(ivaTotal('H', nE, d.iva, T))] : []) };
 
   const porDia = { nombre: 'Por día', congelar: 1, filtro: nD + 1, columnas: [11, 5, 9, 9, 11, 11, 13, 12, 13],
     filas: [cab(['Fecha', 'Día', 'Entregas', 'Canastos', 'Kilos', 'Unidades', 'Neto', 'IVA', 'Total'])]
       .concat(dias.map(x => [C(x.fecha, 'fecha'), V.diaSemana(x.fecha), C(x.entregas, 'entero'), C(x.canastos, 'entero'), C(x.kg, 'kilos'), C(x.un, 'entero'), C(x.neto, 'pesos'), C(x.iva, 'pesos'), C(x.total, 'pesos')]))
-      .concat(nD ? [[B('Total'), null, suma('C', nD, nE, 'b-entero'), suma('D', nD, T.canastos, 'b-entero'), suma('E', nD, T.kg, 'b-kilos'), suma('F', nD, T.un, 'b-entero'), suma('G', nD, T.neto, 'b-pesos')].concat(ivaTotal('G', nD, d.iva, T))] : []) };
+      .concat(nD ? [[B('Total'), null, suma('C', nD, nEnt, 'b-entero'), suma('D', nD, T.canastos, 'b-entero'), suma('E', nD, T.kg, 'b-kilos'), suma('F', nD, T.un, 'b-entero'), suma('G', nD, T.neto, 'b-pesos')].concat(ivaTotal('G', nD, d.iva, T))] : []) };
 
   /* Costo de cada pan = suma del costo de sus filas; si alguna fila no tiene costo, el pan queda sin costo (no suma). */
   const costoPan = id => { const f = ls.filter(l => l.productoId === id); return f.some(l => l.costo == null) ? null : f.reduce((s, l) => s + l.costo, 0); };
@@ -66,11 +76,19 @@ export function libro(d) {
         p.sinPrecio || !p.cantidad ? null : C(Math.round(p.neto / p.cantidad * 100) / 100, 'precio')].concat(panC(p))))
       .concat(nP ? [[B('Total'), null, null, suma('D', nP, T.canastos, 'b-entero'), suma('E', nP, T.neto, 'b-pesos')].concat(ivaTotal('E', nP, d.iva, T)).concat(co ? [null].concat(costoTotal('E', 'I', nP, costoPanes, T.neto)) : [])] : []) };
 
-  const todos = V.ordenRegistro(d.pesajes).reverse(), nC = todos.length;
-  const canastos = { nombre: 'Canastos', congelar: 1, filtro: true, columnas: [11, 7, 8, 26, 11, 10, 18, 30, 10, 12],
-    filas: [cab(['Fecha', 'Hora', 'Entrega', 'Pan', 'Cantidad', 'Unidad', 'Pesó', 'Nota', 'Estado', 'Anotado el'])]
+  const porCli = { nombre: 'Por cliente', congelar: 1, filtro: nC0 + 1, columnas: [24, 9, 9, 9, 11, 11, 13, 12, 13, 12],
+    filas: [cab(['Cliente', 'Entregas', 'Ventas sueltas', 'Canastos', 'Kilos', 'Unidades', 'Neto', 'IVA', 'Total', 'Participación'])]
+      .concat(PC.map(g => [nomCli(g), C(g.entregas, 'entero'), C(g.ventas, 'entero'), C(g.canastos, 'entero'), C(g.kg, 'kilos'), C(g.un, 'entero'), C(g.neto, 'pesos'), C(g.iva, 'pesos'), C(g.total, 'pesos'),
+        C(T.neto ? Math.round(g.neto / T.neto * 10000) / 10000 : 0, 'pct')]))
+      .concat(nC0 ? [[B('Total'), suma('B', nC0, nEnt, 'b-entero'), suma('C', nC0, PC.reduce((t, g) => t + g.ventas, 0), 'b-entero'), suma('D', nC0, T.canastos, 'b-entero'), suma('E', nC0, T.kg, 'b-kilos'),
+        suma('F', nC0, T.un, 'b-entero'), suma('G', nC0, T.neto, 'b-pesos')].concat(ivaTotal('G', nC0, d.iva, T)).concat([{ v: T.neto ? 1 : 0, s: 'b-pct' }])] : []) };
+
+  const todos = V.ordenRegistro(pesajes).reverse(), nC = todos.length;
+  const cliDe = p => { const id = p.clienteId || (orig && orig.id); return cls ? cat.nombreCliente(cls, id) : cli ? cli.nombre : ''; };
+  const canastos = { nombre: 'Canastos', congelar: 1, filtro: true, columnas: [11, 7, 8, 26, 11, 10, 18, 30, 10, 12, 22],
+    filas: [cab(['Fecha', 'Hora', 'Entrega', 'Pan', 'Cantidad', 'Unidad', 'Pesó', 'Nota', 'Estado', 'Anotado el', 'Cliente'])]
       .concat(todos.map(p => [C(p.fecha, 'fecha'), p.hora || '', C(p.entregaN || 1, 'entero'), nombreDe(d.productos, p.productoId), C(p.cantidad, p.unidad === 'un' ? 'entero' : 'kilos'), unidadTexto(p.unidad),
-        nombreDe(d.trabajadores, p.trabajadorId), p.nota || '', p.anulado ? 'Anulado' : 'Vale', typeof p.en === 'number' ? C(diaChile(new Date(p.en)), 'fecha') : null])) };
+        nombreDe(d.trabajadores, p.trabajadorId), p.nota || '', p.anulado ? 'Anulado' : 'Vale', typeof p.en === 'number' ? C(diaChile(new Date(p.en)), 'fecha') : null, cliDe(p)])) };
 
   const ref = (col, n) => (n ? { f: 'Ventas!' + col + (n + 2) } : null);
   const resumen = { nombre: 'Resumen', columnas: [30, 18, 50],
@@ -78,16 +96,18 @@ export function libro(d) {
       ['Período', fechaTexto(d.desde) + ' a ' + fechaTexto(d.hasta)], ['Cliente', cliente], ['IVA', C(d.iva, 'kilos'), '%'],
       ['Descargado', fechaTexto(diaChile(ahora)) + ' ' + String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0') + (d.quien ? ' · ' + d.quien : '')], [],
       [B('Neto'), Object.assign({ v: T.neto, s: 'b-pesos' }, ref('J', nV))], [B('IVA'), Object.assign({ v: T.iva, s: 'b-pesos' }, ref('K', nV))], [B('Total'), Object.assign({ v: T.total, s: 'b-pesos' }, ref('L', nV))], [],
-      ['Kilos', C(T.kg, 'kilos')], ['Unidades', C(T.un, 'entero')], ['Canastos', C(T.canastos, 'entero')], ['Días con venta', C(nD, 'entero')], ['Entregas', C(nE, 'entero')], []]
+      ['Kilos', C(T.kg, 'kilos')], ['Unidades', C(T.un, 'entero')], ['Canastos', C(T.canastos, 'entero')], ['Días con venta', C(nD, 'entero')], ['Entregas', C(nEnt, 'entero')], []]
+      .concat(nC0 > 1 ? [[B('Por cliente (neto)')]].concat(PC.map(g => [nomCli(g), C(g.neto, 'pesos'), (T.neto ? String(Math.round(g.neto / T.neto * 1000) / 10).replace('.', ',') : '0') + ' % del neto' + (g.suelta ? ' · ' + g.ventas + (g.ventas === 1 ? ' venta' : ' ventas') : '')])).concat([[]]) : [])
       .concat(faltan.length ? [[B('Vendido sin precio (no suma pesos)')]].concat(faltan.map(f => [f.nombre, f.fechas.length + (f.fechas.length === 1 ? ' día' : ' días'), f.fechas.map(fechaTexto).join(', ')])).concat([[]]) : [])
       .concat([['Cómo se calcula', null, 'Cada fila de «Ventas» es un pan en una entrega: cantidad × precio neto vigente ese día.'], [null, null, 'Los netos se suman. El IVA de un total es el IVA % de su neto, redondeado una vez (igual que el cierre del mes);'],
         [null, null, 'el IVA de cada fila es el de esa fila: sumados, pueden diferir en unos pesos del IVA del total.'],
-        [null, null, 'Venta = lo pesado en la panadería (o anotado en fecha pasada), sin los canastos anulados.']]) };
+        [null, null, 'Venta = lo pesado en la panadería (o anotado en fecha pasada), sin los canastos anulados.'],
+        [null, null, 'Cada cliente tiene su lista de precios. Las ventas sueltas van una por fila, con el comprador (si se anotó).']]) };
   if (!nV) resumen.filas.splice(7, 0, ['Sin ventas en el período']);
 
-  const hojas = [resumen, ventas, entregas, porDia, porPan, canastos];
+  const hojas = [resumen, ventas, entregas, porDia, porPan, porCli, canastos];
   if (co) hojas.splice(1, 0, hojaResultado(d, co, TC, nV, sinCosto));
-  return { nombre: nombreArchivo(d.desde, d.hasta), hojas, lineas: ls, totales: T, faltan, entregas: ent, costos: TC, sinCosto };
+  return { nombre: nombreArchivo(d.desde, d.hasta, uno && uno.nombre), hojas, lineas: ls, totales: T, faltan, entregas: ent, clientes: PC, costos: TC, sinCosto };
 }
 /* Hoja «Resultado» (Fase 9): venta neta e ingredientes enlazados a los totales de «Ventas», margen, gastos del mes y resultado.
    Los gastos van solo si el período es un mes (co.gastos = el documento de ese mes, o null). */

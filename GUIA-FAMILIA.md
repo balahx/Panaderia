@@ -28,6 +28,8 @@ El pan queda elegido: el siguiente canasto es solo el número y **Guardar**. Si 
 
 **Cerrar la entrega:** cuando sale el pedido, **Cerrar entrega** y confirmar. Lo que se pese después va a la entrega siguiente. Si fue un error y la nueva aún no tiene canastos: **Volver a abrir la entrega**.
 
+**Para qué cliente:** si la panadería le vende a más de un cliente, arriba sale **Para:**. Toca el cliente antes de pesar (queda elegido; al principio, el supermercado). Cada cliente tiene su propia entrega: **Cerrar entrega** cierra solo la del cliente elegido. **Ventas sueltas** (alguien que pasa a comprar): elige **Ventas sueltas**, pesa y al guardar escribe **quién compró** (basta el nombre de pila; se puede dejar en blanco). No tiene entregas.
+
 **Sin internet:** sigue pesando. Los canastos dicen **«Por enviar»** y se envían solos al volver la conexión. **No cierres sesión** mientras haya canastos por enviar.
 
 ## 3. Para los dueños
@@ -41,7 +43,10 @@ El pan queda elegido: el siguiente canasto es solo el número y **Guardar**. Si 
 | Ver el mes y bajar el Excel para la contadora | **Entregas** → **Descargar Excel del mes** |
 | Cerrar el mes (desde el día 1 del mes siguiente) | **Entregas** → **Cerrar** (nombre del mes) → confirmar |
 | Ver cómo va el mes, el año y las metas | **Números** → **El mes** / **Año y metas** |
-| Cambiar un precio | **Más → Catálogo** → el pan → **Cambiar precio** (neto, sin IVA, y desde qué día) |
+| Cambiar un precio | **Más → Catálogo** → el pan → **Cambiar precio** (neto, sin IVA, y desde qué día; con varios clientes, en **Precio por cliente** el de cada uno) |
+| Agregar un cliente (almacén, casino…) con su lista de precios | **Más → Catálogo → Clientes e IVA** → **Agregar cliente** → **Copiar los precios de** (opcional) |
+| Anotar ventas sueltas | **Más → Catálogo → Clientes e IVA** → **Activar ventas sueltas** y ponles precio; se anotan en la tablet o en **Anotar canasto** |
+| Ver lo de un solo cliente | El filtro **Cliente** en **Hoy**, **Entregas**, **Registro** o **Números**; su Excel, en **Entregas** con el filtro o en **Más → Exportar a Excel** |
 | Anotar los insumos y su precio de factura (neto) | **Más → Costos y margen → Insumos** → **Agregar insumo** |
 | Anotar la receta de un pan (una tanda y lo que sale) | **Más → Catálogo** → el pan → **Anotar receta** |
 | Ver el costo y el margen de un pan, o simular otro precio | **Más → Catálogo** → el pan → **Simular precio** |
@@ -50,6 +55,7 @@ El pan queda elegido: el siguiente canasto es solo el número y **Guardar**. Si 
 | Dar o quitar un acceso (solo dueños) | **Más → Accesos** |
 
 - El **plan** se arma solo para hoy o mañana. La sugerencia es el promedio del mismo día de la semana en las 4 semanas anteriores, redondeado a tandas completas: revísala antes de guardar. Las tandas salen de la receta del pan.
+- Con varios clientes, cada uno tiene **su lista de precios** y **sus entregas**. Lo pesado antes de que hubiera varios clientes es del supermercado. El plan, la proyección y las metas son del negocio entero.
 - Conviene **cerrar cada mes**: los números quedan fijos y la app trabaja más liviana.
 - El **respaldo** tiene precios, ventas y costos: guárdalo en un lugar privado, no lo compartas.
 - Si sube un insumo o cambia una receta (por ejemplo, la levadura de verano), anótalo **con la fecha desde la que rige**: los meses anteriores no cambian. El Excel de **Entregas** sale sin costos (es el de la contadora).

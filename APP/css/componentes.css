@@ -345,3 +345,10 @@ h1[tabindex="-1"]:focus { outline: none; }
 .pes-op small.pes-plan-l { font-weight: 600; color: var(--ink); }
 .pes-op small.pes-plan-l.est-cumplido { color: var(--ok); }
 .pes-op small.pes-plan-l.est-sobre { color: var(--warn-ink); background: var(--warn-bg); border-radius: 6px; padding: 0 4px; align-self: flex-start; }
+
+/* ---------- Fase 11: varios clientes ---------- */
+.filtro-cliente { margin: 0 0 12px; }
+.filtro-cliente .txt { max-width: 26rem; }
+.pes-para { margin-top: 4px; }
+.pes-para-b { width: 100%; }
+.hoy-cli { margin-top: 18px; }

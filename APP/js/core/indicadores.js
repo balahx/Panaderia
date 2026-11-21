@@ -12,6 +12,7 @@
 import * as V from './ventas.js';
 import { redondearPesos, numero } from './catalogo.js';
 import { vigentes } from './pesaje.js';
+import { panesDeCierre, clientesDeCierre } from './cierres.js';
 
 const kg2 = n => Math.round(n * 100) / 100;
 const finito = n => typeof n === 'number' && Number.isFinite(n);
@@ -22,25 +23,29 @@ export const diasDelMes = mes => Number(V.rangoMes(mes).hasta.slice(8));
 const nombreDe = (lista, id) => { const x = (lista || []).find(y => y.id === id); return x ? x.nombre : '(sin nombre)'; };
 
 /* ---------- Un mes ---------- */
-/* o: { cierre, pesajes (los del mes, o null si no se leyeron), productos, precios, clienteId, iva, trabajadores, hoy }
+/* o: { cierre, pesajes (los del mes, o null si no se leyeron), productos, precios, clientes (lista; o clienteId), iva, trabajadores, hoy }
    → { mes, fuente: 'excel' | 'app' | 'sin-datos', cerrado, neto, kg, un, sinPrecio, panes: [{ productoId, nombre, unidad, cantidad, neto, pct }],
-       detalle (hay datos por día), dias, semana, trabajadores, promedio, enCurso, ritmo, cambio (lo anotado ya no suma lo del cierre) } */
+       detalle (hay datos por día), dias, semana, trabajadores, promedio, enCurso, ritmo, cambio (lo anotado ya no suma lo del cierre),
+       clientes: [{ clienteId, cliente, neto, kg, un, pct }] (Fase 11: «Por cliente») } */
 export function resumenMes(mes, o) {
   o = o || {};
   const c = o.cierre && o.cierre.cerrado === true ? o.cierre : null, hoy = o.hoy || '';
   const R = { mes, cerrado: !!c, origen: c ? c.origen : null, fuente: 'sin-datos', neto: 0, kg: 0, un: 0, sinPrecio: 0, panes: [], detalle: false,
-    dias: [], semana: [], trabajadores: [], promedio: null, diasMes: diasDelMes(mes), enCurso: !c && V.mesDe(hoy) === mes, ritmo: null, cambio: false };
-  const L = Array.isArray(o.pesajes) && (!c || c.origen !== 'excel') ? V.lineas(o.pesajes, o.productos, o.precios, o.clienteId, o.iva) : [];
+    dias: [], semana: [], trabajadores: [], clientes: [], promedio: null, diasMes: diasDelMes(mes), enCurso: !c && V.mesDe(hoy) === mes, ritmo: null, cambio: false };
+  const L = Array.isArray(o.pesajes) && (!c || c.origen !== 'excel') ? V.lineas(o.pesajes, o.productos, o.precios, o.clientes || o.clienteId, o.iva) : [];
   if (c) {
     R.fuente = c.origen === 'excel' ? 'excel' : 'app';
     R.neto = c.neto || 0; R.kg = c.kg || 0; R.un = c.un || 0; R.sinPrecio = c.sinPrecio || 0;
-    R.panes = (c.lineas || []).map(l => ({ productoId: l.productoId, nombre: l.nombre, unidad: l.unidad, cantidad: l.cantidad || 0, neto: l.neto || 0, sinPrecio: !!l.sinPrecio }));
+    R.panes = panesDeCierre(c).map(l => ({ productoId: l.productoId, nombre: l.nombre, unidad: l.unidad, cantidad: l.cantidad || 0, neto: l.neto || 0, sinPrecio: !!l.sinPrecio }));
+    R.clientes = clientesDeCierre(c).map(x => ({ clienteId: x.clienteId, cliente: x.cliente || nombreDe(o.clientes, x.clienteId), neto: x.neto || 0, kg: x.kg || 0, un: x.un || 0 }));
   } else if (L.length) {
     const T = V.totales(L);
     R.fuente = 'app'; R.neto = T.neto; R.kg = T.kg; R.un = T.un; R.sinPrecio = V.faltanPrecios(L).length;
     R.panes = V.porPan(L, o.productos).map(p => ({ productoId: p.productoId, nombre: p.nombre, unidad: p.unidad, cantidad: p.cantidad, neto: p.neto, sinPrecio: p.sinPrecio > 0 }));
+    R.clientes = V.porCliente(L, o.clientes).map(g => ({ clienteId: g.clienteId, cliente: g.cliente || nombreDe(o.clientes, g.clienteId), suelta: g.suelta, neto: g.neto, kg: g.kg, un: g.un }));
   }
   R.panes.forEach(p => { p.pct = R.neto ? p.neto / R.neto * 100 : 0; });
+  R.clientes.forEach(x => { x.pct = R.neto ? x.neto / R.neto * 100 : 0; });
   if (L.length) {
     R.detalle = true;
     R.dias = V.porDia(L).map(d => ({ fecha: d.fecha, neto: d.neto, kg: d.kg, un: d.un, canastos: d.canastos }));

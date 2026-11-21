@@ -4,6 +4,7 @@ import { $, ask, cerrarHoja, toast } from './core/ui.js';
 import { svg } from './core/iconos.js';
 import { diaChile } from './core/formato.js';
 import { sumarDias } from './core/pesaje.js';
+import * as cat from './core/catalogo.js';
 import * as nube from './core/nube.js';
 import * as acceso from './core/acceso.js';
 import * as perfil from './core/perfil.js';
@@ -46,13 +47,13 @@ const TABS = [
 /* S.estado: un perfil ('dueno' | 'externo' | 'pesaje') o lo que falta para tenerlo (ver perfil.resolver). */
 const S = { user: null, tab: 'inicio', gate: { tipo: 'cargando' }, estado: 'comprobando', acc: null, lento: false, sol: null, miem: null, errListas: '',
   cat: null, errCat: '', nivel: '',     // cat: { productos, trabajadores, precios, clientes, insumos, preciosInsumo, recetas } (todo salvo productos y trabajadores, solo gestión)
-  dia: null,                            // dia: { fecha, pesajes, dia (entrega en curso), plan, planManana, err } (core/pesaje.js; plan: Fase 10, core/plan.js)
+  dia: null,                            // dia: { fecha, pesajes, dia (entrega en curso del cliente original), dias (Fase 11: la de cada otro cliente, por id), plan, planManana, err }
   per: null,                            // per: { desde, hasta, pesajes, cambios, err } (Entregas y Registro; solo gestión)
   respaldo: undefined,                  // config/respaldo: undefined = aún no se sabe · null = nunca hubo (core/respaldo.js)
   cierres: null,                        // cierres mensuales [{ id: 'AAAA-MM', … }] (Fase 6; solo gestión) · null = aún no llegan
   proy: null,                           // proyecciones y metas [{ id: 'AAAA', … }] (Fase 7; solo gestión) · null = aún no llegan
   gastos: null };                       // gastos de cada mes [{ id: 'AAAA-MM', items, … }] (Fase 9; solo gestión) · null = aún no llegan
-let escuchas = [], escuchasDueno = [], escuchasCat = [], escuchasDia = [], escuchasPer = [], escuchasGes = [], tLento = 0;
+let escuchas = [], escuchasDueno = [], escuchasCat = [], escuchasDia = [], escuchasDiasCli = [], escuchasPer = [], escuchasGes = [], tLento = 0;
 const ctx = () => ({ user: S.user, perfil: S.estado, estado: S.estado, negocio: S.acc && S.acc.negocio, lento: S.lento, error: S.acc && S.acc.error,
   solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, per: S.per, respaldo: S.respaldo, cierres: S.cierres, proy: S.proy, gastos: S.gastos, hoy: diaChile(new Date()) });
 const visible = t => !t.permiso || perfil.puede(S.estado, t.permiso);
@@ -106,7 +107,7 @@ function pintarRed() {
 
 /* ---------- Acceso por perfil ---------- */
 function soltar(lista) { lista.forEach(f => { try { f(); } catch (e) { /* */ } }); lista.length = 0; }
-function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); soltar(escuchasPer); soltar(escuchasGes); S.dia = null; S.per = null; S.respaldo = undefined; S.cierres = null; S.proy = null; S.gastos = null; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
+function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); soltar(escuchasDiasCli); soltar(escuchasPer); soltar(escuchasGes); S.dia = null; S.per = null; S.respaldo = undefined; S.cierres = null; S.proy = null; S.gastos = null; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
 /* Al entrar: escucha quiénes son los dueños, la ficha de miembro y la solicitud de esta cuenta. Se actualiza solo. */
 function vigilarAcceso(u) {
   dejarDeVigilar();
@@ -158,15 +159,15 @@ function evaluar(cambio) {
   if (perfil.esPerfil(S.estado) && !perfil.esPerfil(antes)) { S.tab = 'inicio'; if (antes === 'espera') toast('Tu acceso fue aprobado'); }
   pintar();
 }
-/* Catálogo en vivo según el perfil: productos y trabajadores para todos; precios, clientes y costos (insumos, sus precios y las recetas,
-   Fase 9) solo para dueños y externo (la cuenta de pesaje ni los pide: las reglas se los negarían). Son decenas de documentos. */
+/* Catálogo en vivo según el perfil: productos, trabajadores y clientes (Fase 11: la tablet elige «Para:») para todos; precios y costos
+   (insumos, sus precios y las recetas, Fase 9) solo para dueños y externo (la cuenta de pesaje ni los pide: las reglas se los negarían). Son decenas de documentos. */
 function vigilarCatalogo() {
   const nivel = !perfil.esPerfil(S.estado) ? '' : perfil.puede(S.estado, 'gestion') ? 'gestion' : 'pesaje';
   if (nivel === S.nivel) return;
   soltar(escuchasCat); S.nivel = nivel; S.errCat = ''; S.cat = null;
   if (!nivel) return;
-  const g = nivel === 'gestion' ? null : [], k = S.cat = { productos: null, trabajadores: null, precios: g, clientes: g, insumos: g, preciosInsumo: g, recetas: g };
-  const repintar = () => { if (S.cat === k && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp(); };
+  const g = nivel === 'gestion' ? null : [], k = S.cat = { productos: null, trabajadores: null, precios: g, clientes: null, insumos: g, preciosInsumo: g, recetas: g };
+  const repintar = () => { if (S.cat === k && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp(); else if (S.cat === k) vigilarDiasClientes(); };
   for (const col of Object.keys(k).filter(c => k[c] === null))
     escuchasCat.push(nube.vigilarCol(col, l => { if (S.cat !== k) return; k[col] = l; S.errCat = ''; repintar(); }, cod => { if (S.cat !== k) return; S.errCat = cod; repintar(); }));
 }
@@ -179,10 +180,10 @@ function fechaQuerida() {
 }
 function vigilarDia() {
   const f = fechaQuerida();
-  if (S.dia && S.dia.fecha === f) return;
-  soltar(escuchasDia); S.dia = null;
+  if (S.dia && S.dia.fecha === f) { vigilarDiasClientes(); return; }
+  soltar(escuchasDia); soltar(escuchasDiasCli); S.dia = null;
   if (!f) return;
-  const k = S.dia = { fecha: f, pesajes: null, dia: undefined, plan: undefined, planManana: undefined, err: '' };
+  const k = S.dia = { fecha: f, pesajes: null, dia: undefined, dias: {}, clavesCli: '', plan: undefined, planManana: undefined, err: '' };
   const repintar = () => { if (S.dia === k && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp(); };
   escuchasDia.push(nube.vigilarDonde('pesajes', 'fecha', f, l => { if (S.dia !== k) return; k.pesajes = l; k.err = ''; repintar(); }, cod => { if (S.dia !== k) return; k.err = cod; repintar(); }));
   escuchasDia.push(nube.vigilarDoc('dias/' + f, d => { if (S.dia !== k) return; k.dia = d; repintar(); }, cod => { if (S.dia !== k) return; k.err = cod; repintar(); }));
@@ -191,6 +192,18 @@ function vigilarDia() {
   const plan = (ruta, campo) => escuchasDia.push(nube.vigilarDoc(ruta, d => { if (S.dia !== k) return; k[campo] = d; repintar(); }, () => { if (S.dia !== k) return; k[campo] = null; repintar(); }));
   plan('planes/' + f, 'plan');
   if (perfil.puede(S.estado, 'gestion') && f === diaChile(new Date())) plan('planes/' + sumarDias(f, 1), 'planManana');
+  vigilarDiasClientes();
+}
+/* Fase 11: la entrega en curso de cada otro cliente regular (dias/{fecha}_{clienteId}; el original sigue en dias/{fecha}). Un documento
+   por cliente; se vuelve a escuchar si cambia la lista de clientes. La tablet solo lee los de hoy (y solo los pide hoy). */
+function vigilarDiasClientes() {
+  const k = S.dia, cls = S.cat && S.cat.clientes;
+  if (!k || !Array.isArray(cls)) return;
+  const o = cat.clienteOriginal(cls), ids = cat.clientesActivos(cls).filter(x => !cat.esSuelta(x) && (!o || x.id !== o.id)).map(x => x.id), clave = ids.join(',');
+  if (k.clavesCli === clave) return;
+  soltar(escuchasDiasCli); k.clavesCli = clave; k.dias = {};
+  const repintar = () => { if (S.dia === k && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp(); };
+  for (const id of ids) escuchasDiasCli.push(nube.vigilarDoc('dias/' + k.fecha + '_' + id, d => { if (S.dia !== k) return; k.dias[id] = d; repintar(); }, () => { if (S.dia !== k) return; k.dias[id] = null; repintar(); }));
 }
 /* Pesajes de un período (y su bitácora, si la pantalla la pide), en vivo, mientras se mira Entregas o el Registro general.
    Solo dueños y externo. Cuesta una lectura por documento al abrir: por eso se escucha solo en esas pantallas. */

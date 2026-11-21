@@ -1,7 +1,8 @@
 /* Hojas del pesaje, comunes a la tablet (Pesaje) y a dueños y externo (Hoy): ver un canasto, corregirlo, anularlo o reactivarlo
    (siempre con constancia en la bitácora `cambios`), y la nota del próximo canasto. La tablet solo corrige lo del día (las reglas lo exigen).
    Las escrituras no esperan al servidor: sin internet quedan en el equipo y se envían solas (nube.guardarVarios).
-   Desde la Fase 5 también las usa el Registro general (canastos de cualquier día del período, en ctx.per). */
+   Desde la Fase 5 también las usa el Registro general (canastos de cualquier día del período, en ctx.per).
+   Fase 11: con varios clientes, cada canasto dice de quién es y al corregirlo se puede cambiar el cliente (queda en la bitácora). */
 import { esc, fechaTexto, diaChile } from '../core/formato.js';
 import { $, ask, hoja, cerrarHoja, toast } from '../core/ui.js';
 import * as nube from '../core/nube.js';
@@ -34,22 +35,26 @@ export function anotadoDespues(p) {
 /* Canastos que la pantalla tiene a mano: los del día que se mira y los del período (Registro general). */
 const conocidos = c => ((c.dia && c.dia.pesajes) || []).concat((c.per && c.per.pesajes) || []);
 
-/* Fila de un canasto en una lista (la usan Pesaje y Hoy). */
-export function filaCanasto(p, c, conEntrega) {
-  const k = c.cat || {};
+/* Cliente de un canasto (sin `clienteId` = el original) y si hay que mostrarlo (más de un cliente). */
+const orig = k => { const o = cat.clienteOriginal(k.clientes); return o ? o.id : null; };
+export const clienteDelCanasto = (p, c) => { const k = c.cat || {}, id = cat.clienteDe(p, orig(k)); return (k.clientes || []).find(x => x.id === id) || null; };
+const mostrarCliente = c => { const k = c.cat || {}; return (k.clientes || []).length > 1; };
+/* Fila de un canasto en una lista (la usan Pesaje y Hoy). `sinCliente`: la lista ya es de un solo cliente. */
+export function filaCanasto(p, c, conEntrega, sinCliente) {
+  const k = c.cat || {}, cl = !sinCliente && mostrarCliente(c) ? clienteDelCanasto(p, c) : null, suelta = cat.esSuelta(clienteDelCanasto(p, c));
   return '<button class="mrow pes-fila' + (p.anulado ? ' anulado' : '') + '" data-act="can-ver" data-id="' + esc(p.id) + '">' +
     '<span class="pes-hora">' + esc(p.hora || '') + '</span><span class="mt"><b>' + esc(nombre(k.productos, p.productoId)) + '</b><small>' +
-    esc(nombre(k.trabajadores, p.trabajadorId) + (conEntrega ? ' · Entrega ' + (p.entregaN || 1) : '') + (anotadoDespues(p) ? ' · anotado el ' + fechaTexto(anotadoDespues(p)) : '') + (p.nota ? ' · ' + p.nota : '')) + '</small></span>' +
+    esc(nombre(k.trabajadores, p.trabajadorId) + (cl ? ' · ' + cl.nombre : '') + (conEntrega && !suelta ? ' · Entrega ' + (p.entregaN || 1) : '') + (anotadoDespues(p) ? ' · anotado el ' + fechaTexto(anotadoDespues(p)) : '') + (p.nota ? ' · ' + p.nota : '')) + '</small></span>' +
     '<span class="pes-cant">' + esc(P.textoCantidad(p.cantidad, p.unidad)) + '</span>' +
     (p.anulado ? '<span class="badge">Anulado</span>' : p._pend ? '<span class="badge warn" title="Guardado en este equipo; falta enviarlo">Por enviar</span>' : '') + '</button>';
 }
 
 /* ---------- Ver un canasto ---------- */
 function hojaCanasto(p, c) {
-  const k = c.cat || {}, id = ' data-id="' + esc(p.id) + '"', puedo = corregible(p, c);
-  hoja((p.anulado ? 'Anulado · ' : 'Canasto · ') + nombre(k.productos, p.productoId),
+  const k = c.cat || {}, id = ' data-id="' + esc(p.id) + '"', puedo = corregible(p, c), cl = clienteDelCanasto(p, c), suelta = cat.esSuelta(cl);
+  hoja((p.anulado ? 'Anulado · ' : suelta ? 'Venta suelta · ' : 'Canasto · ') + nombre(k.productos, p.productoId),
     '<div id="canDetalle">' + kv('Cantidad', P.textoCantidad(p.cantidad, p.unidad)) + kv('Pesó', nombre(k.trabajadores, p.trabajadorId)) +
-    kv('Entrega', 'N.º ' + (p.entregaN || 1)) + kv('Día y hora', fechaTexto(p.fecha) + ' · ' + (p.hora || '')) + (anotadoDespues(p) ? kv('Anotado el', fechaTexto(anotadoDespues(p))) : '') + (p.nota ? kv('Nota', p.nota) : '') +
+    (mostrarCliente(c) && cl ? kv('Para', cl.nombre) : '') + (suelta ? '' : kv('Entrega', 'N.º ' + (p.entregaN || 1))) + kv('Día y hora', fechaTexto(p.fecha) + ' · ' + (p.hora || '')) + (anotadoDespues(p) ? kv('Anotado el', fechaTexto(anotadoDespues(p))) : '') + (p.nota ? kv(suelta ? 'Compró' : 'Nota', p.nota) : '') +
     kv('Estado', p.anulado ? 'Anulado (no cuenta en los totales)' : p._pend ? 'Guardado en este equipo, por enviar' : 'Guardado') + '</div>' +
     (puedo ? '<div class="actions">' + (p.anulado ? '<button class="btn" data-act="can-reactivar"' + id + '>Reactivar</button>'
       : '<button class="btn" data-act="can-corregir"' + id + '>Corregir</button><button class="btn ghost" data-act="can-anular"' + id + '>Anular</button>') + '</div>' +
@@ -64,22 +69,27 @@ function hojaCorregir(p, c) {
   const k = c.cat || {};
   const prods = cat.ordenarProductos(cat.activos(k.productos)); if (!buscar(prods, p.productoId) && buscar(k.productos, p.productoId)) prods.push(buscar(k.productos, p.productoId));
   const trabs = cat.ordenarPersonas(cat.activos(k.trabajadores)); if (!buscar(trabs, p.trabajadorId) && buscar(k.trabajadores, p.trabajadorId)) trabs.push(buscar(k.trabajadores, p.trabajadorId));
-  const delDia = conocidos(c).filter(x => x.fecha === p.fecha).reduce((m, x) => Math.max(m, x.entregaN || 1), 1);
-  const ult = Math.min(P.MAX_ENTREGAS, Math.max(p.entregaN || 1, delDia + (puede(c.perfil, 'gestion') ? 1 : 0), c.dia && c.dia.fecha === p.fecha ? P.entregaEnCurso(c.dia.dia) : 1));
+  const actual = clienteDelCanasto(p, c), clis = cat.clientesActivos(k.clientes); if (actual && !buscar(clis, actual.id)) clis.push(actual);
+  const o = orig(k), mismo = x => cat.clienteDe(x, o) === (actual ? actual.id : o);
+  const delDia = conocidos(c).filter(x => x.fecha === p.fecha && mismo(x)).reduce((m, x) => Math.max(m, x.entregaN || 1), 1);
+  const ult = Math.min(P.MAX_ENTREGAS, Math.max(p.entregaN || 1, delDia + (puede(c.perfil, 'gestion') ? 1 : 0), c.dia && c.dia.fecha === p.fecha ? P.entregaEnCurso(P.diaDoc(c.dia, actual && actual.id, o)) : 1));
   hoja('Corregir canasto',
+    (clis.length > 1 ? '<label class="lab" for="cCliente">Para</label><select class="txt" id="cCliente">' + clis.map(x => opcion(x.id, x.nombre + (x.activo === false ? ' (desactivado)' : ''), !!actual && x.id === actual.id)).join('') + '</select>' : '') +
     '<label class="lab" for="cPan">Pan</label><select class="txt" id="cPan">' + prods.map(x => opcion(x.id, x.nombre + (x.unidad === 'un' ? ' (unidades)' : ' (kg)'), x.id === p.productoId)).join('') + '</select>' +
     '<label class="lab" for="cCant">Cantidad (kilos o unidades, según el pan)</label><input class="txt" id="cCant" inputmode="decimal" maxlength="9" autocomplete="off" data-enter="can-guardar" value="' + esc(cat.enCampo(p.cantidad)) + '">' +
     '<label class="lab" for="cQuien">Quién pesó</label><select class="txt" id="cQuien">' + trabs.map(x => opcion(x.id, x.nombre, x.id === p.trabajadorId)).join('') + '</select>' +
     '<label class="lab" for="cEntrega">Entrega</label><select class="txt" id="cEntrega">' + Array.from({ length: ult }, (_, i) => opcion(i + 1, 'N.º ' + (i + 1), i + 1 === (p.entregaN || 1))).join('') + '</select>' +
-    '<label class="lab" for="cNota">Nota (opcional)</label><input class="txt" id="cNota" maxlength="200" autocomplete="off" data-enter="can-guardar" value="' + esc(p.nota || '') + '">' +
+    '<label class="lab" for="cNota">' + (cat.esSuelta(actual) ? 'Quién compró / nota (opcional)' : 'Nota (opcional)') + '</label><input class="txt" id="cNota" maxlength="200" autocomplete="off" data-enter="can-guardar" value="' + esc(p.nota || '') + '">' +
     errorForm + '<div class="actions"><button class="btn" data-act="can-guardar" data-id="' + esc(p.id) + '">Guardar corrección</button><button class="btn ghost" data-act="cerrar-hoja">Cancelar</button></div>');
   $('#cCant').focus();
 }
 function guardarCorreccion(p, c) {
   const prod = buscar(c.cat.productos, $('#cPan').value); if (!prod) { error('Elige el pan.', 'cPan'); return; }
   const v = P.validarCantidad(String($('#cCant').value).replace(/\s/g, ''), prod.unidad); if (v.error) { error(v.error, 'cCant'); return; }
+  const actual = clienteDelCanasto(p, c), elegido = $('#cCliente') ? buscar(c.cat.clientes, $('#cCliente').value) : actual;
   const nuevo = Object.assign({}, p, { productoId: prod.id, unidad: prod.unidad, cantidad: v.cantidad, trabajadorId: $('#cQuien').value,
-    entregaN: Number($('#cEntrega').value) || 1, nota: P.limpiarNota($('#cNota').value) });
+    entregaN: cat.esSuelta(elegido) ? 1 : Number($('#cEntrega').value) || 1, nota: P.limpiarNota($('#cNota').value) });
+  if (elegido && (!actual || elegido.id !== actual.id)) nuevo.clienteId = elegido.id;   // sin cambio de cliente, lo antiguo sigue sin `clienteId`
   const dif = P.diferencia(p, nuevo);
   if (!dif) { cerrarHoja(); toast('Sin cambios'); return; }
   const seguir = () => escribir(p, nuevo, 'corregir', dif, c, 'Canasto corregido', 'la corrección');

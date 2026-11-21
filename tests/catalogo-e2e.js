@@ -43,7 +43,7 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   await tocar('#inicioCatalogo'); await page.waitForSelector('#catCuerpo');
   ok((await page.getAttribute('#view', 'data-tab')) === 'catalogo' && (await page.getAttribute('#nav button[data-tab="mas"]', 'aria-current')) === 'page', 'el catálogo se abre desde Inicio y cuelga de «Más»');
   ok(/Sin productos/.test(await page.textContent('#catCuerpo')) && await page.isVisible('#faltaCliente'), 'vacío: invita a agregar productos y avisa que falta el cliente');
-  await tocar('#faltaCliente .lnk'); await page.waitForSelector('#tarjetaCliente'); await tocar('[data-act="cat-cliente"]');
+  await tocar('#faltaCliente .lnk'); await page.waitForSelector('#tarjetaCliente'); await tocar('[data-act="cat-cli-nuevo"]');
   ok((await page.inputValue('#cNombre')) === 'Supermercado', 'el cliente inicial se propone como «Supermercado»');
   await page.fill('#cNombre', '  '); await tocar('[data-act="cat-cliente-guardar"]');
   ok(/Escribe el nombre/.test(await errorHoja()), 'sin nombre no se guarda');
@@ -51,7 +51,7 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   const cli = (await docs('clientes'))[0];
   ok((await docs('clientes')).length === 1 && cli.nombre === 'Supermercado El Trigal' && cli.activo === true && typeof cli.en === 'number', 'queda un cliente, con la hora del servidor');
   await page.waitForFunction(() => /El Trigal/.test(document.getElementById('tarjetaCliente').textContent));
-  await tocar('[data-act="cat-cliente"]'); await page.fill('#cNombre', 'Supermercado'); await tocar('[data-act="cat-cliente-guardar"]'); await cerrada();
+  await tocar('[data-act="cat-cli"]'); await page.fill('#cNombre', 'Supermercado'); await tocar('[data-act="cat-cliente-guardar"]'); await cerrada();
   ok((await docs('clientes')).length === 1 && (await docs('clientes'))[0].nombre === 'Supermercado', 'cambiarle el nombre no crea otro cliente');
 
   console.log('2. Productos');
@@ -196,7 +196,7 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   ok((await page.getAttribute('#view', 'data-tab')) === 'mas' && !(await page.$('#catCuerpo')), 'forzar la pantalla del catálogo no la abre');
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem('fake.cache') || '[]')).some(r => r.startsWith('productos/')));
   const copia = await db('cache');
-  ok(copia.some(r => r.startsWith('trabajadores/')) && !copia.some(r => /^(precios|clientes)\//.test(r)), 'la app le trae productos y trabajadores, pero ni pide precios ni clientes');
+  ok(copia.some(r => r.startsWith('trabajadores/')) && !copia.some(r => /^precios\//.test(r)), 'la app le trae productos, trabajadores y clientes (Fase 11, sin montos), pero no pide precios');
   ok((await db('pedir', 'list', 'precios')) === false && (await db('pedir', 'get', 'precios/' + idViejo)) === false && (await db('pedir', 'set', 'productos/x', { nombre: 'Pan', unidad: 'kg', activo: true, en: { __ts: true } })) === false, 'con peticiones directas no lee precios ni cambia el catálogo');
   ok(!/\$\s?\d/.test(await page.evaluate(() => document.body.textContent)), 'ningún precio aparece en la pantalla');
   await salir();

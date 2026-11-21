@@ -148,7 +148,7 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   console.log('8. Lo que la tablet no puede');
   ok(!/\$\s?\d/.test(await page.evaluate(() => document.body.textContent)), 'ningún precio aparece en la pantalla');
   const copia = await db('cache');
-  ok(!copia.some(r => /^(precios|clientes|cambios)\//.test(r)), 'la app de la tablet no pide precios, clientes ni la bitácora');
+  ok(!copia.some(r => /^(precios|cambios)\//.test(r)), 'la app de la tablet no pide precios ni la bitácora (los clientes sí desde la Fase 11: sin montos)');
   const ajeno = { fecha: ANTES, hora: '06:00', entregaN: 1, productoId: 'p1', cantidad: 5, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: 'u-3003', en: { __ts: true } };
   /* Para «no corrige los de otro día» se usa un canasto de hace tres días: entre las 00:00 y las 00:59 (y de 23:00 a 23:59 en invierno) las reglas
      aceptan dos fechas como «hoy» (no conocen la zona horaria: ver esHoy en firestore.rules), así que uno de AYER puede valer a esa hora. */
