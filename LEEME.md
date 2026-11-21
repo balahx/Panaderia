@@ -32,6 +32,7 @@ Se entra solo con cuenta de Google. Quien entra por primera vez pide acceso y un
 | `tests/` | Pruebas (Node y Playwright) con Firebase, Google y Firestore simulados, y los casos de reglas para el emulador |
 | `tools/` | Servidor local, subir versión, correr pruebas, descargar el SDK, activar App Check (si algún día se usa) |
 | `PLAN.md` · `ESTADO.md` | El plan completo y el avance (lo lee cada chat de desarrollo) |
+| `MAPA.md` · `decisiones\` | Qué contiene cada archivo · lo decidido en cada fase (`fase-NN.md`) |
 | `GUIA-FIREBASE.md` | Paso a paso de la consola, la publicación y la verificación de cada versión |
 | `GUIA-FAMILIA.md` | Guía breve para la familia (para imprimir). La misma está en la app: **Más → Ayuda** |
 

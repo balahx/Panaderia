@@ -1,0 +1,73 @@
+# Mapa de archivos · App Panadería
+
+> Parte de `ESTADO.md` (dividido el 20-nov-2026). Dónde está cada cosa; se actualiza al cerrar cada fase o arreglo que agregue o cambie archivos.
+
+| Archivo | Qué contiene |
+|---|---|
+| `LEEME.md` | Presentación del proyecto: qué es, perfiles, estructura, probar y publicar, seguridad, privacidad, consumo del plan gratuito, mantención |
+| `GUIA-FIREBASE.md` | Paso a paso: consola, publicación, instalación, repositorio, seguridad (paso 23: revisión final; 23.D: App Check, si algún día se activa), problemas frecuentes |
+| `GUIA-FAMILIA.md` | Guía breve para la familia, para imprimir (instalar, tablet, dueños, si algo falla). La misma está en la app: Más → Ayuda |
+| `firebase.json` | Hosting publica `APP\`; cabeceras de seguridad (CSP, antimarcos, COOP, CORP) y de caché |
+| `firestore.rules` | Reglas por perfil de las 17 colecciones (dueño, externo, pesaje) y forma de los datos del catálogo, pesajes, días, bitácora (con `quien`), `config/respaldo`, cierres (meses cerrados), proyección con metas, costos (insumos, sus precios, recetas y gastos, Fase 9) y planes del día (`esManana`, Fase 10); todo lo demás cerrado |
+| `package.json` · `.gitignore` · `.gitattributes` | Scripts npm, exclusiones, finales de línea |
+| `tools\plantillas-github\` · `.github\` | `ci.yml` (pruebas y reglas con emulador en GitHub Actions) y `dependabot.yml`. Las dos copias de `ci.yml` deben ser iguales |
+| `APP\index.html` | Cáscara: CSP, `#gate` (ingreso), `#appRoot` (app), `#dlg`, `#toast` |
+| `APP\sw.js` | Service worker: red primero con respaldo en caché; listas `ASSETS` (**agregar aquí cada archivo nuevo**) y `VENDOR` |
+| `APP\version.js` · `APP\guard.js` | Versión (`PAN_VERSION`) · antimarcos |
+| `APP\firebase-config.js` | Configuración web del proyecto, `googleClientId` y `appCheckSiteKey` (públicos) |
+| `APP\manifest.webmanifest` · `APP\icons\` · `APP\fonts\` | Instalación, íconos (hogaza), Barlow (OFL) |
+| `APP\css\tokens.css` | Tipografías y paleta cálida (claro, oscuro, escala de letra) |
+| `APP\css\base.css` | Página, títulos, cabecera, barra de navegación, escritorio |
+| `APP\css\componentes.css` | Tarjetas, botones, campos, hojas, ingreso, listas, estados, avisos, accesos, catálogo (`.seg`, `.precio-hoy`, `.hist`, `.radios`), pesaje (`.pes-*`, dos columnas desde 700 px) y Hoy (`.stats`, `.entrega`, `.dia-nav`) |
+| `APP\js\app.js` | Arranque, sesión, acceso por perfil (escuchas en vivo), catálogo en vivo (`vigilarCatalogo` → `ctx.cat`), pesajes del día y su plan en vivo (`vigilarDia` → `ctx.dia`, con `plan` y `planManana`), del período (`vigilarPeriodo` → `ctx.per`), marca del respaldo (`ctx.respaldo`), franjas (`pintarBanner`), pestañas (`TABS`, con `oculta`, `permiso`, `datos` y `grande`), reparto de acciones (`alActuar`), escritura (`alEscribir`) y teclado (`alTeclear`), cambio de día, cerrar sesión con aviso de datos sin enviar |
+| `APP\js\core\nube.js` | Único contacto con Firebase: sesión, Firestore con caché sin conexión (`vigilarDoc`, `vigilarCol`, `vigilarDonde` con `_pend`, `vigilarRango`), lecturas del servidor (`leerCol`, `leerRango`, `leerDoc`), lectura única con copia del equipo (`consultarRango`, Fase 7), accesos, escrituras generales (`guardar`, `guardarVarios`, `borrar`, `ajustarNegocio`), `pendientes()`, App Check opcional con comprobante al iniciar (`estado().appCheckToken`, `appCheckConfigurado`), `estado()` |
+| `APP\js\core\perfil.js` | Perfiles, permisos (`puede`) y `resolver` (qué pantalla corresponde). Lógica pura |
+| `APP\js\core\pesaje.js` | Pesaje, lógica pura: teclado (`teclear`), `validarCantidad` (aviso 20 kg, confirmar 50 kg), `nuevoPesaje`, `soloPesaje`, `diferencia`, `constancia` (bitácora, con `quien`) y `describirCambio` (bitácora legible), `entregaEnCurso`, `entregaActual`, **`resumen`** (totales por pan, entrega y trabajador), `horaChile`, `sumarDias` |
+| `APP\js\core\ventas.js` | Ventas, lógica pura: **`lineas`** (un pan en una entrega, con el precio vigente ese día), `totales`, `porEntrega`, `porDia`, `porPan`, `faltanPrecios`, meses (`rangoMes`, `sumarMeses`, `mesTexto`), `validarPeriodo`, `filtrar` y `ordenRegistro` (registro general) |
+| `APP\js\core\excel.js` · `xlsx.js` | Excel de ventas: las seis hojas (`libro`), y con `costos` (Fase 9) columnas de costo y margen y la hoja «Resultado» · escritor .xlsx propio sin librerías (`crear`, ZIP sin comprimir, estilos —con `pct`—, fórmulas) |
+| `APP\js\core\xlsx-leer.js` · `cierres.js` | Lector .xlsx propio (ZIP comprimido con `DecompressionStream`, textos compartidos, fechas, límites) · cierres, lógica pura: `interpretar` (formatos de Excel), `clave`/`emparejar`/`preparar` (nombres con el catálogo, cuadre con el total del Excel), `documento`, `desdeApp` («Cerrar mes»), `cerradoEl`, `estadoMes`, `plantilla` |
+| `APP\js\core\costos.js` | Costos y margen (Fase 9), lógica pura: insumos (`validarInsumo`), precios de insumos con vigencia (`precioVigente`, `porUnidad`, `validarPrecio`), `cantidad` («250 g»), recetas con vigencia (`recetaVigente`, `validarReceta`, `costoReceta`, `costoUnitario`), `conCostos` y `totalesCosto` (líneas de venta), `resumenMes` (venta, ingredientes, margen por pan, gastos y resultado; Excel estimado), gastos (`filasGastos`, `validarGastos`), simulador (`simular`, `precioPara`), `INICIO` |
+| `APP\js\core\plan.js` | Plan de producción (Fase 10), lógica pura: `fechasMuestra`, `editable`, `sugerencias` (promedio de los días trabajados) y `redondear` (tandas completas hacia arriba), `panesDelForm`, `cantidad`, `validar` (con tandas), `documento`, `usarSugerencias`, `avance` (por pan, fuera del plan, totales), `estado` (en enteros), `lineaCorta` («faltan 18 kg»), textos |
+| `APP\js\core\indicadores.js` | Indicadores, proyección y metas, lógica pura: `resumenMes` (cierre o pesajes; por pan, por día, semana, trabajador, promedio, ritmo), `comparar`, `variacion`, `pctTexto`, `leerProyeccion`, `validarPct`, `proyectarMes`, `objetivo`, `avance`, `metasDesde`, `tablaAnio`, `documentoProyeccion`, `validarMeta` |
+| `APP\js\core\respaldo.js` | Respaldo: qué se lee por perfil y año (`reunir`, `anios`, `POR_FECHA`), archivo (`armar`, con `anio`), nombre, marca (`marcaNueva`) y franja semanal (`toca`, `textoMarca`) |
+| `APP\js\core\catalogo.js` | Catálogo, lógica pura: `numero`, `pesos`, `montos` (con `redondearPesos`), `ivaDe`, validaciones, orden (`mover`), **`precioVigente`**, `historial`, `idPrecio`, `clientePrincipal`, `nuevoId` |
+| `APP\js\core\acceso.js` | Ingreso con Google por redirección: `comenzar`, `terminar`, `validar` |
+| `APP\js\core\actualizar.js` | Versión, «Buscar actualización», aviso de versión nueva |
+| `APP\js\core\ui.js` | `$`, `toast`, `ask` (confirmación), `hoja` / `cerrarHoja`, `descargar` (archivo hecho en el equipo; Compartir en iPhone instalado), `repintar` |
+| `APP\js\core\formato.js` | `esc`, `clp`, `kilos`, `fechaTexto`, `diaChile`, `iniciales` |
+| `APP\js\core\iconos.js` | Íconos SVG, `emptyHTML`, `errorHTML` |
+| `APP\js\pantallas\ingreso.js` | Pantalla de ingreso y avisos de configuración |
+| `APP\js\pantallas\espera.js` | Con sesión y sin perfil: comprobando, pedir acceso, espera, acceso quitado, falta `config/negocio` |
+| `APP\js\pantallas\accesos.js` | Solo dueños: solicitudes, aprobar con perfil, cambiar, quitar, devolver; `aviso()` |
+| `APP\js\pantallas\catalogo.js` | Catálogo (dueños y externo): listas de productos con precio, trabajadores, cliente e IVA, y sus hojas |
+| `APP\js\pantallas\catalogo-producto.js` | Hojas de un producto: ficha con historial, formulario, precio con vigencia, orden, activar; ayudas comunes de las hojas (`enviar`, `error`, `pieHoja`) |
+| `APP\js\pantallas\inicio.js` | **Hoy** (dueños y externo): lo pesado en un día en vivo, **plan del día** (Fase 10), venta con el precio vigente, por pan, entregas con sus canastos y su neto, por trabajador, anulados; otro día (‹ › y calendario); «＋ Anotar canasto» |
+| `APP\js\pantallas\plan.js` | **Plan de producción** (Fase 10): bloque de Hoy (`bloqueHoy`, con el plan de mañana), de la tablet (`bloqueTablet`) y línea del botón de cada pan (`lineaPan`); hoja «Plan» con sugerencias, tandas en vivo, guardar y quitar |
+| `APP\js\pantallas\anotar.js` | Hoja «Anotar canasto» (fecha pasada o hoy) para dueños y externo |
+| `APP\js\pantallas\entregas.js` | **Entregas**: el mes por día y entrega, venta del mes, «Descargar Excel del mes» |
+| `APP\js\pantallas\registro.js` | **Registro general**: período, filtros, canastos de a 100 y bitácora de correcciones |
+| `APP\js\pantallas\datos.js` | **Datos**: exportar a Excel (un mes u otras fechas) y respaldo; `exportar` lo usa también Entregas |
+| `APP\js\pantallas\cierres.js` · `cierres-importar.js` | **Cierres mensuales**: el año, detalle por pan, reabrir (dueños), `cerrarMes` (lo usa Entregas) · importar: archivos, revisión (mes, emparejar panes, ✓ con el total del Excel) y guardar |
+| `APP\js\pantallas\indicadores.js` · `proyeccion.js` · `meses-datos.js` | **Números** (Indicadores): el mes con los nueve indicadores · «Año y metas»: gráfico y lista del año contra el anterior, proyección (hoja con factores y vista previa), fijar metas, meta de un mes · datos de cada mes (cierre, en vivo o lectura única guardada 10 minutos) |
+| `APP\js\pantallas\costos.js` · `costos-mes.js` · `costos-receta.js` | **Costos y margen** (Fase 9): Insumos (lista, ficha, precio con vigencia) · El mes (venta, ingredientes, margen por pan, gastos con «Copiar del mes anterior», resultado, Excel con costos) · receta por tanda (ver, cambiar, versiones) y simulador de precio; `resumenFicha` (bloque de la ficha del pan) |
+| `APP\js\pantallas\avisos.js` | Franjas: accesos por revisar, vendido sin precio, respaldo semanal («Más tarde») |
+| `APP\js\pantallas\pesaje.js` | **Pesaje** (tablet, letra grande): quién pesa, entrega en curso con «Cerrar entrega» / «Volver a abrir», panes (con «faltan …» si hay plan), teclado propio y físico, nota, «Plan de hoy», «Pesado hoy» con «Por enviar» |
+| `APP\js\pantallas\pesaje-hoja.js` | Hojas comunes de un canasto (del día o del período): ficha, corregir, anular, reactivar (con constancia en `cambios`); nota del próximo canasto; `filaCanasto` («anotado el …»), `anotadoDespues`, `rechazo` |
+| `APP\js\pantallas\mas.js` | Cuenta y perfil, grupos Catálogo · Registros · Datos · Cuenta (Accesos, Ayuda, Aviso de privacidad), diagnóstico (perfil, UID, datos, App Check con comprobante, qué se bloqueó, apertura y pantalla más lenta), actualización |
+| `APP\js\pantallas\ayuda.js` · `privacidad.js` | **Ayuda** por perfil (temas que se abren de a uno) · **Aviso de privacidad** (hoja; `abrir`, `texto`, `lineaRecaptcha` para el ingreso) |
+| `APP\vendor\firebase\` | SDK local (lo crea `tools/vendor.js`) |
+| `tools\servidor.js` · `servir.js` | Servidor local con las cabeceras de Hosting · `node tools/servir.js` |
+| `tools\bump.js` · `run-tests.js` · `vendor.js` | Subir versión · correr pruebas · descargar SDK (app, auth, firestore, app-check) |
+| `tools\appcheck.js` | `activar` / `desactivar` / `estado`: abre o cierra la política de contenido para reCAPTCHA en `index.html` y `firebase.json` |
+| `tests\version-unit.js` · `update-unit.js` · `acceso-unit.js` · `repo-unit.js` | Pruebas sin navegador: versión y caché, actualización, ingreso y formato, higiene del repositorio |
+| `tests\perfil-unit.js` · `reglas-unit.js` · `catalogo-unit.js` · `pesaje-unit.js` | Sin navegador: perfiles y pantallas de acceso · reglas contra la copia a mano · catálogo y vigencia de precios · teclado, cantidades, totales, montos y bitácora del pesaje |
+| `tests\ventas-unit.js` · `xlsx-unit.js` · `leer-xlsx.js` | Sin navegador: líneas de venta, redondeo, meses, filtros, **Excel que cuadra con las entregas** (también un mes al azar) y respaldo · escritor .xlsx (ZIP, CRC, XML, fechas, fórmulas) · ayuda para abrir los .xlsx en las pruebas |
+| `tests\cierres-unit.js` · `cierres-e2e.js` · `fixtures\` | Sin navegador: lector, formatos, emparejar, documento con la copia de las reglas, «Listo cuando» con 10 meses · con navegador: importar, cerrar, reabrir, externo, tablet · Excel de ejemplo (LibreOffice y openpyxl) |
+| `tests\costos-unit.js` · `costos-e2e.js` | Sin navegador: las cuatro recetas de la panadería contra el cálculo a mano, vigencia, cantidades, margen, meses (Excel estimado), gastos, simulador y Excel con «Resultado» · con navegador: Costos de punta a punta (insumos, receta, simulador, El mes, gastos, Excel, externo y tablet) |
+| `tests\plan-unit.js` · `plan-e2e.js` | Sin navegador: sugerencia contra el cálculo a mano, redondeo a tandas, estados en 94,9 / 95 / 110 / 110,1 %, fuera del plan, totales = «Pesado hoy», documento con la copia de las reglas · con navegador: el plan de punta a punta (sugerencias, Hoy en vivo, mañana, día pasado, externo y tablet) |
+| `tests\indicadores-unit.js` · `indicadores-e2e.js` | Sin navegador: indicadores = Entregas = cierres (también 300 meses al azar), ritmo, comparaciones, proyección, metas, año y documento con la copia de las reglas · con navegador: Números de punta a punta (mes, cerrado, año, proyección, metas, externo, tablet) |
+| `tests\ventas-e2e.js` | Con navegador: Entregas, sin precio con franja, anotar en fecha pasada, registro con filtros y bitácora, corrección con nombre, Excel = Entregas, respaldo y su franja, sin conexión, externo y tablet |
+| `tests\reglas-casos.js` · `rules-emulator.js` | Casos de reglas compartidos · prueba contra las reglas reales con el emulador (CI o `npm run reglas`) |
+| `tests\pwa.js` · `csp.js` · `ingreso-e2e.js` · `accesos-e2e.js` · `catalogo-e2e.js` · `pesaje-e2e.js` · `a11y.js` | Con navegador: instalación y sin conexión, política de seguridad, ingreso completo, accesos, catálogo y pesaje de punta a punta (incluido sin conexión y «Hoy» del dueño en vivo), accesibilidad de 84 vistas en 320, 360 (claro y oscuro) y 390 px |
+| `tests\privacidad-e2e.js` · `rendimiento.js` | Con navegador: aviso de privacidad (ingreso, espera, Más, cada perfil), Ayuda por perfil, títulos y foco, App Check (aviso de reCAPTCHA, insignia oculta, comprobante y su falla) y «Qué se bloqueó» · tamaño de la descarga, cálculos de un año y dibujo de cada pantalla con datos reales |
+| `tests\fake-firebase\` | Dobles de prueba de Firebase, Google, Firestore (`window.__fakeDb`; con `setDoc`, `updateDoc`, `deleteDoc`, lotes, consultas `where` de igualdad y de rango, lecturas del servidor, escrituras pendientes sin conexión y conteo de lecturas), App Check (con `getToken`; falla con `localStorage['fake.appCheckFalla']`) y la copia a mano de las reglas (`reglas.mjs`) |

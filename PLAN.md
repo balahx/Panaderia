@@ -43,7 +43,7 @@ Ingreso **solo con cuenta de Google**. Quien ingresa por primera vez envía una 
 12. **Actualización sin reinstalar**, versión visible, aviso de privacidad breve.
 
 **Después de la entrega principal:** costos y margen por pan (Fase 9: ingredientes por receta, gastos del mes, simulador de precio); plan de producción diario.
-**Lista de futuros:** insumos (harina, levadura), varios clientes (el modelo ya guarda el cliente), conexión con balanza, informe para la contadora.
+**Lista de futuros:** insumos (harina, levadura), conexión con balanza, informe para la contadora. **Varios clientes y ventas sueltas:** Fase 11 (planificada el 20-nov-2026).
 **Descartado:** asistencia de trabajadores, facturación electrónica.
 
 ## 4. Qué se toma de la "app de muestra"
@@ -125,9 +125,9 @@ D:\APP Panaderia\            (raíz del repositorio público «Panaderia»)
 | `productos/{id}` | nombre, unidad (`kg`/`un`), pesoRef, categoría, orden, activo | Todos los perfiles | Dueños y externo |
 | `precios/{id}` | productoId, clienteId, neto, desde | Dueños y externo (**no** pesaje) | Dueños y externo |
 | `trabajadores/{id}` | nombre, activo | Todos | Dueños y externo |
-| `clientes/{id}` | nombre (inicial: el supermercado) | Dueños y externo | Dueños y externo |
-| `pesajes/{id}` | fecha, hora, entregaN, productoId, cantidad, unidad, trabajadorId, nota, anulado, creadoPor, en (un documento por canasto) | Todos (pesaje: solo del día) | Pesaje: crear (hoy, o ayer por lo anotado sin conexión), y corregir/anular solo del día; dueños y externo: todo |
-| `dias/{fecha}` | entregaN (entrega en curso), por, en. **Los totales no se guardan**: se calculan con los pesajes (Fase 4) | Todos (pesaje: solo hoy) | Pesaje: de a un paso (cerrar o volver a abrir); dueños y externo: cualquier número |
+| `clientes/{id}` | nombre (inicial: el supermercado), activo, `tipo` (`regular`/`suelta`, Fase 11) | Dueños y externo; **pesaje desde la Fase 11** (sin montos) | Dueños y externo |
+| `pesajes/{id}` | fecha, hora, entregaN, productoId, cantidad, unidad, trabajadorId, nota, anulado, creadoPor, en (un documento por canasto); `clienteId` (Fase 11; sin él = el cliente original) | Todos (pesaje: solo del día) | Pesaje: crear (hoy, o ayer por lo anotado sin conexión), y corregir/anular solo del día; dueños y externo: todo |
+| `dias/{fecha}` · `dias/{fecha}_{clienteId}` | entregaN (entrega en curso), por, en. **Los totales no se guardan**: se calculan con los pesajes (Fase 4). Desde la Fase 11, `{fecha}` = cliente original y `{fecha}_{clienteId}` = otro cliente regular | Todos (pesaje: solo hoy) | Pesaje: de a un paso (cerrar o volver a abrir); dueños y externo: cualquier número |
 | `cierres/{aaaa-mm}` | `mes`, `origen` (`excel`/`app`), `cerrado`, `iva` (%), `lineas` (por pan: productoId, nombre, unidad, cantidad, precio, neto), `neto`, `ivaMonto` (IVA % × neto del mes), `total`, `kg`, `un`, `por`, `quien`, `en` (+ cliente, archivo y hoja, o canastos y días; constancia de reapertura) (Fase 6) | Dueños y externo | Dueños y externo, solo meses terminados; un mes cerrado no se modifica y en él no se anota ni se corrige; **solo un dueño lo reabre** |
 | `proyeccion/{año}` | `anio`, `factor` (crecimiento general, 1,05 = +5 %), `factorPrecio`, `panes` (productoId → factor propio), `metas` (12 montos netos o null), `por`, `quien`, `en` (Fase 7) | Dueños y externo | Dueños y externo, a su nombre; no se borra |
 | `insumos/{id}` | `nombre`, `unidad` (`kg`/`l`/`un`), `activo`, `en` (Fase 9) | Dueños y externo (**no** pesaje) | Dueños y externo; no se borra (se desactiva) |
@@ -235,7 +235,7 @@ Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas
 
 **Fuera de la fase:** envases, reparto de gastos entre panes, inventario de insumos (lista de futuros), margen en Números y vista del año en Costos (se puede agregar después).
 ### Fase 10 · Plan de producción diario — chat 11 ✔
-Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas). Versión de llegada: **0.10.0**. **Desarrollada el 20-nov-2026** (chat 11); lo que se decidió al desarrollarla está en ESTADO.md («Decisiones de la Fase 10 · desarrollo»). Falta la verificación de Felipe (GUIA-FIREBASE.md, paso 25).
+Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas). Versión de llegada: **0.10.0**. **Desarrollada el 20-nov-2026** (chat 11); lo que se decidió al desarrollarla está en ESTADO.md («Decisiones de la Fase 10 · desarrollo»). Verificada por Felipe el 20-nov-2026 (`GUIA-FIREBASE.md`, paso 25: las 6 casillas, Diagnóstico con 0 bloqueos y versión 0.10.0, emulador en verde).
 
 **Qué se planifica**
 - **Por pan, el total del día** (no por entrega): cuánto se quiere tener pesado de cada pan ese día. Las entregas siguen armándose solas con los pesajes.
@@ -272,14 +272,54 @@ Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas
 **Fuera de la fase:** plan por entrega, días más allá de mañana, pedido del supermercado, hoja de insumos del día (harina, levadura según las recetas), cumplimiento del mes en Números y plan en el Excel. Quedan como futuros si hacen falta.
 
 
+### Fase 11 · Varios clientes y ventas sueltas — chat 12
+Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas). Versión de llegada: **0.11.0**. Hasta ahora todo lo pesado era venta al supermercado (los pesajes no guardan el cliente; los precios sí, por `clienteId`).
+
+**Qué se agrega**
+- **Clientes regulares** nuevos (almacenes, otro supermercado, un casino), cada uno con **su propia lista de precios** con vigencia, igual que el supermercado. Al crear un cliente se puede **copiar los precios de otro** (los vigentes ese día, con la fecha «desde» que se elija; por omisión, hoy) y después ajustar.
+- **Ventas sueltas** (esporádicas): un cliente fijo **«Ventas sueltas»** (`tipo: 'suelta'`, uno solo, se activa con un botón en Catálogo) con su propia lista de precios. Cada venta puede llevar **la nota de quién compró** (opcional, el campo `nota` que ya existe). No se crea un cliente por cada compra.
+- Catálogo → **«Clientes e IVA»** (antes «Cliente e IVA»): lista de clientes (activos, desactivados), crear, cambiar nombre, desactivar o reactivar (nada se borra), copiar precios. En la ficha de un pan, el precio **por cliente** (el de cada cliente activo con su historial).
+
+**Dónde se anota** (tablet y dueños)
+- **Tablet:** arriba del pesaje, **«Para:»** con el cliente elegido (el supermercado viene marcado y la elección queda guardada en el equipo, `localStorage` `pan.cliente`, como quién pesa). Con un solo cliente activo y sin ventas sueltas **la tablet queda igual que hoy**. Con letra grande; si hay más de 3 clientes, se elige en una hoja. Nunca muestra precios.
+- **«Ventas sueltas» en la tablet:** aparece como un cliente más; al guardar pide (opcional) **«¿Quién compró?»** y lo deja en la nota.
+- **Dueños y externo:** «＋ Anotar canasto» en Hoy pide también el cliente. Al corregir un canasto se puede **cambiar el cliente** (queda en la bitácora: «cliente: Supermercado → Almacén Rosa»).
+
+**Entregas numeradas por cliente**
+- Cada cliente regular lleva **su propia numeración** del día: Supermercado n.º 1 y n.º 2, Almacén n.º 1. «Cerrar entrega» (y «Volver a abrir») actúa sobre **la del cliente elegido** («Cerrar entrega n.º 2 de Supermercado»).
+- **Ventas sueltas no tienen entregas** (propuesta incluida): cada anotación es **una venta** con su nota; en Hoy, Entregas y el Excel se listan una por una («10:42 · 2 kg hallulla · Sra. Marta»).
+- Datos: el supermercado (el cliente **original**) sigue con `dias/{fecha}`; cada otro cliente regular usa `dias/{fecha}_{clienteId}` con la misma forma `{ entregaN, por, en }`. Así lo ya guardado no cambia y la tablet de hoy sigue funcionando durante la actualización.
+
+**Cómo se ve: total del negocio y filtro por cliente**
+- **Hoy, Entregas, Registro y Números (El mes):** el total del negocio y un **filtro «Cliente: Todos ▾»**. Con «Todos», las entregas se agrupan por cliente; con uno, solo lo suyo. Con un solo cliente, el filtro no aparece.
+- **Números:** indicador nuevo **«Por cliente»** (venta neta y participación de cada cliente en el mes, con su variación contra el mes anterior). **Proyección y metas siguen siendo del negocio entero** (sin metas por cliente).
+- **Excel:** la columna «Cliente» de Ventas ya existe y pasa a llevar el de cada línea; hoja nueva **«Por cliente»**; en el Resumen, los clientes del período; en ventas sueltas, una fila por venta con la columna **«Comprador»** (la nota). Al exportar desde Datos, elegir **todos o un cliente** (por si la contadora necesita uno solo). Los costos y el margen de la Fase 9 salen por línea, así que el margen por cliente queda en el Excel sin trabajo extra.
+- **Cierre del mes («Cerrar mes»):** un solo cierre por mes con las líneas **por pan y por cliente** (`lineas[].clienteId`, `lineas[].cliente`) y un resumen `clientes: [{ clienteId, cliente, neto, kg, un }]`; el IVA sigue siendo IVA % del neto del mes. Los meses importados desde Excel (ene–oct 2026) quedan **del supermercado** (ya traen `clienteId`). Cierres e Indicadores suman por pan entre clientes.
+- **Plan de producción:** sigue siendo el **total del día por pan, de todos los clientes y las ventas sueltas** (lo que se hornea es uno solo). No cambia la sugerencia ni la tablet.
+- **Costos y margen:** sin cambios (el costo de un pan no depende del cliente).
+
+**Datos** (PLAN §7)
+- `clientes/{id}` = `{ nombre, activo, tipo?: 'regular' | 'suelta', en }` (sin `tipo` = regular). **La tablet pasa a leer `clientes`** (solo nombre, activo y tipo; no hay montos ahí). Reglas: a lo más un cliente `suelta` (lo revisa la app; las reglas revisan la forma).
+- `pesajes`: campo nuevo **`clienteId`** (opcional para lo ya guardado; la versión 0.11.0 siempre lo escribe). **Sin `clienteId` = el cliente original** = el cliente **más antiguo, esté activo o no** (no el «activo más antiguo» de hoy: si el supermercado se desactivara, lo antiguo no debe cambiar de dueño). Reglas: si viene, el cliente debe existir y estar activo al crear (`get`, una lectura más; quedan dentro del límite de lecturas de las reglas).
+- `dias/{fecha}` o `dias/{fecha}_{clienteId}` (ver arriba): la tablet sigue tocando solo hoy (o ayer) y de a un paso.
+- `cierres`: `lineas` con `clienteId` y `cliente` opcionales, `clientes` (lista, ≤ 50) y el límite de `lineas` sube de 200 a 600.
+- `core/ventas.js`: una línea = **un pan en una entrega de un cliente en un día** (las sueltas: un canasto = una línea, con su nota); el precio es el **vigente ese día para ese cliente** (`precioVigente(precios, producto, cliente, fecha)`). Función nueva `porCliente`. Todo total sigue siendo suma de líneas.
+- Entra en el **respaldo** (sin colecciones nuevas), en el **aviso de privacidad** («el nombre de quien compró, si se anota en una venta suelta; se recomienda solo el nombre de pila»), en la **Ayuda** (temas «Clientes» y «Ventas sueltas», también en la de la tablet) y en `GUIA-FAMILIA.md`.
+
+**Pruebas:** `clientes-unit.js` (líneas por cliente con el precio de cada uno, pesajes antiguos sin `clienteId` = cliente original aunque esté desactivado, entregas por cliente, sueltas una por una, `porCliente`, total = suma por cliente, cierre por cliente que cuadra con Entregas, copiar precios, Excel con «Por cliente» que cuadra con Ventas, documento contra la copia de las reglas) · `clientes-e2e.js` (crear cliente copiando precios, tablet elige cliente y cierra su entrega sin tocar la del supermercado, venta suelta con «¿Quién compró?», Hoy y Entregas con filtro, corregir el cliente con bitácora, Excel de un cliente, cerrar el mes, tablet con un solo cliente igual que antes, externo) · casos nuevos en `reglas-casos.js` (tablet lee clientes pero no precios; pesaje con cliente inexistente o desactivado rechazado; `dias/{fecha}_{cliente}` de a un paso; cierre con líneas por cliente) · las pruebas de Ventas, Cierres, Indicadores y Plan siguen en verde con un solo cliente · vistas nuevas en `a11y.js` (clientes, «Para:» en la tablet, hoja de clientes, «¿Quién compró?», filtros).
+
+**Listo cuando:** con un cliente nuevo y ventas sueltas, cada línea usa el precio de su cliente ese día; el total del día y del mes = la suma de los clientes (Hoy, Entregas, Números, cierre y Excel dicen lo mismo); lo pesado antes de la versión 0.11.0 sigue siendo del supermercado; cerrar la entrega de un cliente no toca la de otro; la tablet nunca ve precios y, con un solo cliente, se ve como antes; el plan de producción cuenta a todos; la versión 0.11.0 tiene el Diagnóstico con 0 bloqueos y el emulador en verde.
+
+**Fuera de la fase:** pedidos de los clientes, plan o metas por cliente, cobros, pagos, guías y facturas por cliente, cambiar el precio en una venta suelta, varios clientes de ventas sueltas y margen por cliente en la pantalla Costos (está en el Excel). Quedan como futuros si hacen falta.
+
 ## 11. Organización de los chats
 
 Un chat por fase (tabla anterior). Reglas:
 
 1. Empezar con el texto de inicio de `ESTADO.md`.
-2. Leer solo los archivos de la fase (el mapa de `ESTADO.md` dice dónde está cada cosa).
+2. Leer solo los archivos de la fase (`MAPA.md` dice dónde está cada cosa) y solo las `decisiones/fase-NN.md` de las fases que toca.
 3. Editar por partes; no reescribir archivos completos.
-4. Al cerrar: pruebas, versión, `ESTADO.md`.
+4. Al cerrar: pruebas, versión, `ESTADO.md` (corto), `decisiones/fase-NN.md` y `MAPA.md`.
 5. Si un chat se alarga o cambia de tema, cerrar y abrir otro. Los arreglos posteriores a una fase van en un chat corto propio.
 
 ## 12. Repositorio y autoría
