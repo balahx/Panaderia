@@ -16,7 +16,8 @@ const fuera = () => L.getItem(KF) === '1';
 const quien = () => { try { const u = JSON.parse(L.getItem('fake.sesion') || 'null'); return u ? { uid: u.uid, email: u.email, email_verified: !/^sinverificar/.test(u.email) } : null; } catch (e) { return null; } };
 const leer = r => { const d = todo(); return r in d ? d[r] : null; };
 const denegado = () => Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' });
-const sellar = (o, t) => { const r = {}; for (const k in o) r[k] = o[k] && o[k].__ts ? (t || Date.now()) : o[k]; return r; };
+/* La hora del servidor se pone también dentro de los campos que son mapas (Fase 12: anulado.en, reparto.en); en listas no se puede (como en Firestore). */
+const sellar = (o, t) => { const r = {}; for (const k in o) { const v = o[k]; r[k] = v && v.__ts ? (t || Date.now()) : v && typeof v === 'object' && !Array.isArray(v) ? sellar(v, t) : v; } return r; };
 const enCol = (d, col) => Object.keys(d).filter(r => r.startsWith(col + '/') && r.split('/').length === col.split('/').length + 1);
 
 /* Escrituras pendientes (sin conexión): [{ id, ops: [{ op, ruta, datos }] }]. Sus promesas se cumplen al enviarse (si la página sigue abierta). */
@@ -87,7 +88,7 @@ export function getDocsFromServer(ref) {
 }
 /* Lectura única común (getDocs): con conexión, del «servidor» (pasa por las reglas); sin conexión, la copia del equipo. */
 export function getDocs(ref) {
-  if (!fuera()) return getDocsFromServer(ref);
+  if (!fuera()) return getDocsFromServer(ref).then(s => { recordar(s.docs.map(x => ref.ruta + '/' + x.id)); return s; });   // como Firestore: lo leído queda en la copia del equipo
   return new Promise(res => setTimeout(() => {
     const { v, marcadas } = vista(), filtro = ref.filtro || {};
     const rutas = enCol(v, ref.ruta).filter(r => cumple(v[r], filtro, ref.rango)).sort();
@@ -112,14 +113,21 @@ export function onSnapshot(ref, opciones, next, err) {
 /* Con conexión: pasa por las reglas y se guarda (o todo o nada). Sin conexión: queda pendiente y la promesa espera al envío. */
 function enviar(ops) {
   const d = todo(), ahora = Date.now(), ver = r => (r in d ? d[r] : null);
+  /* Cómo queda cada documento si el lote completo se guarda (getAfter de las reglas, Fase 12). */
+  const tras = {}; ops.forEach(o => { tras[o.ruta] = o.op === 'delete' ? null : o.datos; });
+  const despues = r => (r in tras ? tras[r] : ver(r));
   for (const o of ops) {
     const prev = ver(o.ruta), op = o.op === 'delete' ? 'delete' : prev ? 'update' : 'create';
-    if (!permitido(quien(), op, o.ruta, o.datos, prev, ver, ahora)) return false;
+    if (!permitido(quien(), op, o.ruta, o.datos, prev, ver, ahora, despues)) return false;
   }
   for (const o of ops) { if (o.op === 'delete') delete d[o.ruta]; else d[o.ruta] = sellar(o.datos); }
   guardar(d); return true;
 }
+/* Como Firestore: un campo `undefined` (en cualquier nivel) es un error de la app, no se guarda. */
+const conIndefinido = v => v === undefined || (Array.isArray(v) ? v.some(conIndefinido) : !!v && typeof v === 'object' && Object.values(v).some(conIndefinido));
+const invalido = () => Object.assign(new Error('Function setDoc() called with invalid data. Unsupported field value: undefined'), { code: 'invalid-argument' });
 function aplicar(ops) {
+  if (ops.some(o => o.op !== 'delete' && conIndefinido(o.datos))) return Promise.reject(invalido());
   if (fuera()) {
     const id = Date.now() + '-' + (++nPend) + '-' + Math.random().toString(36).slice(2, 6);
     L.setItem(KP, JSON.stringify(pend().concat([{ id, ops, est: Date.now() }]))); avisar();
@@ -142,8 +150,38 @@ export const setDoc = (ref, datos) => aplicar([{ op: 'set', ruta: ref.ruta, dato
 export const updateDoc = (ref, datos) => (leer(ref.ruta) ? aplicar([{ op: 'set', ruta: ref.ruta, datos: Object.assign({}, leer(ref.ruta), datos) }]) : Promise.reject(Object.assign(new Error('No document to update'), { code: 'not-found' })));
 export const deleteDoc = ref => aplicar([{ op: 'delete', ruta: ref.ruta }]);
 export function writeBatch() {
-  const ops = [];
-  return { set(ref, datos) { ops.push({ op: 'set', ruta: ref.ruta, datos }); }, delete(ref) { ops.push({ op: 'delete', ruta: ref.ruta }); }, commit: () => aplicar(ops) };
+  const ops = [], base = r => { for (let i = ops.length - 1; i >= 0; i--) if (ops[i].ruta === r) return ops[i].op === 'delete' ? null : ops[i].datos; return leer(r); };
+  return { set(ref, datos) { ops.push({ op: 'set', ruta: ref.ruta, datos }); }, delete(ref) { ops.push({ op: 'delete', ruta: ref.ruta }); },
+    update(ref, datos) { ops.push({ op: 'set', ruta: ref.ruta, datos: Object.assign({}, base(ref.ruta), datos), parcial: !base(ref.ruta) }); },
+    commit: () => (ops.some(o => o.parcial) ? Promise.reject(Object.assign(new Error('No document to update'), { code: 'not-found' })) : aplicar(ops)) };
+}
+/* Transacción (Fase 12, el folio de los cobros): lee del «servidor», junta las escrituras y las guarda juntas. Si un documento leído cambió
+   antes de guardar (otro equipo), vuelve a correr la función, como Firestore (hasta 5 veces). Sin conexión falla.
+   Para probar dos equipos a la vez: window.__fakeDb.alConfirmar = () => { …escribe como si fuera otro equipo… } (se usa una vez). */
+export async function runTransaction(db, fn) {
+  for (let intento = 0; intento < 5; intento++) {
+    if (fuera()) throw Object.assign(new Error('Failed to get document because the client is offline.'), { code: 'unavailable' });
+    const leidas = new Map(), ops = [], actual = r => { for (let i = ops.length - 1; i >= 0; i--) if (ops[i].ruta === r) return ops[i].datos; return leer(r); };
+    const tx = {
+      get(ref) {
+        const d = todo(), r = ref.ruta, hay = r in d;
+        if (!permitido(quien(), 'get', r, null, d[r] || null, leer, Date.now())) return Promise.reject(denegado());
+        leidas.set(r, JSON.stringify(hay ? d[r] : null)); lecturas++;
+        return Promise.resolve({ id: r.split('/').pop(), exists: () => hay, data: () => (hay ? d[r] : undefined) });
+      },
+      set(ref, datos) { ops.push({ op: 'set', ruta: ref.ruta, datos }); return tx; },
+      update(ref, datos) { if (!actual(ref.ruta)) throw Object.assign(new Error('No document to update'), { code: 'not-found' }); ops.push({ op: 'set', ruta: ref.ruta, datos: Object.assign({}, actual(ref.ruta), datos) }); return tx; },
+      delete(ref) { ops.push({ op: 'delete', ruta: ref.ruta }); return tx; }
+    };
+    const res = await fn(tx);
+    if (ops.some(o => o.op !== 'delete' && conIndefinido(o.datos))) throw invalido();
+    const otro = window.__fakeDb.alConfirmar; if (otro) { window.__fakeDb.alConfirmar = null; otro(); }
+    const d = todo();
+    if ([...leidas].some(([r, v]) => JSON.stringify(r in d ? d[r] : null) !== v)) { window.__fakeDb.reintentos = (window.__fakeDb.reintentos || 0) + 1; continue; }
+    if (!enviar(ops)) throw denegado();
+    avisar(); return res;
+  }
+  throw Object.assign(new Error('Transaction failed: too much contention'), { code: 'aborted' });
 }
 export async function terminate() { escuchas.clear(); window.__fakeFs.terminado = true; }
 export async function clearIndexedDbPersistence() { L.removeItem(KC); L.removeItem(KP); window.__fakeFs.copiaBorrada = true; }

@@ -22,12 +22,16 @@ import * as avisos from './pantallas/avisos.js';
 import * as accesos from './pantallas/accesos.js';
 import * as catalogo from './pantallas/catalogo.js';
 import * as costos from './pantallas/costos.js';
+import * as cobros from './pantallas/cobros.js';
+import * as cotizaciones from './pantallas/cotizaciones.js';
+import * as empresa from './pantallas/empresa.js';
 import * as mas from './pantallas/mas.js';
 import * as ayuda from './pantallas/ayuda.js';
 import * as privacidad from './pantallas/privacidad.js';
 
 /* Secciones. `oculta`: no va en la barra (se llega desde «Más»). `permiso`: qué perfil la ve (core/perfil.js).
    `datos`: se vuelve a dibujar cuando cambia el catálogo (S.cat), lo pesado (S.dia) o el período (S.per). `grande`: letra grande (la panadería).
+   `cobranza` (Fase 12): se vuelve a dibujar cuando cambian los cobros, los abonos, los datos de cobro, la empresa o las cotizaciones.
    La primera que el perfil puede ver es la de entrada: «Hoy» para dueños y externo, «Pesaje» para la tablet.
    Un módulo puede exportar fecha(ctx) (qué día escuchar), periodo(ctx) (qué rango de días) y abrir(dataset) (al llegar desde un botón «ir»). */
 const TABS = [
@@ -40,6 +44,9 @@ const TABS = [
   { id: 'cierres', t: 'Cierres', ic: 'file', mod: cierres, oculta: true, permiso: 'gestion', datos: true },
   { id: 'catalogo', t: 'Catálogo', ic: 'pan', mod: catalogo, oculta: true, permiso: 'gestion', datos: true },
   { id: 'costos', t: 'Costos', ic: 'calc', mod: costos, oculta: true, permiso: 'gestion', datos: true },
+  { id: 'cobros', t: 'Cobros', ic: 'cobro', mod: cobros, oculta: true, permiso: 'gestion', datos: true, cobranza: true },             // Fase 12
+  { id: 'cotizaciones', t: 'Cotizaciones', ic: 'file', mod: cotizaciones, oculta: true, permiso: 'gestion', datos: true, cobranza: true },
+  { id: 'empresa', t: 'Datos para documentos', ic: 'info', mod: empresa, oculta: true, permiso: 'gestion' },
   { id: 'accesos', t: 'Accesos', ic: 'team', mod: accesos, oculta: true, permiso: 'accesos' },
   { id: 'ayuda', t: 'Ayuda', ic: 'ayuda', mod: ayuda, oculta: true },
   { id: 'mas', t: 'Más', ic: 'more', mod: mas }
@@ -52,10 +59,12 @@ const S = { user: null, tab: 'inicio', gate: { tipo: 'cargando' }, estado: 'comp
   respaldo: undefined,                  // config/respaldo: undefined = aún no se sabe · null = nunca hubo (core/respaldo.js)
   cierres: null,                        // cierres mensuales [{ id: 'AAAA-MM', … }] (Fase 6; solo gestión) · null = aún no llegan
   proy: null,                           // proyecciones y metas [{ id: 'AAAA', … }] (Fase 7; solo gestión) · null = aún no llegan
-  gastos: null };                       // gastos de cada mes [{ id: 'AAAA-MM', items, … }] (Fase 9; solo gestión) · null = aún no llegan
+  gastos: null,                         // gastos de cada mes [{ id: 'AAAA-MM', items, … }] (Fase 9; solo gestión) · null = aún no llegan
+  cobros: null, abonos: null, cliCobro: null, cotiz: null, empresa: undefined };   // Fase 12 (solo gestión) · null = aún no llegan · empresa: undefined = aún no se sabe, null = sin datos
 let escuchas = [], escuchasDueno = [], escuchasCat = [], escuchasDia = [], escuchasDiasCli = [], escuchasPer = [], escuchasGes = [], tLento = 0;
 const ctx = () => ({ user: S.user, perfil: S.estado, estado: S.estado, negocio: S.acc && S.acc.negocio, lento: S.lento, error: S.acc && S.acc.error,
-  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, per: S.per, respaldo: S.respaldo, cierres: S.cierres, proy: S.proy, gastos: S.gastos, hoy: diaChile(new Date()) });
+  solicitudes: S.sol, miembros: S.miem, errListas: S.errListas, cat: S.cat, errCat: S.errCat, dia: S.dia, per: S.per, respaldo: S.respaldo, cierres: S.cierres, proy: S.proy, gastos: S.gastos,
+  cobros: S.cobros, abonos: S.abonos, cliCobro: S.cliCobro, cotizaciones: S.cotiz, empresa: S.empresa, hoy: diaChile(new Date()) });
 const visible = t => !t.permiso || perfil.puede(S.estado, t.permiso);
 const tabActual = () => TABS.find(t => t.id === S.tab && visible(t)) || TABS.find(visible);
 
@@ -107,7 +116,7 @@ function pintarRed() {
 
 /* ---------- Acceso por perfil ---------- */
 function soltar(lista) { lista.forEach(f => { try { f(); } catch (e) { /* */ } }); lista.length = 0; }
-function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); soltar(escuchasDiasCli); soltar(escuchasPer); soltar(escuchasGes); S.dia = null; S.per = null; S.respaldo = undefined; S.cierres = null; S.proy = null; S.gastos = null; S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
+function dejarDeVigilar() { soltar(escuchas); soltar(escuchasDueno); soltar(escuchasCat); soltar(escuchasDia); soltar(escuchasDiasCli); soltar(escuchasPer); soltar(escuchasGes); S.dia = null; S.per = null; S.respaldo = undefined; S.cierres = null; S.proy = null; S.gastos = null; sinCobranza(); S.cat = null; S.errCat = ''; S.nivel = ''; clearTimeout(tLento); S.acc = null; S.sol = S.miem = null; S.errListas = ''; S.lento = false; S.estado = 'comprobando'; }
 /* Al entrar: escucha quiénes son los dueños, la ficha de miembro y la solicitud de esta cuenta. Se actualiza solo. */
 function vigilarAcceso(u) {
   dejarDeVigilar();
@@ -148,8 +157,9 @@ function evaluar(cambio) {
     /* Gastos del mes (Fase 9): un documento por mes. Solo los usa Costos. */
     escuchasGes.push(nube.vigilarCol('gastos', l => { S.gastos = l; if (perfil.puede(S.estado, 'gestion') && tabActual().id === 'costos') pintarApp(); }, () => { S.gastos = S.gastos || []; }));
     escuchasGes.push(nube.vigilarCol('proyeccion', l => { S.proy = l; if (perfil.puede(S.estado, 'gestion') && tabActual().id === 'indicadores') pintarApp(); }, () => { S.proy = S.proy || []; if (perfil.puede(S.estado, 'gestion') && tabActual().id === 'indicadores') pintarApp(); }));
+    vigilarCobranza();
   }
-  if (!perfil.puede(S.estado, 'gestion') && escuchasGes.length) { soltar(escuchasGes); S.respaldo = undefined; S.cierres = null; S.proy = null; S.gastos = null; }
+  if (!perfil.puede(S.estado, 'gestion') && escuchasGes.length) { soltar(escuchasGes); S.respaldo = undefined; S.cierres = null; S.proy = null; S.gastos = null; sinCobranza(); }
   vigilarCatalogo();
   if (S.estado === antes) {         // misma pantalla: no se redibuja (no borra lo que se está escribiendo)…
     if (cambio === 'negocio' && perfil.esPerfil(S.estado) && tabActual().datos) pintarApp();   // …salvo si cambió el IVA y la pantalla muestra precios
@@ -158,6 +168,17 @@ function evaluar(cambio) {
   cerrarHoja();
   if (perfil.esPerfil(S.estado) && !perfil.esPerfil(antes)) { S.tab = 'inicio'; if (antes === 'espera') toast('Tu acceso fue aprobado'); }
   pintar();
+}
+/* Cobros (Fase 12): cobros, abonos, datos de cobro de los clientes, cotizaciones y los datos de la panadería. Pocos documentos (un cobro
+   por cliente a la semana o al mes): se escuchan completos, porque el saldo se calcula con todos los abonos. Al cambiar, se redibujan las
+   pantallas de cobros y el catálogo (la ficha del cliente); en las demás, solo la franja de cobros vencidos. */
+function sinCobranza() { S.cobros = null; S.abonos = null; S.cliCobro = null; S.cotiz = null; S.empresa = undefined; }
+function vigilarCobranza() {
+  const repintar = () => { if (!perfil.puede(S.estado, 'gestion')) return; const t = tabActual(); if (t.cobranza || t.id === 'catalogo') pintarApp(); else pintarBanner(); };
+  for (const [col, k] of [['cobros', 'cobros'], ['abonos', 'abonos'], ['clientesCobro', 'cliCobro'], ['cotizaciones', 'cotiz']])
+    escuchasGes.push(nube.vigilarCol(col, l => { S[k] = col === 'cobros' || col === 'cotizaciones' ? l.map(x => Object.assign(x, { numero: Number(x.numero) })) : l; repintar(); }, () => { S[k] = S[k] || []; repintar(); }));
+  const emp = () => { if (perfil.puede(S.estado, 'gestion') && tabActual().id === 'empresa') pintarApp(); else repintar(); };
+  escuchasGes.push(nube.vigilarDoc('config/empresa', (d, meta) => { if (d === null && meta.cache) return; S.empresa = d; emp(); }, () => { S.empresa = S.empresa || null; emp(); }));
 }
 /* Catálogo en vivo según el perfil: productos, trabajadores y clientes (Fase 11: la tablet elige «Para:») para todos; precios y costos
    (insumos, sus precios y las recetas, Fase 9) solo para dueños y externo (la cuenta de pesaje ni los pide: las reglas se los negarían). Son decenas de documentos. */

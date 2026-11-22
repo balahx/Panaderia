@@ -49,5 +49,24 @@ export async function descargar(nombre, datos, tipo) {
   a.href = url; a.download = nombre; a.rel = 'noopener'; a.hidden = true; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
+/* Compartir un archivo hecho en el equipo (Fase 12, el PDF de un cobro): el menú del equipo (correo, WhatsApp u otra app; también en Windows
+   con Edge o Chrome). Si el equipo no puede compartir archivos, se descarga. Devuelve 'compartido' | 'cancelado' | 'descargado'. */
+export async function compartir(nombre, datos, tipo, texto) {
+  try {
+    const f = new File([datos], nombre, { type: tipo || 'application/octet-stream' });
+    if (navigator.canShare && navigator.share && navigator.canShare({ files: [f] })) { await navigator.share(Object.assign({ files: [f], title: nombre }, texto ? { text: texto } : {})); return 'compartido'; }
+  } catch (e) { if (e && e.name === 'AbortError') return 'cancelado'; /* otro error: se descarga */ }
+  await descargar(nombre, datos, tipo); return 'descargado';
+}
+/* Abrir un PDF en el visor del equipo (para imprimirlo desde ahí). En el iPhone o iPad con la app instalada se usa Compartir (que tiene
+   «Imprimir»); si el navegador no deja abrir otra pestaña, se descarga. */
+export async function abrirEnVisor(nombre, datos, tipo) {
+  if (navigator.standalone === true) return compartir(nombre, datos, tipo);
+  const url = URL.createObjectURL(new Blob([datos], { type: tipo || 'application/pdf' }));
+  const w = window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+  if (!w) { await descargar(nombre, datos, tipo); return 'descargado'; }
+  return 'abierto';
+}
 /* Pide a la app que vuelva a dibujar la pantalla actual (cuando termina algo que tomó un rato: un Excel, un respaldo). */
 export const repintar = () => document.dispatchEvent(new Event('pan:repintar'));

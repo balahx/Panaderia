@@ -142,7 +142,7 @@ Object.fromEntries([pes('h1', 'hal', 18.5, 'kg'), pes('h2', 'hal', 17.25, 'kg'),
   ok((await texto('#cosResultadoTotal b')).startsWith(C.pesos(res)) && (res >= 0 || /superan/.test(await texto('#cosPerdida'))), 'resultado = margen − gastos = ' + C.pesos(res));
   const x = await descarga('#cosExcel'), L = leer(x.bytes), nV = L.hojas.Ventas.filas.length - 2;
   const fR = t => L.hojas.Resultado.filas.find(f => f[0] === t);
-  ok(x.nombre === 'ventas-' + MES + '.xlsx' && L.orden.join() === 'Resumen,Resultado,Ventas,Entregas,Por día,Por pan,Por cliente,Canastos', 'el Excel de El mes trae la hoja «Resultado»');
+  ok(x.nombre === 'ventas-' + MES + '.xlsx' && L.orden.join() === 'Resumen,Resultado,Ventas,Entregas,Por día,Por pan,Por cliente,Canastos,Cobros,Abonos', 'el Excel de El mes trae la hoja «Resultado» (y, desde la Fase 12, «Cobros» y «Abonos»)');
   ok(L.hojas.Ventas.filas[nV + 1][12] === R.costo && fR('Total de gastos')[1] === 1080000 && fR('Resultado del mes')[1] === res, 'en el Excel: ingredientes, gastos y resultado iguales a la pantalla');
   await tocar('#nav button[data-tab="entregas"]'); await page.waitForSelector('#entExcel');
   ok(!leer((await descarga('#entExcel')).bytes).orden.includes('Resultado'), 'el Excel de Entregas (para la contadora) sale sin costos');

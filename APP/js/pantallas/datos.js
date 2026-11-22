@@ -29,7 +29,8 @@ export async function exportar(c, desde, hasta, conCostos, clienteId) {
   X.ocupado = true; X.err = ''; X.msg = 'Leyendo las ventas…'; repintar();
   try {
     const pesajes = await nube.leerRango('pesajes', 'fecha', desde, hasta);
-    const lib = excel.libro({ desde, hasta, pesajes, productos: k.productos, trabajadores: k.trabajadores, precios: k.precios, clientes: k.clientes, clienteId: uno || null, iva: cat.ivaDe(c.negocio), quien: c.user.nombre, costos: costosDe(c, desde, hasta, conCostos === undefined ? X.costos : conCostos) });
+    const lib = excel.libro({ desde, hasta, pesajes, productos: k.productos, trabajadores: k.trabajadores, precios: k.precios, clientes: k.clientes, clienteId: uno || null, iva: cat.ivaDe(c.negocio), quien: c.user.nombre, costos: costosDe(c, desde, hasta, conCostos === undefined ? X.costos : conCostos),
+      cobros: Array.isArray(c.cobros) ? c.cobros : undefined, abonos: c.abonos || [], hoy: c.hoy });   // Fase 12: hojas «Cobros» y «Abonos»
     await descargar(lib.nombre, excel.bytes(lib), MIME);
     X.ultimo = lib.nombre + ' · ' + lib.lineas.length + (lib.lineas.length === 1 ? ' fila' : ' filas') + ' · total ' + cat.pesos(lib.totales.total);
     toast(lib.faltan.length ? 'Excel descargado. Ojo: ' + lib.faltan.map(f => f.nombre).join(', ') + ' sin precio algún día (no suma).' : 'Excel descargado', lib.faltan.length ? 8000 : 3500);
@@ -72,7 +73,7 @@ function periodoElegido(c) {
 function tarjetaExcel(c) {
   const p = periodoElegido(c), seg = (v, t) => '<button data-act="dat-modo" data-v="' + v + '" aria-pressed="' + (X.modo === v) + '">' + t + '</button>';
   return '<section class="card sec" id="secExcel"><span class="eyebrow">Ventas en Excel</span><h2>Exportar a Excel</h2>' +
-    '<p class="muted">Neto, IVA, total y cliente de cada pan en cada entrega, más hojas por entrega, por día, por pan, por cliente y cada canasto. Los totales cuadran con «Entregas».</p>' +
+    '<p class="muted">Neto, IVA, total y cliente de cada pan en cada entrega, más hojas por entrega, por día, por pan, por cliente, cada canasto, los cobros y los abonos. Los totales cuadran con «Entregas».</p>' +
     '<div class="seg" role="group" aria-label="Período">' + seg('mes', 'Un mes') + seg('rango', 'Otras fechas') + '</div>' +
     (X.modo === 'mes' ? '<label class="lab" for="datMes">Mes</label><input class="txt" type="month" id="datMes" max="' + V.mesDe(c.hoy) + '" value="' + mesDe(c) + '">'
       : '<div class="dos"><div><label class="lab" for="datDesde">Desde</label><input class="txt" type="date" id="datDesde" max="' + c.hoy + '" value="' + esc(X.desde || V.rangoMes(V.mesDe(c.hoy)).desde) + '"></div>' +

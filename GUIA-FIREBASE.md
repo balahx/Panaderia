@@ -1,6 +1,6 @@
 # Guía paso a paso · Firebase, publicación y repositorio
 
-> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4 · paso 20: Fase 5 · paso 21: Fase 6 · paso 22: Fase 7 · paso 23: Fase 8 · paso 24: Fase 9 · paso 25: Fase 10). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
+> App Panadería (pasos 0–12: Fase 1 · pasos 13–17: Fase 2 · paso 18: Fase 3 · paso 19: Fase 4 · paso 20: Fase 5 · paso 21: Fase 6 · paso 22: Fase 7 · paso 23: Fase 8 · paso 24: Fase 9 · paso 25: Fase 10 · paso 26: Fase 11 · paso 27: Fase 12). Sigue los pasos **en orden**; cada uno dice qué debes ver al terminar.
 > Tiempo estimado: 60 a 90 minutos la primera vez.
 > Los nombres de botones están en español; entre paréntesis va el nombre en inglés por si tu consola aparece en ese idioma. Google cambia a veces el texto de un botón: si no lo encuentras igual, busca el más parecido.
 
@@ -36,6 +36,7 @@ En toda la guía, donde diga `ID`, escribe ese valor. La dirección de la app se
 | 24 | **Fase 9:** publicar la versión 0.9.0 (costos y margen por pan) y cargar insumos, recetas y gastos | Terminal, el computador y el teléfono del dueño |
 | 25 | **Fase 10:** publicar la versión 0.10.0 (plan de producción diario) y armar el primer plan | Terminal, el teléfono del dueño y la tablet |
 | 26 | **Fase 11:** publicar la versión 0.11.0 (varios clientes y ventas sueltas) y crear el primer cliente nuevo | Terminal, el teléfono del dueño, el computador y la tablet |
+| 27 | **Fase 12:** publicar la versión 0.12.0 (cobros, abonos y cotizaciones), anotar los datos para documentos y emitir el primer cobro | Terminal, el computador, el iPhone, el Android y la tablet |
 
 ---
 
@@ -904,16 +905,73 @@ firebase deploy --only hosting,firestore:rules
 
 | Comprobación | ✓ / ✗ |
 |---|---|
-| Con un cliente nuevo y una venta suelta pesados hoy, **cada línea usa el precio de su cliente** (en Hoy, «Por cliente»: cantidad × su precio, a mano) | |
-| El **total del día** en Hoy y el **del mes** en Entregas = la suma de los clientes de «Por cliente»; **Números → El mes** dice lo mismo; el **Excel** (hoja «Por cliente» y «Ventas») también | |
-| Lo **pesado antes** de la versión 0.11.0 sigue siendo del **supermercado** (Hoy de un día anterior, filtro Cliente = Supermercado) | |
-| En la **tablet**: «Para:» aparece; **Cerrar entrega** con el cliente nuevo elegido **no cambia** la entrega del supermercado; con **Ventas sueltas** pide «¿Quién compró?»; **no se ve ningún precio** | |
-| El **plan de producción** de hoy cuenta lo pesado para **todos** los clientes y las ventas sueltas | |
-| Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.11.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde (ahí se prueba que la tablet lee clientes pero no precios, que no anota para un cliente desactivado y que cada cliente tiene su entrega) | |
+| Con un cliente nuevo y una venta suelta pesados hoy, **cada línea usa el precio de su cliente** (en Hoy, «Por cliente»: cantidad × su precio, a mano) |✓|
+| El **total del día** en Hoy y el **del mes** en Entregas = la suma de los clientes de «Por cliente»; **Números → El mes** dice lo mismo; el **Excel** (hoja «Por cliente» y «Ventas») también |✓|
+| Lo **pesado antes** de la versión 0.11.0 sigue siendo del **supermercado** (Hoy de un día anterior, filtro Cliente = Supermercado) |✓|
+| En la **tablet**: «Para:» aparece; **Cerrar entrega** con el cliente nuevo elegido **no cambia** la entrega del supermercado; con **Ventas sueltas** pide «¿Quién compró?»; **no se ve ningún precio** |✓|
+| El **plan de producción** de hoy cuenta lo pesado para **todos** los clientes y las ventas sueltas |✓|
+| Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.11.0**; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde (ahí se prueba que la tablet lee clientes pero no precios, que no anota para un cliente desactivado y que cada cliente tiene su entrega) |✓|
 
 **Listo cuando:** las seis casillas están marcadas (es el «Listo cuando» de la Fase 11). El **cierre de noviembre** (desde el 1 de diciembre, en Entregas) ya sale con las líneas por cliente.
 
 **Lecturas:** los clientes son unos pocos documentos (ahora también los lee la tablet) y cada cliente regular agrega **un documento por día** (su entrega en curso). El resto sigue igual. Todo dentro del plan gratuito.
+
+---
+
+## Paso 27 · Publicar la versión 0.12.0 (cobros, abonos y cotizaciones)
+
+Esta versión agrega **Más → Cobros** (solo dueños y externo; la tablet no ve nada de esto):
+- **Datos para documentos:** razón social y RUT de la panadería (obligatorios para emitir), dirección, correo y datos para transferir (banco, tipo y n.º de cuenta, RUT y correo de aviso). Se anotan **en la app** y quedan en la base de datos, **nunca en el repositorio** ni en el chat.
+- **Ficha del cliente** (Catálogo → Clientes e IVA): **Por cobrar** (saldo pendiente, vencido, saldo a favor) y **Datos de cobro** (razón social, RUT, dirección, contacto, semanal o mensual, plazo de pago y descuento habitual en % o en $).
+- **Cobros:** **Nuevo cobro** arma el cobro solo con las **entregas del cliente** en la semana (lunes a domingo), el mes u otras fechas (desde el 1-nov-2026), con el precio de cada día: es la misma cuenta que **Entregas con el filtro de ese cliente**. Una línea por pan con precio **con IVA**, el descuento, el **Ajuste por redondeo** si hace falta, y un **anexo por día sin montos**. **Emitir** necesita internet (el número correlativo no se repite entre equipos). El cobro queda **fijo**; si después se corrige un canasto de esas fechas, avisa **«Cambió desde que se emitió»** y ofrece **Anular y emitir de nuevo**. Es un **documento interno**: al pie dice «No válido como factura»; el n.º de factura SII, si se hace, se anota en el cobro.
+- **Abonos:** pagos totales o parciales de la cuenta del cliente; se aplican solos desde el cobro más antiguo (el reparto se puede cambiar). Estados **Pendiente → Abonado → Pagado**, y **Vencido** con una franja arriba. Un pago de más queda **a favor** y se descuenta solo del próximo cobro. **Estado de cuenta** en PDF.
+- **PDF** hecho por la app (sin internet, para un cobro ya emitido): **Descargar**, **Compartir** (correo, WhatsApp) e **Imprimir**.
+- **Cotizaciones** a posibles clientes, con **Crear cliente con estos precios**.
+- **Excel** del mes con las hojas **Cobros** y **Abonos**; el **respaldo** incluye todo lo nuevo.
+
+Cambian las **reglas** (seis documentos nuevos: `config/empresa`, `config/folios`, `clientesCobro`, `cobros`, `abonos`, `cotizaciones`; el número de cada cobro sale del folio en la misma escritura): hay que publicarlas junto con la app.
+
+1. En **cmd**, dentro de `D:\APP Panaderia`:
+
+```
+npm test
+```
+
+Debe terminar con **«34 pruebas … todas bien»**.
+
+2. **Antes de publicar**, sube el código (`git add .`, `git commit -m "Fase 12: cobros, abonos y cotizaciones"`, `git push`) y mira en GitHub → **Actions** → **Pruebas** que **«Reglas de Firestore (emulador)»** quede en verde. Ahora son **481 casos** (86 nuevos, de cobros, abonos, cotizaciones y folios) y **desde el chat no se pudieron ejecutar con el emulador**: si queda en rojo, **no publiques** y lleva las líneas con ✗ al chat.
+
+3. Con ese paso en verde:
+
+```
+firebase deploy --only hosting,firestore:rules
+```
+
+4. En **cada equipo** (también la tablet): **Más → Buscar actualización → Actualizar ahora** (debe decir versión 0.12.0).
+
+5. **Datos de la panadería** (computador o teléfono del dueño): **Más → Cobros → Datos para documentos**: razón social, RUT, dirección, correo y los datos para transferir → **Guardar datos**. La app revisa el dígito verificador de cada RUT.
+
+6. **Datos de cobro de cada cliente**: **Más → Catálogo → Clientes e IVA →** el cliente **→ Datos de cobro** (razón social, RUT, si se le cobra por semana o por mes, el plazo y su descuento habitual). Al supermercado y a cada cliente regular; «Ventas sueltas» no tiene cobros.
+
+7. **Primer cobro**: en la ficha del cliente, **Nuevo cobro** (o Más → Cobros → Nuevo cobro). Revisa la vista previa y toca **Emitir cobro**. En el cobro, **Descargar PDF**, **Compartir** e **Imprimir**.
+
+8. Verifica y marca:
+
+| Comprobación | ✓ / ✗ |
+|---|---|
+| El **neto** del cobro semanal y del mensual de un cliente = el neto de **Entregas con el filtro de ese cliente** en esas fechas (en el PDF: el desglose «Neto · IVA · Total»), y **total = neto − descuento + IVA**, con el «Ajuste por redondeo» a la vista si no da justo | |
+| El **PDF** se abre, se **imprime** y se **comparte** por correo y por WhatsApp desde **Windows**, **iPhone** y **Android** (con tildes y ñ bien escritas) | |
+| Con un **abono parcial**, el saldo del cobro y del cliente es el mismo en la **lista**, la **ficha del cliente**, el **PDF**, el **estado de cuenta** y el **Excel** (hoja «Cobros») | |
+| Un **pago de más** queda **a favor** y se aplica solo al cobro siguiente (su PDF dice «Saldo a favor anterior») | |
+| Con un cobro **vencido** sale la franja «1 cobro vencido · $…»; **anular** un cobro (con motivo) lo saca de «Por cobrar» y del total del Excel | |
+| Una **cotización** aceptada crea el cliente con sus precios (Catálogo → Clientes e IVA, y la ficha de cada pan con su precio) | |
+| En la **tablet** no aparece nada de cobros (ni en Más ni la franja); Diagnóstico: **Bloqueos de seguridad: 0** y **Versión 0.12.0** en los tres tipos de equipo; GitHub → Actions: **«Reglas de Firestore (emulador)»** en verde (ahí se prueba que dos equipos no sacan el mismo número, que un cobro emitido no cambia y que la tablet no lee nada) | |
+
+**Listo cuando:** las siete casillas están marcadas (es el «Listo cuando» de la Fase 12).
+
+**Si «Imprimir» no abre el PDF:** en el iPhone o iPad con la app instalada, Imprimir abre **Compartir** (ahí está «Imprimir»). En otro equipo, si el navegador no deja abrir otra pestaña, el PDF se **descarga**: ábrelo y imprímelo desde el visor. Si el Diagnóstico muestra un **bloqueo de seguridad** después de imprimir, anótalo (dice qué se bloqueó) y llévalo al chat.
+
+**Lecturas:** los cobros, abonos y cotizaciones son pocos documentos (uno por cliente a la semana o al mes) y la app de los dueños los escucha completos. Al abrir un cobro se leen los canastos de su período (para el aviso «Cambió»). Todo dentro del plan gratuito.
 
 ---
 
@@ -945,6 +1003,9 @@ firebase deploy --only hosting,firestore:rules
 | Después de publicar no veo los cambios | **Más → Buscar actualización → Actualizar ahora** |
 | Al descargar el Excel o el respaldo dice **«hace falta internet»** | Se leen directo del servidor para que salgan completos. Conéctate y vuelve a tocar el botón |
 | El Excel o el respaldo dice **«el servidor no lo permitió»** | Las reglas nuevas no se publicaron (paso 20.3) o la cuenta es de Pesaje |
+| **Emitir cobro** dice **«necesita internet»** | El número correlativo se toma del servidor para que no se repita entre equipos. El borrador queda en la hoja: conéctate y vuelve a tocar **Emitir cobro** |
+| **Nuevo cobro** dice **«Falta el precio de … para …»** | Ese pan no tiene precio vigente para ese cliente en esas fechas. Ponlo en Catálogo (ficha del pan → Precio por cliente) con «desde» en ese día o antes |
+| **Emitir** dice **«Los abonos de este cliente cambiaron en otro equipo»** | Otro equipo anotó o cambió un abono al mismo tiempo. Cierra la hoja, revisa y vuelve a emitir |
 | La franja **«Vendido sin precio»** no se va | El precio quedó con «desde» **después** del día vendido. Corrige la fecha del precio en Catálogo (la franja mira el día abierto en Hoy y el mes de Entregas o el período del Registro) |
 
 ## Qué queda fuera del repositorio

@@ -5,7 +5,9 @@
    Fase 5: pesajes y bitácora de un período (vigilarRango) y lecturas directas del servidor para el Excel y el respaldo (leerCol, leerRango, leerDoc).
    Fase 6: ¿hay pesajes en un mes? (hayEnRango, una lectura) y reabrir un mes cerrado (reabrir, solo dueños).
    Fase 7: pesajes de otro mes, una vez, para los indicadores y la proyección (consultarRango: del servidor o, sin conexión, de la copia del equipo).
-   Fase 8: App Check comprueba al iniciar que reCAPTCHA entrega su comprobante (estado().appCheckToken, para el Diagnóstico). */
+   Fase 8: App Check comprueba al iniciar que reCAPTCHA entrega su comprobante (estado().appCheckToken, para el Diagnóstico).
+   Fase 12: emitir un cobro o una cotización con su número correlativo en una transacción (conFolio), lotes con escrituras y cambios
+   parciales (lote) y la hora del servidor dentro de un campo (ahora: la anulación, el reparto a mano). */
 import * as cfg from '../../firebase-config.js';
 
 const SDK = '../../vendor/firebase/';
@@ -156,3 +158,32 @@ export function guardarVarios(lista) {
 export const ajustarNegocio = cambios => F.updateDoc(F.doc(db, 'config/negocio'), cambios);
 /* Reabrir un mes cerrado (Fase 6, solo dueños): cambia solo `cerrado` y deja constancia de quién y cuándo. Los montos quedan. */
 export const reabrir = (mes, quien) => F.updateDoc(F.doc(db, 'cierres/' + mes), { cerrado: false, reabiertoPor: usuario().uid, reabiertoQuien: quien, reabiertoEn: F.serverTimestamp(), en: F.serverTimestamp() });
+
+/* ---------- Cobros y cotizaciones (Fase 12) ---------- */
+/* Hora del servidor para un campo de adentro (anulado.en, reparto.en, cambio.en). */
+export const ahora = () => F.serverTimestamp();
+/* Varias escrituras juntas (o todas o ninguna): [{ ruta, datos, cambio }]. Sin `cambio`, el documento se escribe completo con su hora (`en`);
+   con `cambio: true`, solo se cambian esos campos (el documento debe existir). */
+export function lote(lista) {
+  const b = F.writeBatch(db);
+  lista.forEach(x => (x.cambio ? b.update(F.doc(db, x.ruta), x.datos) : b.set(F.doc(db, x.ruta), conHora(x.datos))));
+  return b.commit();
+}
+export const cambiar = (ruta, campos) => F.updateDoc(F.doc(db, ruta), campos);
+/* Emite un documento numerado en una transacción: lee config/folios, toma el número siguiente de `campo` ('cobro' o 'cotizacion'), crea
+   `col`/0001 con lo que devuelve armar(número) y sube el folio, junto con los `cambios` (cambios parciales de otros documentos:
+   abonos, el cobro que se anula). `revisar`: [{ ruta, igual(datos) }] documentos que deben seguir como la app los vio (si no, se corta con
+   el código 'cambio'). Necesita internet: sin conexión las transacciones fallan (el número no puede repetirse entre equipos). Si otro
+   equipo emitió al mismo tiempo, Firestore la vuelve a intentar sola con el número siguiente. Devuelve el número. */
+export function conFolio(campo, col, armar, revisar) {
+  if (navigator.onLine === false) return Promise.reject(Object.assign(new Error('sin conexión'), { code: 'unavailable' }));
+  return F.runTransaction(db, async tx => {
+    const ref = F.doc(db, 'config/folios'), s = await tx.get(ref), f = s.exists() ? plano(s.data()) : { cobro: 0, cotizacion: 0 };
+    for (const r of revisar || []) { const x = await tx.get(F.doc(db, r.ruta)); if (!x.exists() || !r.igual(plano(x.data()))) throw Object.assign(new Error('cambió'), { code: 'cambio' }); }
+    const n = (f[campo] || 0) + 1, a = armar(n);
+    tx.set(F.doc(db, col + '/' + String(n).padStart(4, '0')), conHora(a.datos));
+    tx.set(ref, { cobro: f.cobro || 0, cotizacion: f.cotizacion || 0, [campo]: n });
+    (a.cambios || []).forEach(x => tx.update(F.doc(db, x.ruta), x.datos));
+    return n;
+  });
+}

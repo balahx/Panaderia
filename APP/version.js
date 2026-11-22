@@ -3,7 +3,7 @@
    v (AAAA.MM.DD.n): nombra el caché del service worker; al cambiar, se renueva lo guardado sin conexión. */
 (function (root) {
   'use strict';
-  const V = { n: '0.11.0', v: '2026.11.21.1', date: '2026-11-21' };
+  const V = { n: '0.12.0', v: '2026.11.21.2', date: '2026-11-21' };
   root.PAN_VERSION = V;
   if (typeof module !== 'undefined' && module.exports) module.exports = V;
 })(typeof self !== 'undefined' ? self : globalThis);

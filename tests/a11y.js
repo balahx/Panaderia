@@ -11,6 +11,9 @@
    Fase 11: Catálogo con los clientes (lista, agregar copiando precios, ficha) y el precio por cliente; Hoy, Entregas, Números, Registro y
    Datos con el filtro «Cliente» y «Por cliente»; anotar para un cliente o una venta suelta; la tablet con «Para:», la venta suelta con
    «¿Quién compró?» y, con más de tres clientes, la hoja de clientes.
+   Fase 12: Cobros (lista con la franja de vencidos, nuevo cobro con vista previa y con error, la ficha vencida, abonada y anulada, factura,
+   anular, pagar saldo), abonos (nuevo con error, ficha, cambiar reparto), estado de cuenta, cotizaciones (lista, nueva con error, ficha,
+   crear cliente), datos para documentos (con error) y la ficha del cliente con «Por cobrar» y sus datos de cobro.
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
 const { crear } = require('../tools/servidor.js'), { fakeGoogle } = require('./fake-firebase/google.js');
@@ -42,6 +45,9 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   'pesajes/s1': { fecha: '2026-09-15', hora: '06:00', entregaN: 1, productoId: 'p1', cantidad: 25, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: 'u-1001', en: 1790000000000 } };
 const path = require('path'), FX = n => path.join(__dirname, 'fixtures', n);
 const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
+const sumarD = (f, n) => { const d = new Date(f + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const HOY0 = dia(Date.now()), lun = f => sumarD(f, -((new Date(f + 'T12:00:00Z').getUTCDay() + 6) % 7)), SEM0 = sumarD(lun(HOY0), -7) < '2026-11-01' ? lun(HOY0) : sumarD(lun(HOY0), -7);
+const S12 = { desde: SEM0, hasta: sumarD(SEM0, 6), vencido: sumarD(HOY0, -2), futuro: sumarD(HOY0, 10) };   // Fase 12: la semana pasada (o la actual, antes de noviembre de 2026)
 const HOY = dia(Date.now()), pes = (id, hora, n, prod, cant, unidad, mas) => ['pesajes/' + id, Object.assign({ fecha: HOY, hora, entregaN: n, productoId: prod, cantidad: cant, unidad, trabajadorId: 't1', anulado: false, creadoPor: 'u-1001', en: 1794600000000 + Number(hora.replace(':', '')) }, mas || {})];
 Object.assign(SEMILLA, Object.fromEntries([pes('h1', '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', '05:20', 1, 'p2', 1200, 'un', { nota: 'Canasto con una nota bastante larga para ver cómo se corta en la lista' }),
   pes('h3', '05:30', 1, 'p3', 123.45, 'kg'), pes('h4', '08:00', 2, 'p1', 20.25, 'kg'), pes('h5', '08:05', 2, 'p1', 99, 'kg', { anulado: true })]), { ['dias/' + HOY]: { entregaN: 2, por: 'u-1001', en: 1 },
@@ -211,6 +217,47 @@ const CHECK = () => {
     await hoja('pesaje: hoja de clientes', '[data-act="pes-clientes"]', '#pesClientes'); await cerrar();
     await tocar('#nav button[data-tab="mas"]'); await tocar('#irRegistro'); await page.waitForSelector('#regCliente'); await look('registro: filtro por cliente'); await tocar('.volver');
     await tocar('#irDatos'); await page.waitForSelector('#datCliente'); await look('datos: excel de un cliente'); await tocar('.volver');
+    /* Fase 12: cobros, abonos, cotizaciones, datos para documentos y la ficha del cliente con «Por cobrar» */
+    await page.evaluate(([h, s]) => { const D = window.__fakeDb, E = { razonSocial: 'Panadería Familiar con una razón social bastante larga SpA', rut: '76.123.456-0', direccion: 'Avenida con un nombre largo 1234, Puente Alto', correo: 'hola@example.com',
+        banco: 'Banco Estado', tipoCuenta: 'Cuenta corriente', cuenta: '123456789', rutCuenta: '76.123.456-0', correoAviso: 'pagos@example.com' };
+      D.poner('config/empresa', Object.assign({ por: 'u-1001', quien: 'Rosa Dueña', en: 1794600000000 }, E)); D.poner('config/folios', { cobro: 3, cotizacion: 1 });
+      D.poner('clientesCobro/c1', { razonSocial: 'Supermercados del Sur con un nombre largo S.A.', rut: '12.345.678-5', direccion: '', contacto: 'Compras', periodo: 'semana', plazo: 7, descuento: { tipo: 'pct', valor: 5, texto: 'Descuento familia 5 %' }, por: 'u-1001', en: 1 });
+      const cob = (n, mas) => Object.assign({ numero: n, clienteId: 'c1', cliente: { nombre: 'Supermercado', razonSocial: '', rut: '', direccion: '', contacto: '' }, emisor: E, fecha: h, desde: s.desde, hasta: s.hasta, periodo: 'semana',
+        lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', cantidad: 40, precio: 1600, neto: 64000, conIva: 1904, monto: 76160, desde: s.desde, hasta: s.hasta }], anexo: [], neto: 64000, descuento: null, netoFinal: 64000, iva: 19, ivaMonto: 12160,
+        total: 76160, ajuste: 0, plazo: 7, vence: s.vencido, factura: null, anulado: null, reemplaza: null, por: 'u-1001', quien: 'Rosa Dueña', en: 1794600000000 + n }, mas || {});
+      D.poner('cobros/0001', cob(1)); D.poner('cobros/0002', cob(2, { anulado: { motivo: 'Un motivo de anulación bastante largo para ver cómo se corta', reemplazo: null, por: 'u-1001', quien: 'Rosa Dueña', en: 1 } }));
+      D.poner('cobros/0003', cob(3, { clienteId: 'c2', vence: s.futuro, factura: '4521' }));
+      D.poner('abonos/a1', { clienteId: 'c2', fecha: h, monto: 50000, medio: 'transferencia', nota: 'Transferencia con una nota bastante larga', aplicado: [{ cobro: 3, monto: 50000 }], aFavor: 0, anulado: null, reparto: null, por: 'u-1001', quien: 'Rosa Dueña', en: 1 });
+      D.poner('abonos/a2', { clienteId: 'c1', fecha: h, monto: 20000, medio: 'efectivo', nota: '', aplicado: [], aFavor: 20000, anulado: null, reparto: null, por: 'u-1001', quien: 'Rosa Dueña', en: 2 });
+      D.poner('cotizaciones/0001', { numero: 1, para: { nombre: 'Casino Sur con un nombre bastante largo', contacto: 'Ana', razonSocial: '', rut: '', direccion: '' }, baseClienteId: 'c1', cantidadesPor: 'semana',
+        lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', neto: 1550, conIva: 1844.5, cantidad: 40, monto: 73780 }], descuento: null, neto: 62000, netoFinal: 62000, iva: 19, ivaMonto: 11780, total: 73780, ajuste: 0,
+        fecha: h, validaHasta: s.futuro, estado: 'enviada', clienteId: null, cambio: null, emisor: E, por: 'u-1001', quien: 'Rosa Dueña', en: 1 });
+      D.poner('pesajes/w1', { fecha: s.desde, hora: '06:00', entregaN: 1, clienteId: 'c1', productoId: 'p1', cantidad: 30, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: 'u-1001', en: 1794000000000 });
+    }, [HOY, S12]);
+    await tocar('#irCobros'); await page.waitForSelector('#listaCobros'); await page.waitForSelector('#avisoVencidos'); await look('cobros: lista con vencido, abonado y anulado');
+    await hoja('cobros: nuevo con vista previa', '[data-act="cob-nuevo"]', '#cnTotal');
+    await page.check('input[name="cnTipo"][value="monto"]'); await page.fill('#cnValor', '999999999'); await page.waitForSelector('#cnBloqueo'); await look('cobros: nuevo con un descuento que no cabe');
+    await tocar('#dlg [data-act="cn-tipo"][data-v="otro"]'); await page.waitForSelector('#cnDesde'); await look('cobros: nuevo con otras fechas'); await cerrar();
+    await hoja('cobro: ficha vencida', '#listaCobros [data-n="1"]', '#cfFicha');
+    await tocar('#dlg [data-act="cf-factura"]'); await page.waitForSelector('#cfFacturaNum'); await look('cobro: factura SII'); await cerrar();
+    await tocar('#listaCobros [data-n="1"]'); await page.waitForSelector('#cfFicha'); await tocar('#dlg [data-act="cf-anular"]'); await page.waitForSelector('#motivo'); await tocar('#dlg [data-act="cf-anular-ok"]');
+    await page.waitForSelector('#dlg .form-error:not([hidden])'); await look('cobro: anular, sin motivo'); await cerrar();
+    await tocar('#listaCobros [data-n="1"]'); await page.waitForSelector('#cfFicha'); await tocar('#dlg [data-act="cf-pagar"]'); await page.waitForSelector('#abMonto'); await look('abono: pagar saldo'); await cerrar();
+    await hoja('cobro: abonado', '#listaCobros [data-n="3"]', '#cfAbonos'); await cerrar();
+    await hoja('cobro: anulado', '#listaCobros [data-n="2"]', '#cfAnulado'); await cerrar();
+    await hoja('abono: nuevo', '[data-act="cob-abono"]', '#abMonto'); await page.fill('#abMonto', 'x'); await tocar('#dlg [data-act="ab-guardar"]'); await page.waitForSelector('#dlg .form-error:not([hidden])'); await look('abono: con error'); await cerrar();
+    await hoja('abono: ficha', '#cobAbonos [data-id="a1"]', '#abFicha'); await tocar('#dlg [data-act="ab-reparto"]'); await page.waitForSelector('#abPartes'); await look('abono: cambiar reparto'); await cerrar();
+    await hoja('abono: todo a favor', '#cobAbonos [data-id="a2"]', '#abFicha'); await cerrar();
+    await hoja('estado de cuenta', '[data-act="cob-cuenta"]', '#ecSaldo'); await cerrar();
+    await page.selectOption('#cobEstado', 'pagado'); await page.waitForSelector('#view .empty'); await look('cobros: filtro sin resultados'); await page.selectOption('#cobEstado', 'todos'); await page.waitForSelector('#listaCobros');
+    await tocar('.volver'); await tocar('#irCotizaciones'); await page.waitForSelector('#listaCotizaciones'); await look('cotizaciones: lista');
+    await hoja('cotización: nueva', '[data-act="qz-nueva"]', '#qzPanes'); await tocar('#dlg [data-act="qz-emitir"]'); await page.waitForSelector('#dlg .form-error:not([hidden])'); await look('cotización: nueva con error'); await cerrar();
+    await hoja('cotización: ficha', '#listaCotizaciones [data-n="1"]', '#qzFicha'); await tocar('#dlg [data-act="qz-cliente"]'); await page.waitForSelector('#qzDesde'); await look('cotización: crear cliente'); await cerrar();
+    await tocar('.volver'); await tocar('#irEmpresa'); await page.waitForSelector('#empGuardar'); await look('datos para documentos');
+    await page.fill('#emp-rut', '1'); await tocar('#empGuardar'); await page.waitForSelector('#empError'); await look('datos para documentos con error');
+    await tocar('.volver'); await tocar('#irCatalogo'); await page.waitForSelector('#catCuerpo'); await sub('negocio');
+    await hoja('cliente: por cobrar', '#listaClientes [data-id="c1"]', '#cliCobro'); await tocar('#dlg [data-act="cc-datos"]'); await page.waitForSelector('#ccRazon'); await look('cliente: datos de cobro'); await cerrar();
+    await tocar('.volver');
     await tocar('#irCatalogo'); await page.waitForSelector('#catCuerpo'); await sub('negocio');
     await page.evaluate(() => { const d = window.__fakeDb.todo(); Object.keys(d).filter(r => /^(productos|trabajadores|clientes|precios)\//.test(r)).forEach(r => window.__fakeDb.borrar(r)); });
     await page.waitForSelector('#tarjetaCliente [data-act="cat-cli-nuevo"].btn:not(.ghost)'); await look('catálogo vacío: cliente');

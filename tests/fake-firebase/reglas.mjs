@@ -1,10 +1,12 @@
 /* COPIA A MANO de firestore.rules, para las pruebas de pantalla (tests/fake-firebase/firebase-firestore.js) y para
    tests/reglas-unit.js. La verdad la dice el emulador (tests/rules-emulator.js, en GitHub Actions) con los MISMOS casos
    (tests/reglas-casos.js): si esta copia y las reglas reales se separan, una de las dos pruebas falla.
-   permitido(quien, op, ruta, datos, previo, leer, ahora)
+   permitido(quien, op, ruta, datos, previo, leer, ahora, despues)
      quien: { uid, email, email_verified } o null · op: 'get' | 'list' | 'create' | 'update' | 'delete'
      datos: documento nuevo (create/update, ya combinado con el anterior) o el filtro de la consulta (list: { campo: valor })
      previo: documento actual (o null) · leer(ruta): documento guardado o null · ahora: milisegundos (hora del servidor)
+     despues(ruta): cómo queda cada documento si el lote (o la transacción) completo se guarda: es el getAfter() de las reglas (Fase 12).
+       Sin él, se supone una sola escritura (este documento cambia y los demás quedan como están).
    La hora del servidor se marca con  { __ts: true }  (lo que deja serverTimestamp() antes de guardarse). */
 export const TS = { __ts: true };
 const esTS = v => !!v && v.__ts === true;
@@ -80,11 +82,66 @@ function costos(col, id, op, d, prev, q, gestion) {
   return null;
 }
 
-export function permitido(quien, op, ruta, datos, previo, leer, ahora) {
-  try { return !!evaluar(quien, op, ruta, datos || {}, previo || null, leer, ahora); }
+/* Fase 12: cobros, abonos y cotizaciones (y los datos de la panadería y los folios). Solo gestión; nada se borra. */
+const textoOpc = (v, max) => typeof v === 'string' && v.length <= max;
+const cuatro = n => String(n).padStart(4, '0');
+const sello = (m, q) => mapa(m) && solo(m, ['por', 'quien', 'en']) && todas(m, ['por', 'quien', 'en']) && m.por === q.uid && texto(m.quien, 1, 60) && esTS(m.en);
+const anulacion = (a, q) => mapa(a) && solo(a, ['motivo', 'reemplazo', 'por', 'quien', 'en']) && todas(a, ['motivo', 'por', 'quien', 'en']) && texto(a.motivo, 3, 200)
+  && a.por === q.uid && texto(a.quien, 1, 60) && esTS(a.en) && (!('reemplazo' in a) || a.reemplazo === null || entero(a.reemplazo));
+const descuentoValido = x => x === null || (mapa(x) && ['pct', 'monto'].includes(x.tipo) && num(x.valor) && x.valor > 0);
+const aNombre = (d, q) => d.por === q.uid && texto(d.quien, 1, 60) && esTS(d.en);
+const cambiadas = (d, prev) => [...new Set(Object.keys(d).concat(Object.keys(prev || {})))].filter(k => JSON.stringify(d[k]) !== JSON.stringify((prev || {})[k]));
+const EMPRESA = ['razonSocial', 'rut', 'direccion', 'correo', 'banco', 'tipoCuenta', 'cuenta', 'rutCuenta', 'correoAviso', 'por', 'quien', 'en'];
+const CCOBRO = ['razonSocial', 'rut', 'direccion', 'contacto', 'periodo', 'plazo', 'descuento', 'por', 'en'];
+const COBRO = ['numero', 'clienteId', 'cliente', 'emisor', 'fecha', 'desde', 'hasta', 'periodo', 'lineas', 'anexo', 'neto', 'descuento', 'netoFinal', 'iva', 'ivaMonto', 'total', 'ajuste', 'plazo', 'vence', 'factura', 'anulado', 'reemplaza', 'por', 'quien', 'en'];
+const ABONO = ['clienteId', 'fecha', 'monto', 'medio', 'nota', 'aplicado', 'aFavor', 'anulado', 'reparto', 'por', 'quien', 'en'];
+const COTIZ = ['numero', 'para', 'baseClienteId', 'cantidadesPor', 'lineas', 'descuento', 'neto', 'netoFinal', 'iva', 'ivaMonto', 'total', 'ajuste', 'fecha', 'validaHasta', 'estado', 'clienteId', 'cambio', 'emisor', 'por', 'quien', 'en'];
+function cobranza(col, id, op, d, prev, q, gestion, leer, tras) {
+  if (op === 'get' || op === 'list') return gestion;
+  if (op === 'delete' || !gestion) return false;
+  const viejo = c => { const f = leer('config/folios'); return f ? f[c] : 0; }, nuevoF = c => { const f = tras('config/folios'); return f ? f[c] : undefined; };
+  const conFolio = c => entero(d.numero) && d.numero === nuevoF(c) && nuevoF(c) === viejo(c) + 1 && id === cuatro(d.numero);
+  if (col === 'config' && id === 'empresa') return solo(d, EMPRESA) && todas(d, EMPRESA) && texto(d.razonSocial, 1, 100) && texto(d.rut, 3, 12) && textoOpc(d.direccion, 150) && textoOpc(d.correo, 100)
+    && textoOpc(d.banco, 60) && textoOpc(d.tipoCuenta, 40) && textoOpc(d.cuenta, 30) && textoOpc(d.rutCuenta, 12) && textoOpc(d.correoAviso, 100) && aNombre(d, q);
+  if (col === 'config') {   // folios
+    const antes = c => (prev ? prev[c] : 0);
+    return solo(d, ['cobro', 'cotizacion']) && todas(d, ['cobro', 'cotizacion']) && entero(d.cobro) && entero(d.cotizacion) && d.cobro <= 9999 && d.cotizacion <= 9999
+      && ((d.cobro === antes('cobro') + 1 && d.cotizacion === antes('cotizacion') && !leer('cobros/' + cuatro(d.cobro)) && !!tras('cobros/' + cuatro(d.cobro)))
+        || (d.cotizacion === antes('cotizacion') + 1 && d.cobro === antes('cobro') && !leer('cotizaciones/' + cuatro(d.cotizacion)) && !!tras('cotizaciones/' + cuatro(d.cotizacion))));
+  }
+  if (col === 'clientesCobro') return solo(d, CCOBRO) && todas(d, CCOBRO) && textoOpc(d.razonSocial, 100) && textoOpc(d.rut, 12) && textoOpc(d.direccion, 150) && textoOpc(d.contacto, 100)
+    && ['semana', 'mes'].includes(d.periodo) && entero(d.plazo) && d.plazo >= 0 && d.plazo <= 90 && descuentoValido(d.descuento) && !!tras('clientes/' + id) && d.por === q.uid && esTS(d.en);
+  if (col === 'cobros') {
+    if (op === 'update') { const k = cambiadas(d, prev); return prev.anulado === null && k.every(x => ['factura', 'anulado'].includes(x)) && (d.factura === null || texto(d.factura, 1, 30)) && (d.anulado === null || anulacion(d.anulado, q)); }
+    return solo(d, COBRO) && todas(d, COBRO) && conFolio('cobro') && texto(d.clienteId, 1, 60) && !!leer('clientes/' + d.clienteId) && mapa(d.cliente) && mapa(d.emisor)
+      && texto(d.emisor.razonSocial, 1, 100) && texto(d.emisor.rut, 3, 12) && [d.fecha, d.desde, d.hasta, d.vence].every(fechaValida) && d.desde <= d.hasta && d.desde >= '2026-11-01'
+      && ['semana', 'mes', 'otro'].includes(d.periodo) && Array.isArray(d.lineas) && d.lineas.length >= 1 && d.lineas.length <= 60 && Array.isArray(d.anexo) && d.anexo.length <= 62
+      && entero(d.neto) && d.neto >= 0 && entero(d.netoFinal) && d.netoFinal >= 0 && d.netoFinal <= d.neto && descuentoValido(d.descuento) && num(d.iva) && d.iva >= 0 && d.iva <= 100
+      && entero(d.ivaMonto) && d.ivaMonto >= 0 && d.total === d.netoFinal + d.ivaMonto && entero(d.ajuste) && entero(d.plazo) && d.plazo >= 0 && d.plazo <= 90
+      && (d.factura === null || texto(d.factura, 1, 30)) && d.anulado === null && (d.reemplaza === null || entero(d.reemplaza)) && aNombre(d, q);
+  }
+  const reparto = a => Array.isArray(a.aplicado) && a.aplicado.length <= 30 && entero(a.aFavor) && a.aFavor >= 0 && a.aFavor <= a.monto;
+  if (col === 'abonos') {
+    if (op === 'update') { const k = cambiadas(d, prev); return prev.anulado === null && k.every(x => ['aplicado', 'aFavor', 'reparto', 'anulado'].includes(x)) && reparto(d)
+      && (d.reparto === null || JSON.stringify(d.reparto) === JSON.stringify(prev.reparto) || sello(d.reparto, q)) && (d.anulado === null || anulacion(d.anulado, q)); }
+    return solo(d, ABONO) && todas(d, ABONO) && texto(d.clienteId, 1, 60) && !!leer('clientes/' + d.clienteId) && fechaValida(d.fecha) && entero(d.monto) && d.monto > 0 && d.monto <= 10000000000
+      && ['transferencia', 'efectivo', 'cheque', 'otro'].includes(d.medio) && textoOpc(d.nota, 120) && reparto(d) && d.anulado === null && d.reparto === null && aNombre(d, q);
+  }
+  /* cotizaciones */
+  if (op === 'update') { const k = cambiadas(d, prev); return k.every(x => ['estado', 'clienteId', 'cambio'].includes(x)) && ['enviada', 'aceptada', 'rechazada'].includes(d.estado)
+    && (prev.clienteId === null || d.clienteId === prev.clienteId) && (d.clienteId === null || (d.estado === 'aceptada' && texto(d.clienteId, 1, 60) && !!tras('clientes/' + d.clienteId))) && sello(d.cambio, q); }
+  return solo(d, COTIZ) && todas(d, COTIZ) && conFolio('cotizacion') && mapa(d.para) && texto(d.para.nombre, 1, 60) && (d.baseClienteId === null || texto(d.baseClienteId, 1, 60))
+    && ['semana', 'mes'].includes(d.cantidadesPor) && Array.isArray(d.lineas) && d.lineas.length >= 1 && d.lineas.length <= 60 && descuentoValido(d.descuento)
+    && num(d.iva) && d.iva >= 0 && d.iva <= 100 && entero(d.ajuste) && (d.total === null || (entero(d.netoFinal) && entero(d.ivaMonto) && d.total === d.netoFinal + d.ivaMonto))
+    && fechaValida(d.fecha) && fechaValida(d.validaHasta) && d.validaHasta >= d.fecha && d.estado === 'enviada' && d.clienteId === null && d.cambio === null && mapa(d.emisor) && aNombre(d, q);
+}
+
+export function permitido(quien, op, ruta, datos, previo, leer, ahora, despues) {
+  const tras = despues || (r => (r === ruta ? (op === 'delete' ? null : datos || null) : leer(r)));
+  try { return !!evaluar(quien, op, ruta, datos || {}, previo || null, leer, ahora, tras); }
   catch (e) { return false; }   // como en las reglas reales: un error al evaluar es un «no»
 }
-function evaluar(q, op, ruta, d, prev, leer, ahora) {
+function evaluar(q, op, ruta, d, prev, leer, ahora, tras) {
   if (!q) return false;
   const [col, id, ...resto] = ruta.split('/');
   if (resto.length) return false;
@@ -94,6 +151,8 @@ function evaluar(q, op, ruta, d, prev, leer, ahora) {
   const gestion = dueno || perfil('externo'), pesaje = perfil('pesaje'), acceso = gestion || pesaje;
   const leerOp = op === 'get' || op === 'list', escribir = op === 'create' || op === 'update';
 
+  if (col === 'config' && (id === 'empresa' || id === 'folios')) return cobranza(col, id, op, d, prev, q, gestion, leer, tras);
+  if (['clientesCobro', 'cobros', 'abonos', 'cotizaciones'].includes(col)) return cobranza(col, id, op, d, prev, q, gestion, leer, tras);
   if (col === 'config') {
     if (id === 'respaldo') {
       if (leerOp) return gestion;

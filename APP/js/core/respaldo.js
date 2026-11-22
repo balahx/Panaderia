@@ -11,8 +11,9 @@ export const POR_FECHA = ['pesajes', 'cambios', 'planes'], ANIO_INICIO = 2026;  
 export const anios = hoy => { const a = Number(String(hoy).slice(0, 4)), l = []; for (let y = a; y >= ANIO_INICIO; y--) l.push(y); return l; };
 
 /* Qué se respalda. Los dueños además guardan los accesos (el externo no puede leerlos: las reglas se lo niegan). */
-export const DOCUMENTOS = ['config/negocio', 'config/respaldo'];
-export const COLECCIONES = ['productos', 'precios', 'trabajadores', 'clientes', 'pesajes', 'dias', 'cambios', 'cierres', 'proyeccion', 'insumos', 'preciosInsumo', 'recetas', 'gastos', 'planes'];   // insumos…gastos: costos (Fase 9) · planes: plan de producción (Fase 10)
+export const DOCUMENTOS = ['config/negocio', 'config/respaldo', 'config/empresa', 'config/folios'];   // empresa y folios: Fase 12
+export const COLECCIONES = ['productos', 'precios', 'trabajadores', 'clientes', 'pesajes', 'dias', 'cambios', 'cierres', 'proyeccion', 'insumos', 'preciosInsumo', 'recetas', 'gastos', 'planes',
+  'clientesCobro', 'cobros', 'abonos', 'cotizaciones'];   // insumos…gastos: costos (Fase 9) · planes: plan de producción (Fase 10) · clientesCobro…cotizaciones: cobros (Fase 12)
 export const DE_DUENOS = ['miembros', 'solicitudes'];
 export const colecciones = perfil => COLECCIONES.concat(perfil === 'dueno' ? DE_DUENOS : []);
 

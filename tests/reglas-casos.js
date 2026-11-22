@@ -30,6 +30,20 @@ const receta = (productoId, desde, por, mas) => Object.assign({ productoId, desd
 const gastos = (mes, por, mas) => Object.assign({ mes, items: [{ nombre: 'Gas', monto: 180000 }, { nombre: 'Sueldos', monto: 900000 }], por, quien: 'Nombre', en: '@TS' }, mas || {});
 const plan = (fecha, por, mas) => Object.assign({ fecha, items: [{ productoId: 'p1', cantidad: 120, unidad: 'kg', tandas: 7.3 }, { productoId: 'u5', cantidad: 600, unidad: 'un', tandas: null }], nota: 'Viernes: más hallulla', por, quien: 'Nombre', en: '@TS' }, mas || {});   // Fase 10
 const sumarDias = (f, n) => { const d = new Date(f + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+/* Fase 12: cobros, abonos y cotizaciones. Un cobro o una cotización se crea en un LOTE con el folio (op 'batch': w = [{ op, r, d }]). */
+const cuatro = n => String(n).padStart(4, '0');
+const EMISOR = { razonSocial: 'Panadería Familiar SpA', rut: '76.123.456-0', direccion: 'Calle 1', correo: '', banco: '', tipoCuenta: '', cuenta: '', rutCuenta: '', correoAviso: '' };
+const empresa = (por, mas) => Object.assign({}, EMISOR, { por, quien: 'Nombre', en: '@TS' }, mas || {});
+const cobro = (numero, por, mas) => Object.assign({ numero, clienteId: 'c2', cliente: { nombre: 'Almacén Rosa', razonSocial: '', rut: '', direccion: '', contacto: '' }, emisor: EMISOR,
+  fecha: '2026-11-21', desde: '2026-11-09', hasta: '2026-11-15', periodo: 'semana',
+  lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', cantidad: 40, precio: 1600, neto: 64000, conIva: 1904, monto: 76160 }], anexo: [{ fecha: '2026-11-10', entregas: 1, items: [{ productoId: 'p1', cantidad: 40 }] }],
+  neto: 64000, descuento: null, netoFinal: 64000, iva: 19, ivaMonto: 12160, total: 76160, ajuste: 0, plazo: 7, vence: '2026-11-28', factura: null, anulado: null, reemplaza: null, por, quien: 'Nombre', en: '@TS' }, mas || {});
+const abono = (por, mas) => Object.assign({ clienteId: 'c2', fecha: '2026-11-20', monto: 50000, medio: 'transferencia', nota: '', aplicado: [{ cobro: 3, monto: 50000 }], aFavor: 0, anulado: null, reparto: null, por, quien: 'Nombre', en: '@TS' }, mas || {});
+const cotiz = (numero, por, mas) => Object.assign({ numero, para: { nombre: 'Casino Sur', contacto: 'Ana', razonSocial: '', rut: '', direccion: '' }, baseClienteId: 'c1', cantidadesPor: 'semana',
+  lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', neto: 1550, conIva: 1844.5, cantidad: 40, monto: 73780 }], descuento: null, neto: 62000, netoFinal: 62000, iva: 19, ivaMonto: 11780, total: 73780, ajuste: 0,
+  fecha: '2026-11-21', validaHasta: '2026-12-06', estado: 'enviada', clienteId: null, cambio: null, emisor: EMISOR, por, quien: 'Nombre', en: '@TS' }, mas || {});
+const sello = por => ({ por, quien: 'Nombre', en: '@TS' });
+const anular = (por, mas) => Object.assign({ motivo: 'Canastos corregidos', por, quien: 'Nombre', en: '@TS' }, mas || {});
 const cambio = (tipo, fecha, por, mas) => Object.assign({ tipo, pesajeId: 'hoy1', fecha, antes: { cantidad: 18.5 }, despues: { cantidad: 19 }, por, en: '@TS' }, mas || {});
 
 function semilla(HOY, ANTES, AYER) {
@@ -492,6 +506,101 @@ function casos(HOY, ANTES, AYER) {
   no('rosa', 'set', 'cierres/2025-05', 'de hasta 50 clientes', cierre('2025-05', 'rosa', { clientes: Array.from({ length: 51 }, (x, i) => ({ clienteId: 'c' + i, neto: 0 })) }));
   no('rosa', 'set', 'cierres/2025-05', 'pero no más de 600 líneas', cierre('2025-05', 'rosa', { lineas: Array.from({ length: 601 }, (x, i) => ({ productoId: 'p' + i, neto: 0 })) }));
   si('rosa', 'set', 'cierres/2025-04', 'las líneas pueden ser hasta 600 (panes × clientes)', cierre('2025-04', 'rosa', { lineas: Array.from({ length: 600 }, (x, i) => ({ productoId: 'p' + i, neto: 0 })) }));
+
+  t('16. Cobros, abonos y cotizaciones (Fase 12)');
+  const lote = (q, w, m, ok) => C.push({ q, op: 'batch', w, ok, m });
+  const emitir = (q, n, f, m, ok, mas) => lote(q, [{ op: 'set', r: 'cobros/' + cuatro(n), d: cobro(n, q, mas) }, { op: 'set', r: 'config/folios', d: f }], m, ok);
+  no('tablet', 'get', 'config/empresa', 'la tablet no lee los datos de la panadería');
+  no('tablet', 'list', 'cobros', 'ni los cobros');
+  no('tablet', 'list', 'abonos', 'ni los abonos');
+  no('tablet', 'list', 'clientesCobro', 'ni los datos de cobro de los clientes (RUT, descuentos)');
+  no('tablet', 'list', 'cotizaciones', 'ni las cotizaciones');
+  no('tablet', 'get', 'config/folios', 'ni los folios');
+  no('carla', 'list', 'cobros', 'una cuenta sin acceso tampoco');
+  si('rosa', 'set', 'config/empresa', 'un dueño anota los datos de la panadería', empresa('rosa'));
+  si('felipe', 'set', 'config/empresa', 'el externo también, a su nombre', empresa('felipe', { banco: 'Banco Estado', cuenta: '123456' }));
+  si('felipe', 'get', 'config/empresa', 'y los lee');
+  no('rosa', 'set', 'config/empresa', 'la razón social es obligatoria', empresa('rosa', { razonSocial: '' }));
+  no('rosa', 'set', 'config/empresa', 'el RUT también', empresa('rosa', { rut: '' }));
+  no('rosa', 'set', 'config/empresa', 'sin campos de más', empresa('rosa', { logo: 'x' }));
+  no('rosa', 'set', 'config/empresa', 'a nombre de quien lo guarda', empresa('felipe'));
+  no('tablet', 'set', 'config/empresa', 'la tablet no los escribe', empresa('tablet'));
+  no('rosa', 'delete', 'config/empresa', 'no se borran');
+  const cc = (por, mas) => Object.assign({ razonSocial: 'Comercial Rosa Ltda.', rut: '77.888.999-K', direccion: '', contacto: 'Rosa', periodo: 'semana', plazo: 7, descuento: null, por, en: '@TS' }, mas || {});
+  si('felipe', 'set', 'clientesCobro/c2', 'los datos de cobro de un cliente (aparte de clientes)', cc('felipe'));
+  si('rosa', 'set', 'clientesCobro/c2', 'con descuento habitual en %', cc('rosa', { descuento: { tipo: 'pct', valor: 5, texto: 'Descuento familia 5 %' } }));
+  no('rosa', 'set', 'clientesCobro/zz', 'el cliente debe existir', cc('rosa'));
+  no('rosa', 'set', 'clientesCobro/c2', 'el período es semana o mes', cc('rosa', { periodo: 'dia' }));
+  no('rosa', 'set', 'clientesCobro/c2', 'el plazo, de 0 a 90 días', cc('rosa', { plazo: 91 }));
+  no('rosa', 'set', 'clientesCobro/c2', 'el descuento es en % o en $', cc('rosa', { descuento: { tipo: 'regalo', valor: 5, texto: 'x' } }));
+  no('rosa', 'set', 'clientesCobro/c2', 'y mayor que cero', cc('rosa', { descuento: { tipo: 'monto', valor: 0, texto: 'x' } }));
+  lote('rosa', [{ op: 'set', r: 'clientes/c7', d: { nombre: 'Casino Norte', activo: true, tipo: 'regular', en: '@TS' } }, { op: 'set', r: 'clientesCobro/c7', d: cc('rosa') }], 'el cliente y sus datos de cobro se crean juntos', true);
+  no('tablet', 'set', 'clientesCobro/c2', 'la tablet no escribe datos de cobro', cc('tablet'));
+  no('rosa', 'set', 'cobros/0001', 'un cobro no se crea sin subir el folio en la misma escritura', cobro(1, 'rosa'));
+  emitir('rosa', 2, { cobro: 2, cotizacion: 0 }, 'el folio no salta números', false);
+  no('rosa', 'set', 'config/folios', 'el folio no sube sin su cobro', { cobro: 1, cotizacion: 0 });
+  emitir('rosa', 1, { cobro: 1, cotizacion: 0 }, 'el número viene del folio + 1, con el documento 0001', false, { total: 1 });
+  emitir('rosa', 1, { cobro: 1, cotizacion: 0 }, 'un cobro nace sin anular', false, { anulado: anular('rosa') });
+  emitir('rosa', 1, { cobro: 1, cotizacion: 0 }, 'cobra desde el 1-nov-2026 (antes solo hay cierres del Excel)', false, { desde: '2026-10-27' });
+  emitir('rosa', 1, { cobro: 1, cotizacion: 0 }, 'el cliente debe existir', false, { clienteId: 'zz' });
+  emitir('rosa', 1, { cobro: 1, cotizacion: 0 }, 'con los datos de la panadería (razón social y RUT)', false, { emisor: Object.assign({}, EMISOR, { rut: '' }) });
+  emitir('rosa', 1, { cobro: 1, cotizacion: 0 }, 'hasta 60 líneas', false, { lineas: Array.from({ length: 61 }, () => ({ neto: 0 })) });
+  emitir('tablet', 1, { cobro: 1, cotizacion: 0 }, 'la tablet no emite cobros', false);
+  emitir('rosa', 1, { cobro: 1, cotizacion: 0 }, 'un dueño emite el cobro N.º 0001 junto con el folio', true);
+  si('felipe', 'get', 'cobros/0001', 'el externo lo lee');
+  emitir('felipe', 1, { cobro: 1, cotizacion: 0 }, 'el mismo número no se puede volver a sacar (otro equipo)', false);
+  emitir('felipe', 2, { cobro: 1, cotizacion: 0 }, 'ni sin subir el folio', false);
+  emitir('felipe', 3, { cobro: 2, cotizacion: 0 }, 'ni con un número distinto del folio', false);
+  emitir('felipe', 2, { cobro: 2, cotizacion: 0 }, 'el externo emite el N.º 0002 (con descuento)', true, { descuento: { tipo: 'pct', valor: 5, texto: 'Familia 5 %', neto: 3200, conIva: 3808 }, netoFinal: 60800, ivaMonto: 11552, total: 72352, ajuste: 0 });
+  no('rosa', 'update', 'cobros/0001', 'un cobro emitido no cambia sus montos', { total: 1 });
+  no('rosa', 'update', 'cobros/0001', 'ni sus líneas', { lineas: [] });
+  no('rosa', 'update', 'cobros/0001', 'ni el cliente', { clienteId: 'c1' });
+  si('rosa', 'update', 'cobros/0001', 'se anota el n.º de factura SII', { factura: '4521' });
+  no('rosa', 'update', 'cobros/0001', 'de hasta 30 caracteres', { factura: 'x'.repeat(31) });
+  no('rosa', 'update', 'cobros/0001', 'anular pide un motivo', { anulado: anular('rosa', { motivo: '' }) });
+  no('rosa', 'update', 'cobros/0001', 'a nombre de quien anula', { anulado: anular('felipe') });
+  si('felipe', 'update', 'cobros/0002', 'se anula con motivo', { anulado: anular('felipe') });
+  no('rosa', 'update', 'cobros/0002', 'anular es final: no vuelve atrás', { anulado: null });
+  no('rosa', 'update', 'cobros/0002', 'y ya no cambia nada (ni la factura)', { factura: '9' });
+  no('rosa', 'delete', 'cobros/0001', 'un cobro no se borra');
+  lote('rosa', [{ op: 'set', r: 'cobros/0003', d: cobro(3, 'rosa', { reemplaza: 1 }) }, { op: 'set', r: 'config/folios', d: { cobro: 3, cotizacion: 0 } },
+    { op: 'update', r: 'cobros/0001', d: { anulado: anular('rosa', { reemplazo: 3 }) } }], '«Anular y emitir de nuevo»: el nuevo, el folio y la anulación del anterior, juntos', true);
+  si('rosa', 'set', 'abonos/a1', 'un abono aplicado a un cobro', abono('rosa'));
+  si('felipe', 'get', 'abonos/a1', 'el externo lo lee');
+  no('rosa', 'set', 'abonos/a2', 'el monto va en pesos enteros', abono('rosa', { monto: 1000.5 }));
+  no('rosa', 'set', 'abonos/a2', 'mayor que cero', abono('rosa', { monto: 0, aplicado: [] }));
+  no('rosa', 'set', 'abonos/a2', 'el medio: transferencia, efectivo, cheque u otro', abono('rosa', { medio: 'tarjeta' }));
+  no('rosa', 'set', 'abonos/a2', 'lo que queda a favor no pasa del monto', abono('rosa', { aplicado: [], aFavor: 60000 }));
+  no('rosa', 'set', 'abonos/a2', 'se reparte en 30 cobros como máximo', abono('rosa', { aplicado: Array.from({ length: 31 }, (x, i) => ({ cobro: i, monto: 1 })) }));
+  no('rosa', 'set', 'abonos/a2', 'nace sin anular', abono('rosa', { anulado: anular('rosa') }));
+  no('rosa', 'set', 'abonos/a2', 'el cliente debe existir', abono('rosa', { clienteId: 'zz' }));
+  no('rosa', 'set', 'abonos/a2', 'sin campos de más (el saldo no se guarda)', abono('rosa', { saldo: 26160 }));
+  no('tablet', 'set', 'abonos/a2', 'la tablet no anota abonos', abono('tablet'));
+  si('felipe', 'update', 'abonos/a1', 'se cambia el reparto a mano (queda quién y cuándo)', { aplicado: [], aFavor: 50000, reparto: sello('felipe') });
+  no('felipe', 'update', 'abonos/a1', 'a nombre de quien lo cambia', { aplicado: [{ cobro: 3, monto: 50000 }], aFavor: 0, reparto: sello('rosa') });
+  si('rosa', 'update', 'abonos/a1', 'el saldo a favor se aplica a un cobro nuevo', { aplicado: [{ cobro: 3, monto: 50000, previo: true }], aFavor: 0 });
+  no('rosa', 'update', 'abonos/a1', 'el monto no cambia', { monto: 1 });
+  no('rosa', 'update', 'abonos/a1', 'ni la fecha', { fecha: '2026-11-01' });
+  si('rosa', 'update', 'abonos/a1', 'un abono mal anotado se anula con motivo', { anulado: anular('rosa', { motivo: 'Mal anotado' }) });
+  no('rosa', 'update', 'abonos/a1', 'anulado, ya no cambia', { aplicado: [], aFavor: 50000 });
+  no('rosa', 'delete', 'abonos/a1', 'un abono no se borra');
+  const emitirQ = (q, n, f, m, ok, mas) => lote(q, [{ op: 'set', r: 'cotizaciones/' + cuatro(n), d: cotiz(n, q, mas) }, { op: 'set', r: 'config/folios', d: f }], m, ok);
+  emitirQ('felipe', 1, { cobro: 3, cotizacion: 1 }, 'una cotización nace enviada', false, { estado: 'aceptada' });
+  emitirQ('felipe', 1, { cobro: 4, cotizacion: 1 }, 'el folio de cobros no se toca al cotizar', false);
+  emitirQ('felipe', 1, { cobro: 3, cotizacion: 1 }, 'el externo emite la cotización N.º 0001 con su propio folio', true);
+  emitirQ('rosa', 1, { cobro: 3, cotizacion: 1 }, 'su número tampoco se repite', false);
+  emitirQ('rosa', 2, { cobro: 3, cotizacion: 2 }, 'sin cantidades no hay total estimado', true, { lineas: [{ productoId: 'p1', nombre: 'Marraqueta', unidad: 'kg', neto: 1550, conIva: 1844.5, cantidad: null, monto: null }], neto: null, netoFinal: null, ivaMonto: null, total: null });
+  no('rosa', 'update', 'cotizaciones/0001', 'una cotización emitida no cambia sus precios', { lineas: [] });
+  no('rosa', 'update', 'cotizaciones/0001', 'el estado es enviada, aceptada o rechazada', { estado: 'perdida', cambio: sello('rosa') });
+  no('rosa', 'update', 'cotizaciones/0001', 'cada cambio dice quién y cuándo', { estado: 'rechazada' });
+  si('rosa', 'update', 'cotizaciones/0002', 'se marca rechazada', { estado: 'rechazada', cambio: sello('rosa') });
+  no('rosa', 'update', 'cotizaciones/0002', 'no se enlaza a un cliente que no existe', { estado: 'aceptada', clienteId: 'zz', cambio: sello('rosa') });
+  lote('rosa', [{ op: 'set', r: 'clientes/c8', d: { nombre: 'Casino Sur', activo: true, tipo: 'regular', en: '@TS' } }, { op: 'set', r: 'clientesCobro/c8', d: cc('rosa', { razonSocial: '', rut: '' }) },
+    { op: 'set', r: 'precios/p1_c8_2026-11-21', d: { productoId: 'p1', clienteId: 'c8', neto: 1550, desde: '2026-11-21', en: '@TS' } },
+    { op: 'update', r: 'cotizaciones/0001', d: { estado: 'aceptada', clienteId: 'c8', cambio: sello('rosa') } }], '«Crear cliente con estos precios»: cliente, datos de cobro, precios y la cotización aceptada, juntos', true);
+  no('felipe', 'update', 'cotizaciones/0001', 'el cliente enlazado no se cambia', { clienteId: 'c2', cambio: sello('felipe') });
+  no('rosa', 'delete', 'cotizaciones/0001', 'una cotización no se borra');
+  no('tablet', 'get', 'cotizaciones/0001', 'y la tablet no la lee');
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

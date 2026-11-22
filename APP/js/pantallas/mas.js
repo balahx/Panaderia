@@ -2,6 +2,7 @@
    y Datos (Excel y respaldo); Catálogo incluye Costos y margen (Fase 9); Registros incluye los cierres mensuales (Fase 6); Accesos (dueños); la versión y actualización, y el diagnóstico de instalación.
    Fase 8: Ayuda (todos los perfiles), Aviso de privacidad (lo abre app.js), y el diagnóstico dice si App Check entrega su comprobante,
    qué se bloqueó (si algo) y cuánto tardan la apertura y las pantallas (window.__pan, lo mide app.js).
+   Fase 12: grupo «Cobros» con Cobros (lo que se debe, con el total por cobrar), Cotizaciones y Datos para documentos.
    «Cerrar sesión» lo atiende app.js (vale también en las pantallas de espera). */
 import { esc, iniciales, fechaTexto } from '../core/formato.js';
 import { svg } from '../core/iconos.js';
@@ -12,6 +13,9 @@ import * as perfil from '../core/perfil.js';
 import { porRevisar } from './accesos.js';
 import { sumarDias } from '../core/pesaje.js';
 import * as R from '../core/respaldo.js';
+import * as A from '../core/abonos.js';
+import * as CB from '../core/cobros.js';
+import * as cat from '../core/catalogo.js';
 
 const instalada = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const DATOS = { cache: 'Con copia sin conexión', memoria: 'Sin copia en este equipo (solo con internet)', 'sin-sdk': 'Falta el SDK' };
@@ -62,8 +66,17 @@ function gestion(ctx) {
     '<p class="eyebrow mas-grupo">Registros</p><div class="mlist">' + fila('irRegistro', 'lista', 'Registro general', 'Todos los canastos con filtros, y las correcciones', 'data-tab="registro"') +
     fila('irFechaPasada', 'mas', 'Anotar en fecha pasada', 'Abre «Hoy» en el día de ayer; con ‹ › eliges otro', 'data-tab="inicio" data-dia="' + sumarDias(ctx.hoy, -1) + '"') +
     fila('irCierres', 'file', 'Cierres mensuales', 'Cerrar meses e importar los anteriores desde Excel', 'data-tab="cierres"') + '</div>' +
+    cobranza(ctx) +
     '<p class="eyebrow mas-grupo">Datos</p><div class="mlist">' + fila('irDatos', 'bajar', 'Exportar a Excel y respaldo', marca || 'Ventas con neto, IVA y total; copia de todos los datos', 'data-tab="datos"') + '</div>' +
     '<p class="eyebrow mas-grupo">Cuenta</p>';
+}
+/* Fase 12: el grupo «Cobros». */
+function cobranza(ctx) {
+  const cu = Array.isArray(ctx.cobros) && Array.isArray(ctx.abonos) ? A.cuenta(ctx.cobros, ctx.abonos, '', ctx.hoy) : null;
+  return '<p class="eyebrow mas-grupo">Cobros</p><div class="mlist">' +
+    fila('irCobros', 'cobro', 'Cobros', cu ? (cu.porCobrar ? 'Por cobrar ' + cat.pesos(cu.porCobrar) + (cu.vencido ? ' · vencido ' + cat.pesos(cu.vencido) : '') : 'Nada por cobrar') + ' · abonos y estado de cuenta' : 'Cobros a clientes, abonos y estado de cuenta', 'data-tab="cobros"') +
+    fila('irCotizaciones', 'file', 'Cotizaciones', 'Precios con IVA para posibles clientes', 'data-tab="cotizaciones"') +
+    fila('irEmpresa', 'info', 'Datos para documentos', ctx.empresa === undefined || CB.empresaLista(ctx.empresa) ? 'Razón social, RUT y datos para transferir' : 'Faltan la razón social y el RUT', 'data-tab="empresa"') + '</div>';
 }
 export function html(ctx) {
   return '<span class="eyebrow">Más</span><h1>Cuenta y ajustes</h1>' +

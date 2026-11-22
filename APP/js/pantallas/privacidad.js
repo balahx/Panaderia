@@ -5,7 +5,7 @@
 import { hoja } from '../core/ui.js';
 import * as nube from '../core/nube.js';
 
-export const VIGENTE = '20 de noviembre de 2026';   // Fase 9: agrega los costos · Fase 10 (mismo día): el plan de producción del día
+export const VIGENTE = '21 de noviembre de 2026';   // Fase 9: agrega los costos · Fase 10: el plan de producción del día · Fase 12: clientes, posibles clientes y datos bancarios
 const POLITICA = 'https://policies.google.com/privacy', CONDICIONES = 'https://policies.google.com/terms';
 const enlace = (url, t) => '<a class="lnk" href="' + url + '" target="_blank" rel="noopener noreferrer">' + t + '</a>';
 
@@ -26,9 +26,10 @@ export function texto() {
       '<li><b>De tu cuenta de Google:</b> tu nombre, tu correo y un identificador de la cuenta. Sirven solo para saber quién eres y para que los dueños aprueben tu acceso. La app no ve tu contraseña (la pide Google), ni tus contactos, fotos, ubicación, cámara o micrófono.</li>' +
       '<li><b>Del trabajo:</b> el nombre de cada persona que pesa, lo que pesó (pan, kilos o unidades, hora, entrega, cliente y nota) y quién anotó o corrigió cada registro.</li>' +
       '<li><b>De las ventas sueltas:</b> el nombre de quien compró, si se anota (es opcional; se recomienda solo el nombre de pila).</li>' +
-      '<li><b>Del negocio:</b> productos, precios, ventas, cierres mensuales, metas, costos (insumos, recetas y gastos del mes) y el plan de producción del día (cuánto hacer de cada pan, quién lo armó).</li></ul>') +
+      '<li><b>Del negocio:</b> productos, precios, ventas, cierres mensuales, metas, costos (insumos, recetas y gastos del mes) y el plan de producción del día (cuánto hacer de cada pan, quién lo armó).</li>' +
+      '<li><b>De los cobros:</b> los datos de cada cliente y de quien recibe una cotización (razón social, RUT, dirección y un contacto: se recomienda el de la empresa, no uno personal), los cobros, los pagos (abonos) y los datos de la panadería para recibir transferencias (banco y n.º de cuenta).</li></ul>') +
     sec('Dónde se guardan', '<p>En Firebase, el servicio de Google que usa la panadería; sus servidores pueden estar fuera de Chile. Cada equipo guarda además una copia para funcionar sin internet, que se borra al cerrar sesión. En la tablet queda anotado quién está pesando.</p>') +
-    sec('Quién los ve', '<p>Los dueños y la persona externa de confianza ven todo (solo los dueños manejan los accesos). La tablet de la panadería ve solo lo pesado hoy y el plan de hoy, sin precios, ventas ni costos. La contadora recibe los archivos que le envían los dueños.</p>') +
+    sec('Quién los ve', '<p>Los dueños y la persona externa de confianza ven todo (solo los dueños manejan los accesos). La tablet de la panadería ve solo lo pesado hoy y el plan de hoy, sin precios, ventas, costos ni cobros. La contadora recibe los archivos que le envían los dueños, y cada cliente, los cobros y estados de cuenta que se le compartan.</p>') +
     sec('Lo que no se hace', '<p>Los datos no se venden ni se comparten con nadie. La app no tiene publicidad ni mide cómo la usas.</p>') +
     (conAppCheck ? sec('Protección contra usos automatizados', '<p>La app usa reCAPTCHA de Google para comprobar que las conexiones vienen de la app y no de otro programa. reCAPTCHA revisa datos técnicos del equipo y del navegador, y se rige por la ' +
       enlace(POLITICA, 'Política de Privacidad') + ' y las ' + enlace(CONDICIONES, 'Condiciones del Servicio') + ' de Google.</p>') : '') +

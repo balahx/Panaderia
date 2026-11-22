@@ -2,7 +2,8 @@
    · accesos por revisar (solo dueños, pantallas/accesos.js)
    · ventas sin precio (dueños y externo): un pan pesado un día sin precio vigente se registra igual, pero no suma pesos
      hasta que se anote su precio. Se revisa lo que la app ya tiene a mano: el día que se mira y el período de Entregas o Registro.
-   · respaldo semanal (dueños y externo): si pasó una semana sin descargar uno. «Más tarde» lo calla hasta mañana en este equipo. */
+   · respaldo semanal (dueños y externo): si pasó una semana sin descargar uno. «Más tarde» lo calla hasta mañana en este equipo.
+   · cobros vencidos (Fase 12, dueños y externo): «2 cobros vencidos · $123.456» (el saldo vencido), con «Ver». */
 import { esc, fechaTexto } from '../core/formato.js';
 import { svg } from '../core/iconos.js';
 import { puede } from '../core/perfil.js';
@@ -10,6 +11,7 @@ import * as cat from '../core/catalogo.js';
 import * as V from '../core/ventas.js';
 import * as R from '../core/respaldo.js';
 import { aviso as avisoAccesos } from './accesos.js';
+import * as A from '../core/abonos.js';
 
 const LUEGO = 'pan.respaldoLuego';
 const leer = k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
@@ -35,10 +37,16 @@ function respaldo(c, tab) {
   return '<div class="aviso franja" id="avisoRespaldo" role="status">' + svg('cloud') + '<span>' + (d === null ? 'Todavía no hay ningún respaldo de los datos.' : 'Último respaldo hace ' + d + ' días.') + ' Conviene descargar uno cada semana.</span>' +
     '<span class="franja-b"><button class="btn sm" data-act="ir" data-tab="datos">Descargar</button><button class="btn ghost sm" data-act="aviso-luego">Más tarde</button></span></div>';
 }
+function vencidos(c, tab) {
+  if (!Array.isArray(c.cobros) || !Array.isArray(c.abonos)) return '';
+  const cu = A.cuenta(c.cobros, c.abonos, '', c.hoy); if (!cu.vencidos) return '';
+  return '<div class="aviso franja" id="avisoVencidos" role="status">' + svg('cobro') + '<span>' + cu.vencidos + (cu.vencidos === 1 ? ' cobro vencido' : ' cobros vencidos') + ' · ' + esc(cat.pesos(cu.vencido)) + '</span>' +
+    (tab === 'cobros' ? '' : '<span class="franja-b"><button class="btn sm" data-act="ir" data-tab="cobros" data-estado="vencido" data-cli="">Ver</button></span>') + '</div>';
+}
 export function html(c, tab) {
   const a = tab === 'accesos' ? '' : avisoAccesos(c);
   if (!puede(c.perfil, 'gestion')) return a;
-  return a + sinPrecio(c, tab) + respaldo(c, tab);
+  return a + sinPrecio(c, tab) + vencidos(c, tab) + respaldo(c, tab);
 }
 export function alActuar(act, el, c) {
   if (act !== 'aviso-luego') return false;

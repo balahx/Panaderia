@@ -8,12 +8,17 @@
    «Entregas» lleva el cliente; hoja nueva «Por cliente» (también suma lo de todos); el Resumen nombra los clientes del período.
    Con d.clienteId sale el Excel de un solo cliente (por si la contadora necesita uno).
    Fase 9 (si se piden los costos, d.costos): «Ventas» y «Por pan» suman Costo ingredientes, Margen y Margen % (margen sobre la venta),
-   y una hoja más, «Resultado»: venta, ingredientes, margen, gastos del mes (si el período es un mes) y resultado. */
+   y una hoja más, «Resultado»: venta, ingredientes, margen, gastos del mes (si el período es un mes) y resultado.
+   Fase 12 (si se pasan d.cobros y d.abonos): hoja «Cobros» (los cobros cuyo período TERMINA en esas fechas, con lo abonado y el saldo al día
+   de la descarga) y hoja «Abonos» (los abonos con fecha en esas fechas, a qué cobros se aplicaron y lo que quedó a favor). Los anulados van
+   al final y no suman. Con d.clienteId, solo los de ese cliente. */
 import * as V from './ventas.js';
 import * as K from './costos.js';
 import * as cat from './catalogo.js';
 import { fechaTexto, diaChile } from './formato.js';
 import * as X from './xlsx.js';
+import * as A from './abonos.js';
+import { numeroTexto } from './cobros.js';
 
 const C = (v, s) => ({ v, s }), B = v => ({ v, s: 'b' });
 const unidadTexto = u => (u === 'un' ? 'unidades' : 'kg');
@@ -107,6 +112,7 @@ export function libro(d) {
 
   const hojas = [resumen, ventas, entregas, porDia, porPan, porCli, canastos];
   if (co) hojas.splice(1, 0, hojaResultado(d, co, TC, nV, sinCosto));
+  if (Array.isArray(d.cobros)) hojas.push(...hojasCobro(d, cls));
   return { nombre: nombreArchivo(d.desde, d.hasta, uno && uno.nombre), hojas, lineas: ls, totales: T, faltan, entregas: ent, clientes: PC, costos: TC, sinCosto };
 }
 /* Hoja «Resultado» (Fase 9): venta neta e ingredientes enlazados a los totales de «Ventas», margen, gastos del mes y resultado.
@@ -136,5 +142,28 @@ function hojaResultado(d, co, TC, nV, sinCosto) {
     [null, null, 'Margen = venta neta − ingredientes; el % es sobre la venta. Resultado = margen − gastos del mes (los gastos no se reparten entre los panes).'],
     [null, null, 'Todo neto, sin IVA.']);
   return { nombre: 'Resultado', columnas: [30, 16, 60], filas };
+}
+/* Hojas «Cobros» y «Abonos» (Fase 12). El saldo y el estado son los del día de la descarga (se calculan con todos los abonos). */
+function hojasCobro(d, cls) {
+  const hoy = d.hoy || diaChile(new Date(d.ahora || Date.now())), de = x => !d.clienteId || x.clienteId === d.clienteId, abonos = d.abonos || [];
+  const nom = x => (cls ? (cls.find(c => c.id === x.clienteId) || {}).nombre : '') || (x.cliente && x.cliente.nombre) || cat.nombreCliente(cls, x.clienteId);
+  const fin = d.hasta >= hoy ? V.rangoMes(V.mesDe(d.hasta)).hasta : d.hasta;   // el mes en curso (hasta hoy) incluye los cobros que terminan más adelante en ese mes
+  const cs = d.cobros.filter(c => de(c) && c.hasta >= d.desde && c.hasta <= fin).sort((a, b) => a.numero - b.numero), vivos = cs.filter(c => !c.anulado), anul = cs.filter(c => c.anulado), nc = vivos.length;
+  const fila = c => { const e = A.estado(c, abonos, hoy); return [numeroTexto(c.numero), nom(c), C(c.desde, 'fecha'), C(c.hasta, 'fecha'), C(c.neto, 'pesos'), C(c.descuento ? c.descuento.neto : 0, 'pesos'), C(c.ivaMonto, 'pesos'), C(c.total, 'pesos'),
+    C(e.abonado, 'pesos'), C(e.saldo, 'pesos'), c.anulado ? 'Anulado: ' + c.anulado.motivo : A.etiqueta(e), C(c.vence, 'fecha'), e.pagadoEl ? C(e.pagadoEl, 'fecha') : null, c.factura || '']; };
+  const cobros = { nombre: 'Cobros', congelar: 1, filtro: nc + 1, columnas: [8, 22, 11, 11, 12, 12, 12, 13, 13, 13, 22, 11, 11, 12],
+    filas: [cab(['N.º', 'Cliente', 'Desde', 'Hasta', 'Neto', 'Descuento (neto)', 'IVA', 'Total', 'Abonado', 'Saldo', 'Estado', 'Vence', 'Pagado el', 'Factura SII'])].concat(vivos.map(fila))
+      .concat(nc ? [[B('Total'), null, null, null].concat(['E', 'F', 'G', 'H', 'I', 'J'].map(k => suma(k, nc, null, 'b-pesos')))] : [['Sin cobros cuyo período termine en estas fechas']])
+      .concat(anul.length ? [[], [B('Anulados (no suman)')]].concat(anul.map(fila)) : []) };
+  /* Los totales ya calculados, para quien abra el archivo sin recalcular. */
+  if (nc) { const t = cobros.filas[nc + 1], S = k => vivos.reduce((s, c) => s + k(c), 0), E = vivos.map(c => A.estado(c, abonos, hoy));
+    [S(c => c.neto), S(c => (c.descuento ? c.descuento.neto : 0)), S(c => c.ivaMonto), S(c => c.total), E.reduce((s, e) => s + e.abonado, 0), E.reduce((s, e) => s + e.saldo, 0)].forEach((v, i) => { t[4 + i].v = v; }); }
+  const as = abonos.filter(a => de(a) && a.fecha >= d.desde && a.fecha <= d.hasta).sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : (a.en || 0) - (b.en || 0))), av = as.filter(a => !a.anulado), aa = as.filter(a => a.anulado), na = av.length;
+  const filaA = a => [C(a.fecha, 'fecha'), nom(a), C(a.monto, 'pesos'), A.MEDIOS[a.medio] || a.medio, a.nota || '', (a.aplicado || []).map(x => 'N.º ' + numeroTexto(x.cobro) + ': ' + cat.pesos(x.monto)).join(' · '), C(a.aFavor || 0, 'pesos'), a.anulado ? 'Anulado: ' + a.anulado.motivo : 'Vale'];
+  const abon = { nombre: 'Abonos', congelar: 1, filtro: na + 1, columnas: [11, 22, 13, 14, 26, 40, 13, 22],
+    filas: [cab(['Fecha', 'Cliente', 'Monto', 'Medio', 'Nota', 'Aplicado a', 'Quedó a favor', 'Estado'])].concat(av.map(filaA))
+      .concat(na ? [[B('Total'), null, suma('C', na, av.reduce((s, a) => s + a.monto, 0), 'b-pesos'), null, null, null, suma('G', na, av.reduce((s, a) => s + (a.aFavor || 0), 0), 'b-pesos')]] : [['Sin abonos en estas fechas']])
+      .concat(aa.length ? [[], [B('Anulados (no suman)')]].concat(aa.map(filaA)) : []) };
+  return [cobros, abon];
 }
 export const bytes = (lib, fecha) => X.crear(lib.hojas, fecha);

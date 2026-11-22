@@ -2,7 +2,8 @@
    Las listas llegan en ctx.cat (app.js las escucha en vivo). Aquí van las listas y las hojas de trabajadores, clientes e IVA;
    las hojas de producto y de precios están en catalogo-producto.js. Las reglas de Firestore deciden qué se guarda.
    Fase 11: «Clientes e IVA» con la lista de clientes (crear, cambiar nombre, desactivar o reactivar, copiar los precios de otro) y el
-   cliente fijo «Ventas sueltas» (se activa con un botón). Con varios clientes, Productos muestra los precios del cliente que se elija. */
+   cliente fijo «Ventas sueltas» (se activa con un botón). Con varios clientes, Productos muestra los precios del cliente que se elija.
+   Fase 12: la ficha de cada cliente regular suma «Por cobrar» y sus datos de cobro (pantallas/cliente-cobro.js). */
 import { esc, diaChile, fechaTexto } from '../core/formato.js';
 import { svg, emptyHTML, errorHTML } from '../core/iconos.js';
 import { $, ask, hoja } from '../core/ui.js';
@@ -12,6 +13,7 @@ import { puede } from '../core/perfil.js';
 import * as producto from './catalogo-producto.js';
 import * as receta from './costos-receta.js';
 import { enviar, error, pieHoja } from './catalogo-producto.js';
+import * as clienteCobro from './cliente-cobro.js';
 
 const SUBS = [['productos', 'Productos'], ['trabajadores', 'Trabajadores'], ['negocio', 'Clientes e IVA']];
 let sub = 'productos', lista = '';   // lista: cliente cuyos precios muestra Productos ('' = el principal)
@@ -98,7 +100,7 @@ function hojaCliente(cl, c) {
   hoja(cl.nombre, campoNombre('cNombre', cl.nombre, 'cat-cliente-guardar', 'Nombre del cliente') +
     '<p class="muted chico">' + esc(suelta ? 'Ventas sueltas: cada canasto es una venta, con la nota de quién compró. No tiene entregas.' : o && o.id === cl.id ? 'Cliente original: lo pesado antes de que hubiera varios clientes es suyo.' : 'Cliente regular, con sus propias entregas.') +
     ' ' + n + (n === 1 ? ' precio anotado.' : ' precios anotados.') + '</p>' +
-    pieHoja('cat-cliente-guardar', 'Guardar nombre', ' data-id="' + esc(cl.id) + '"') +
+    pieHoja('cat-cliente-guardar', 'Guardar nombre', ' data-id="' + esc(cl.id) + '"') + clienteCobro.bloque(cl, c) +
     (cl.activo !== false && hay ? '<details class="sec" id="cCopiarCaja"><summary>Copiar precios de otro cliente</summary>' + copiar +
       '<div class="actions"><button class="btn ghost" data-act="cat-cli-copiar" data-id="' + esc(cl.id) + '">Copiar precios</button></div></details>' : '') +
     '<div class="actions"><button class="btn ghost" data-act="cat-cli-activar" data-id="' + esc(cl.id) + '">' + (cl.activo === false ? 'Volver a activar' : 'Desactivar') + '</button></div>' +
@@ -123,6 +125,7 @@ function hojaIva(c) {
 export function alActuar(act, el, c) {
   if (act === 'recargar') { location.reload(); return true; }
   if (receta.alActuar(act, el, c)) return true;   // receta y simulador desde la ficha del pan (Fase 9)
+  if (puede(c.perfil, 'gestion') && c.cat && clienteCobro.alActuar(act, el, c)) return true;   // datos de cobro del cliente (Fase 12)
   if (!act.startsWith('cat-')) return false;
   if (!puede(c.perfil, 'gestion') || !c.cat) return true;
   if (act === 'cat-sub') { sub = SUBS.some(s => s[0] === el.dataset.sub) ? el.dataset.sub : 'productos'; $('#view').innerHTML = html(c); return true; }

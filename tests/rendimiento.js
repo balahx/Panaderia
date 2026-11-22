@@ -33,7 +33,9 @@ function precios(anio) {
   console.log('1. Lo que se descarga');
   const sw = fs.readFileSync(path.join(APP, 'sw.js'), 'utf8'), assets = JSON.parse(('[' + /const ASSETS = \[([\s\S]*?)\];/.exec(sw)[1] + ']').replace(/'/g, '"'));
   const propios = assets.filter(a => /\.(js|css|html|webmanifest)$/.test(a)), bytes = propios.reduce((t, a) => t + fs.statSync(path.join(APP, a)).size, 0);
-  ok(bytes < 550 * 1024, 'código propio de la app (sin el SDK ni tipografías): ' + Math.round(bytes / 1024) + ' KB, sin comprimir (límite 550 KB)');
+  /* Límite: 550 KB hasta la Fase 11; 700 KB desde la Fase 12 (cobros, abonos, cotizaciones y el escritor de PDF suman unos 140 KB). Se descarga una
+     vez por versión (después queda en la caché sin conexión) y Hosting lo envía comprimido (unas 4 veces menos). */
+  ok(bytes < 700 * 1024, 'código propio de la app (sin el SDK ni tipografías): ' + Math.round(bytes / 1024) + ' KB, sin comprimir (límite 700 KB)');
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
   const js = walk(path.join(APP, 'js')).filter(f => f.endsWith('.js')).map(f => './' + path.relative(APP, f).split(path.sep).join('/'));
   const faltan = js.filter(f => !assets.includes(f));

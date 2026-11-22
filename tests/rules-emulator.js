@@ -15,7 +15,8 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
   const env = await initializeTestEnvironment({ projectId: 'demo-panaderia', firestore: { rules: fs.readFileSync(path.join(__dirname, '..', 'firestore.rules'), 'utf8') } });
   await env.clearFirestore();
   const AHORA = Date.now(), HOY = dia(AHORA), AYER = dia(AHORA - 86400000), ANTES = dia(AHORA - 3 * 86400000);
-  const con = (o, valor) => { const r = {}; for (const k in o) r[k] = o[k] === '@TS' ? valor : o[k]; return r; };
+  /* '@TS' también dentro de los mapas (Fase 12: anulado.en, reparto.en). */
+  const con = (o, valor) => { const r = {}; for (const k in o) r[k] = o[k] === '@TS' ? valor : o[k] && typeof o[k] === 'object' && !Array.isArray(o[k]) ? con(o[k], valor) : o[k]; return r; };
   await env.withSecurityRulesDisabled(async ctx => {
     const db = ctx.firestore(), S = semilla(HOY, ANTES, AYER);
     for (const p in S) await db.doc(p).set(con(S[p], new Date()));
@@ -30,7 +31,8 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
     if (c.t) { console.log(c.t); continue; }
     const db = dbs[c.q], d = c.d ? con(c.d, TS()) : null;
     let p;
-    if (c.op === 'get') p = db.doc(c.r).get();
+    if (c.op === 'batch') { const b = db.batch(); c.w.forEach(x => { const dx = x.d ? con(x.d, TS()) : null; if (x.op === 'delete') b.delete(db.doc(x.r)); else if (x.op === 'update') b.update(db.doc(x.r), dx); else b.set(db.doc(x.r), dx); }); p = b.commit(); }
+    else if (c.op === 'get') p = db.doc(c.r).get();
     else if (c.op === 'list') { let q = db.collection(c.r); for (const k in (c.f || {})) q = Array.isArray(c.f[k]) ? q.where(k, '>=', c.f[k][0]).where(k, '<=', c.f[k][1]) : q.where(k, '==', c.f[k]); p = q.get(); }
     else if (c.op === 'set') p = db.doc(c.r).set(d);
     else if (c.op === 'update') p = db.doc(c.r).update(d);

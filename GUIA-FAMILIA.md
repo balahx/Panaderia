@@ -51,13 +51,20 @@ El pan queda elegido: el siguiente canasto es solo el número y **Guardar**. Si 
 | Anotar la receta de un pan (una tanda y lo que sale) | **Más → Catálogo** → el pan → **Anotar receta** |
 | Ver el costo y el margen de un pan, o simular otro precio | **Más → Catálogo** → el pan → **Simular precio** |
 | Anotar los gastos del mes y ver el resultado | **Más → Costos y margen → El mes** → **Anotar gastos** |
+| Anotar los datos de la panadería para los cobros (razón social, RUT, cuenta) | **Más → Cobros → Datos para documentos** (una vez) |
+| Anotar los datos de cobro de un cliente (RUT, semanal o mensual, plazo, descuento) | **Más → Catálogo → Clientes e IVA** → el cliente → **Datos de cobro** |
+| Cobrarle a un cliente la semana o el mes | **Más → Cobros → Nuevo cobro** (o en la ficha del cliente) → revisar → **Emitir cobro** → **Descargar PDF**, **Compartir** o **Imprimir** |
+| Anotar un pago (total o parcial) | **Más → Cobros → Anotar abono**, o en el cobro **Pagar saldo** |
+| Ver cuánto debe un cliente | **Más → Cobros** (Por cobrar, Vencido), la ficha del cliente, o **Estado de cuenta** en PDF |
+| Mandar precios a un posible cliente | **Más → Cotizaciones → Nueva cotización**; si acepta, **Crear cliente con estos precios** |
 | Descargar el respaldo semanal | La franja **Descargar**, o **Más → Exportar a Excel y respaldo** |
 | Dar o quitar un acceso (solo dueños) | **Más → Accesos** |
 
 - El **plan** se arma solo para hoy o mañana. La sugerencia es el promedio del mismo día de la semana en las 4 semanas anteriores, redondeado a tandas completas: revísala antes de guardar. Las tandas salen de la receta del pan.
 - Con varios clientes, cada uno tiene **su lista de precios** y **sus entregas**. Lo pesado antes de que hubiera varios clientes es del supermercado. El plan, la proyección y las metas son del negocio entero.
 - Conviene **cerrar cada mes**: los números quedan fijos y la app trabaja más liviana.
-- El **respaldo** tiene precios, ventas y costos: guárdalo en un lugar privado, no lo compartas.
+- El **cobro** es un documento interno, **no una factura**: si el cliente pide factura, se hace aparte en el SII y su número se anota en el cobro. Emitir necesita internet. Si después se corrige un canasto de esas fechas, el cobro avisa y se puede **anular y emitir de nuevo**. Un pago de más queda a favor y se descuenta solo del próximo cobro.
+- El **respaldo** tiene precios, ventas, costos y cobros: guárdalo en un lugar privado, no lo compartas.
 - Si sube un insumo o cambia una receta (por ejemplo, la levadura de verano), anótalo **con la fecha desde la que rige**: los meses anteriores no cambian. El Excel de **Entregas** sale sin costos (es el de la contadora).
 
 ## 4. Si algo no funciona

@@ -8,6 +8,7 @@ rules_version = '2';
 // Fase 6: cierres mensuales. Fase 7: forma de la proyección y las metas. Fase 9: insumos, precios de insumos, recetas y gastos del mes.
 // Fase 10: plan de producción del día (la tablet lee solo el de hoy y no escribe).
 // Fase 11: varios clientes y ventas sueltas: `tipo` en clientes, `clienteId` en pesajes, dias/{fecha}_{clienteId}, cierres por cliente.
+// Fase 12: cobros y cotizaciones (config/empresa, config/folios, clientesCobro, cobros, abonos, cotizaciones): solo dueños y externo.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -397,6 +398,159 @@ service cloud.firestore {
       allow read: if esGestion() || (esPesaje() && esHoy(fecha));
       allow create, update: if esGestion() && hoyOManana(fecha) && planValido(fecha);
       allow delete: if esGestion() && hoyOManana(fecha);
+    }
+    // ---------- Cobros, abonos y cotizaciones (Fase 12). Solo dueños y externo: la cuenta de pesaje no lee ni escribe nada de esto ----------
+    // El cobro es un documento interno (no tributario). El número correlativo (folio) sale de config/folios: el cobro o la cotización se crea
+    // en la MISMA transacción que sube el folio en uno (getAfter), con el id igual al número de 4 cifras. Así dos equipos no pueden sacar el
+    // mismo número: el segundo encuentra el documento ya creado o el folio ya subido, y su transacción se rechaza (la app la reintenta).
+    // Lo emitido queda fijo; lo abonado y el saldo no se guardan en el cobro: se calculan con los abonos. Nada de esto se borra.
+    function textoOpc(v, max) { return v is string && v.size() <= max; }
+    function cuatro(n) { return n < 10 ? '000' + string(n) : n < 100 ? '00' + string(n) : n < 1000 ? '0' + string(n) : string(n); }
+    function folioAntes(campo) { return resource == null ? 0 : resource.data[campo]; }
+    function folioViejo(campo) {
+      return exists(/databases/$(database)/documents/config/folios) ? get(/databases/$(database)/documents/config/folios).data[campo] : 0;
+    }
+    function folioNuevo(campo) { return getAfter(/databases/$(database)/documents/config/folios).data[campo]; }
+    function conFolio(n, campo) {
+      return nuevo().numero is int && nuevo().numero == folioNuevo(campo) && folioNuevo(campo) == folioViejo(campo) + 1 && n == cuatro(nuevo().numero);
+    }
+    function aNombre() { return nuevo().por == request.auth.uid && texto(nuevo().quien, 1, 60) && nuevo().en == request.time; }
+    function sello(m) {
+      return m is map && m.keys().hasOnly(['por', 'quien', 'en']) && m.keys().hasAll(['por', 'quien', 'en'])
+        && m.por == request.auth.uid && texto(m.quien, 1, 60) && m.en == request.time;
+    }
+    function anulacion(a) {
+      return a is map && a.keys().hasOnly(['motivo', 'reemplazo', 'por', 'quien', 'en']) && a.keys().hasAll(['motivo', 'por', 'quien', 'en'])
+        && texto(a.motivo, 3, 200) && a.por == request.auth.uid && texto(a.quien, 1, 60) && a.en == request.time
+        && (!('reemplazo' in a) || a.reemplazo == null || a.reemplazo is int);
+    }
+    function descuentoValido(d) { return d == null || (d is map && d.tipo in ['pct', 'monto'] && d.valor is number && d.valor > 0); }
+    // Datos de la panadería para los documentos: razón social y RUT obligatorios; lo demás puede quedar vacío.
+    match /config/empresa {
+      allow read: if esGestion();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['razonSocial', 'rut', 'direccion', 'correo', 'banco', 'tipoCuenta', 'cuenta', 'rutCuenta', 'correoAviso', 'por', 'quien', 'en'])
+        && nuevo().keys().hasAll(['razonSocial', 'rut', 'direccion', 'correo', 'banco', 'tipoCuenta', 'cuenta', 'rutCuenta', 'correoAviso', 'por', 'quien', 'en'])
+        && texto(nuevo().razonSocial, 1, 100) && texto(nuevo().rut, 3, 12)
+        && textoOpc(nuevo().direccion, 150) && textoOpc(nuevo().correo, 100) && textoOpc(nuevo().banco, 60) && textoOpc(nuevo().tipoCuenta, 40)
+        && textoOpc(nuevo().cuenta, 30) && textoOpc(nuevo().rutCuenta, 12) && textoOpc(nuevo().correoAviso, 100)
+        && aNombre();
+      allow delete: if false;
+    }
+    // Último número usado de cobros y de cotizaciones: solo sube de a uno, y junto con el documento de ese número (que aún no existía).
+    match /config/folios {
+      allow read: if esGestion();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['cobro', 'cotizacion']) && nuevo().keys().hasAll(['cobro', 'cotizacion'])
+        && nuevo().cobro is int && nuevo().cotizacion is int && nuevo().cobro <= 9999 && nuevo().cotizacion <= 9999
+        && ((nuevo().cobro == folioAntes('cobro') + 1 && nuevo().cotizacion == folioAntes('cotizacion')
+              && !exists(/databases/$(database)/documents/cobros/$(cuatro(nuevo().cobro)))
+              && existsAfter(/databases/$(database)/documents/cobros/$(cuatro(nuevo().cobro))))
+          || (nuevo().cotizacion == folioAntes('cotizacion') + 1 && nuevo().cobro == folioAntes('cobro')
+              && !exists(/databases/$(database)/documents/cotizaciones/$(cuatro(nuevo().cotizacion)))
+              && existsAfter(/databases/$(database)/documents/cotizaciones/$(cuatro(nuevo().cotizacion)))));
+      allow delete: if false;
+    }
+    // Datos de cobro de un cliente: aparte de `clientes` porque la tablet lee `clientes` (así nunca ve RUT, descuentos ni montos).
+    match /clientesCobro/{id} {
+      allow read: if esGestion();
+      allow create, update: if esGestion()
+        && nuevo().keys().hasOnly(['razonSocial', 'rut', 'direccion', 'contacto', 'periodo', 'plazo', 'descuento', 'por', 'en'])
+        && nuevo().keys().hasAll(['razonSocial', 'rut', 'direccion', 'contacto', 'periodo', 'plazo', 'descuento', 'por', 'en'])
+        && textoOpc(nuevo().razonSocial, 100) && textoOpc(nuevo().rut, 12) && textoOpc(nuevo().direccion, 150) && textoOpc(nuevo().contacto, 100)
+        && nuevo().periodo in ['semana', 'mes']
+        && nuevo().plazo is int && nuevo().plazo >= 0 && nuevo().plazo <= 90
+        && descuentoValido(nuevo().descuento)
+        && existsAfter(/databases/$(database)/documents/clientes/$(id))
+        && nuevo().por == request.auth.uid && nuevo().en == request.time;
+      allow delete: if false;
+    }
+    function cobroValido(n) {
+      return nuevo().keys().hasOnly(['numero', 'clienteId', 'cliente', 'emisor', 'fecha', 'desde', 'hasta', 'periodo', 'lineas', 'anexo', 'neto', 'descuento', 'netoFinal',
+          'iva', 'ivaMonto', 'total', 'ajuste', 'plazo', 'vence', 'factura', 'anulado', 'reemplaza', 'por', 'quien', 'en'])
+        && nuevo().keys().hasAll(['numero', 'clienteId', 'cliente', 'emisor', 'fecha', 'desde', 'hasta', 'periodo', 'lineas', 'anexo', 'neto', 'descuento', 'netoFinal',
+          'iva', 'ivaMonto', 'total', 'ajuste', 'plazo', 'vence', 'factura', 'anulado', 'reemplaza', 'por', 'quien', 'en'])
+        && conFolio(n, 'cobro')
+        && texto(nuevo().clienteId, 1, 60) && exists(/databases/$(database)/documents/clientes/$(nuevo().clienteId))
+        && nuevo().cliente is map && nuevo().emisor is map && texto(nuevo().emisor.razonSocial, 1, 100) && texto(nuevo().emisor.rut, 3, 12)
+        && fechaValida(nuevo().fecha) && fechaValida(nuevo().desde) && fechaValida(nuevo().hasta) && fechaValida(nuevo().vence)
+        && nuevo().desde <= nuevo().hasta && nuevo().desde >= '2026-11-01'
+        && nuevo().periodo in ['semana', 'mes', 'otro']
+        && nuevo().lineas is list && nuevo().lineas.size() >= 1 && nuevo().lineas.size() <= 60
+        && nuevo().anexo is list && nuevo().anexo.size() <= 62
+        && nuevo().neto is int && nuevo().neto >= 0 && nuevo().netoFinal is int && nuevo().netoFinal >= 0 && nuevo().netoFinal <= nuevo().neto
+        && descuentoValido(nuevo().descuento)
+        && nuevo().iva is number && nuevo().iva >= 0 && nuevo().iva <= 100
+        && nuevo().ivaMonto is int && nuevo().ivaMonto >= 0 && nuevo().total == nuevo().netoFinal + nuevo().ivaMonto && nuevo().ajuste is int
+        && nuevo().plazo is int && nuevo().plazo >= 0 && nuevo().plazo <= 90
+        && (nuevo().factura == null || texto(nuevo().factura, 1, 30))
+        && nuevo().anulado == null && (nuevo().reemplaza == null || nuevo().reemplaza is int)
+        && aNombre();
+    }
+    match /cobros/{n} {
+      allow read: if esGestion();
+      allow create: if esGestion() && cobroValido(n);
+      // Emitido, queda fijo: solo cambian el n.º de factura SII y la anulación (una vez, con motivo: es final).
+      allow update: if esGestion() && resource.data.anulado == null
+        && nuevo().diff(resource.data).affectedKeys().hasOnly(['factura', 'anulado'])
+        && (nuevo().factura == null || texto(nuevo().factura, 1, 30))
+        && (nuevo().anulado == null || anulacion(nuevo().anulado));
+      allow delete: if false;
+    }
+    // Abono (pago total o parcial de la cuenta de un cliente): aplicado = [{ cobro, monto }] (hasta 30) y aFavor (lo que sobra). Que la suma
+    // cuadre con el monto lo revisa la app (core/abonos.js: las reglas no recorren listas); aquí, la forma. Mientras no esté anulado se
+    // puede cambiar el reparto; anularlo es una vez, con motivo. No se borra.
+    function repartoValido(a) { return a.aplicado is list && a.aplicado.size() <= 30 && a.aFavor is int && a.aFavor >= 0 && a.aFavor <= a.monto; }
+    match /abonos/{id} {
+      allow read: if esGestion();
+      allow create: if esGestion()
+        && nuevo().keys().hasOnly(['clienteId', 'fecha', 'monto', 'medio', 'nota', 'aplicado', 'aFavor', 'anulado', 'reparto', 'por', 'quien', 'en'])
+        && nuevo().keys().hasAll(['clienteId', 'fecha', 'monto', 'medio', 'nota', 'aplicado', 'aFavor', 'anulado', 'reparto', 'por', 'quien', 'en'])
+        && texto(nuevo().clienteId, 1, 60) && exists(/databases/$(database)/documents/clientes/$(nuevo().clienteId))
+        && fechaValida(nuevo().fecha)
+        && nuevo().monto is int && nuevo().monto > 0 && nuevo().monto <= 10000000000
+        && nuevo().medio in ['transferencia', 'efectivo', 'cheque', 'otro']
+        && textoOpc(nuevo().nota, 120)
+        && repartoValido(nuevo())
+        && nuevo().anulado == null && nuevo().reparto == null
+        && aNombre();
+      allow update: if esGestion() && resource.data.anulado == null
+        && nuevo().diff(resource.data).affectedKeys().hasOnly(['aplicado', 'aFavor', 'reparto', 'anulado'])
+        && repartoValido(nuevo())
+        && (nuevo().reparto == null || nuevo().reparto == resource.data.reparto || sello(nuevo().reparto))
+        && (nuevo().anulado == null || anulacion(nuevo().anulado));
+      allow delete: if false;
+    }
+    // Cotización a un posible cliente: fija al emitirla; después solo cambian el estado y el cliente creado con sus precios (una vez).
+    function cotizacionValida(n) {
+      return nuevo().keys().hasOnly(['numero', 'para', 'baseClienteId', 'cantidadesPor', 'lineas', 'descuento', 'neto', 'netoFinal', 'iva', 'ivaMonto', 'total', 'ajuste',
+          'fecha', 'validaHasta', 'estado', 'clienteId', 'cambio', 'emisor', 'por', 'quien', 'en'])
+        && nuevo().keys().hasAll(['numero', 'para', 'baseClienteId', 'cantidadesPor', 'lineas', 'descuento', 'neto', 'netoFinal', 'iva', 'ivaMonto', 'total', 'ajuste',
+          'fecha', 'validaHasta', 'estado', 'clienteId', 'cambio', 'emisor', 'por', 'quien', 'en'])
+        && conFolio(n, 'cotizacion')
+        && nuevo().para is map && texto(nuevo().para.nombre, 1, 60)
+        && (nuevo().baseClienteId == null || texto(nuevo().baseClienteId, 1, 60))
+        && nuevo().cantidadesPor in ['semana', 'mes']
+        && nuevo().lineas is list && nuevo().lineas.size() >= 1 && nuevo().lineas.size() <= 60
+        && descuentoValido(nuevo().descuento)
+        && nuevo().iva is number && nuevo().iva >= 0 && nuevo().iva <= 100 && nuevo().ajuste is int
+        && (nuevo().total == null || (nuevo().netoFinal is int && nuevo().ivaMonto is int && nuevo().total == nuevo().netoFinal + nuevo().ivaMonto))
+        && fechaValida(nuevo().fecha) && fechaValida(nuevo().validaHasta) && nuevo().validaHasta >= nuevo().fecha
+        && nuevo().estado == 'enviada' && nuevo().clienteId == null && nuevo().cambio == null
+        && nuevo().emisor is map
+        && aNombre();
+    }
+    match /cotizaciones/{n} {
+      allow read: if esGestion();
+      allow create: if esGestion() && cotizacionValida(n);
+      allow update: if esGestion()
+        && nuevo().diff(resource.data).affectedKeys().hasOnly(['estado', 'clienteId', 'cambio'])
+        && nuevo().estado in ['enviada', 'aceptada', 'rechazada']
+        && (resource.data.clienteId == null || nuevo().clienteId == resource.data.clienteId)
+        && (nuevo().clienteId == null || (nuevo().estado == 'aceptada' && texto(nuevo().clienteId, 1, 60)
+          && existsAfter(/databases/$(database)/documents/clientes/$(nuevo().clienteId))))
+        && sello(nuevo().cambio);
+      allow delete: if false;
     }
     // Bitácora de correcciones: se agrega junto con cada corrección, anulación o reactivación de un pesaje; nunca se cambia ni se borra.
     // La tablet deja constancia solo de lo del día. `quien` (opcional, Fase 5): nombre de la cuenta, para el registro general.

@@ -3,7 +3,7 @@
 App web instalable (PWA) para una panadería familiar pequeña que fabrica pan y lo entrega a un supermercado (y, desde la versión 0.11.0, a otros clientes, con ventas sueltas). Se instala en iPhone, Android, iPad, tablet y Windows, funciona **con y sin internet**, y guarda los datos en Firebase (plan gratuito).
 
 - **En la panadería**, una tablet registra cada canasto que se pesa: pan, kilos o unidades, quién pesó y la entrega. Letra grande, tres toques por canasto, sin precios a la vista. Con varios clientes, se elige **«Para:»** antes de pesar (cada cliente con su entrega; las ventas sueltas, con quién compró). Si hay **plan de producción** del día, cada pan muestra lo que falta («faltan 18 kg»).
-- **Los dueños** (y una persona externa de confianza) ven el día en vivo, las entregas y la venta de cada mes con neto, IVA y total, el registro de correcciones, los cierres mensuales, los indicadores, la proyección y las metas, los **costos y el margen de cada pan** (receta por tanda, precios de insumos, gastos del mes y resultado, con un simulador de precio) el **plan de producción** de hoy y mañana (sugerido con las 4 semanas anteriores, en tandas, comparado al momento con lo pesado) y **varios clientes** (cada uno con su lista de precios, el total del negocio y un filtro por cliente); descargan el Excel para la contadora y el respaldo semanal.
+- **Los dueños** (y una persona externa de confianza) ven el día en vivo, las entregas y la venta de cada mes con neto, IVA y total, el registro de correcciones, los cierres mensuales, los indicadores, la proyección y las metas, los **costos y el margen de cada pan** (receta por tanda, precios de insumos, gastos del mes y resultado, con un simulador de precio) el **plan de producción** de hoy y mañana (sugerido con las 4 semanas anteriores, en tandas, comparado al momento con lo pesado) **varios clientes** (cada uno con su lista de precios, el total del negocio y un filtro por cliente) y los **cobros** (desde la 0.12.0: cobro semanal o mensual armado con las entregas de cada cliente, en PDF, con abonos, saldo pendiente, saldo a favor, estado de cuenta y cotizaciones a posibles clientes); descargan el Excel para la contadora y el respaldo semanal.
 
 Versión actual: ver `APP/version.js` (o **Más → Diagnóstico** en la app).
 
@@ -22,6 +22,7 @@ Se entra solo con cuenta de Google. Quien entra por primera vez pide acceso y un
 - **Sin compilación ni dependencias en la app:** HTML, CSS y módulos de JavaScript en `APP/`, un archivo por pantalla (`APP/js/pantallas/`) y la lógica pura aparte (`APP/js/core/`), para que cada actualización cambie solo lo necesario.
 - **Firebase** (Authentication con Google, Cloud Firestore con su copia sin conexión y Hosting; App Check queda preparado pero no se usa). El SDK está **dentro** de la app (`APP/vendor/firebase/`, con su huella SHA-256): la app no carga nada de otros sitios.
 - **Excel propio** (escritor y lector `.xlsx` sin librerías) para las ventas, los cierres y la plantilla de importación.
+- **PDF propio** (escritor sin librerías, hoja carta, Helvetica con tildes y ñ) para los cobros, las cotizaciones y el estado de cuenta: se arman en el equipo, también sin internet.
 - **Service worker** (`APP/sw.js`): abre sin conexión; red primero, con espera máxima de 3 s.
 
 | Carpeta o archivo | Contenido |
@@ -72,7 +73,7 @@ La clave web de Firebase (`APP/firebase-config.js`) **es pública por diseño**:
 
 ## Privacidad
 
-La app muestra un aviso breve (**ingreso → Aviso de privacidad**, o **Más → Aviso de privacidad**): usa nombre, correo e identificador de la cuenta de Google, el nombre de quien pesa y lo pesado; los datos están en Firebase (Google), no se venden ni se comparten, no hay publicidad ni medición de uso. El texto está en `APP/js/pantallas/privacidad.js`; si cambia lo que la app guarda, hay que actualizarlo.
+La app muestra un aviso breve (**ingreso → Aviso de privacidad**, o **Más → Aviso de privacidad**): usa nombre, correo e identificador de la cuenta de Google, el nombre de quien pesa y lo pesado, y para los cobros los datos de cada cliente (razón social, RUT, dirección, contacto) y los datos bancarios de la panadería; los datos están en Firebase (Google), no se venden ni se comparten, no hay publicidad ni medición de uso. El texto está en `APP/js/pantallas/privacidad.js`; si cambia lo que la app guarda, hay que actualizarlo.
 
 ## Consumo del plan gratuito
 
@@ -85,6 +86,7 @@ Cuota diaria de Cloud Firestore en el plan Spark: 50 mil lecturas, 20 mil escrit
 | Un mes **cerrado** en Entregas, Números o el año | Casi nada (usa el cierre) |
 | Costos (insumos, sus precios y recetas) | Unas decenas al abrir la app (dueños y externo); **El mes** lee los canastos del mes, como Entregas |
 | Plan de producción | Un documento por día (la tablet lo lee con los canastos de hoy); armarlo lee los canastos de 4 días de muestra (unas decenas) |
+| Cobros, abonos y cotizaciones | Unas decenas a cientos al abrir la app (dueños y externo; crecen con un cobro por cliente a la semana o al mes); abrir un cobro lee los canastos de su período |
 | Respaldo semanal (por omisión, del año actual) | Hasta ~15 mil a fin de año |
 | Respaldo de **todos los años** | ~15 mil más por cada año: usar solo de vez en cuando |
 

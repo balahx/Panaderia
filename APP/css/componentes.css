@@ -352,3 +352,13 @@ h1[tabindex="-1"]:focus { outline: none; }
 .pes-para { margin-top: 4px; }
 .pes-para-b { width: 100%; }
 .hoy-cli { margin-top: 18px; }
+
+/* Cobros y cotizaciones (Fase 12) */
+.stat.alerta { background: var(--warn-bg); border-color: transparent; }
+.stat.alerta span, .stat.alerta b { color: var(--warn-ink); }
+.pdf-b .btn svg { width: 18px; height: 18px; }
+.cf-est { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
+.qz-pan { border: 1px solid var(--line); border-radius: 12px; padding: 4px 12px 8px; margin: 0 0 10px; }
+.qz-pan .check { margin: 6px 0 0; font-weight: 600; }
+#listaCobros .mrow .badge, #listaCotizaciones .mrow .badge { margin-left: 2px; }
+#cobResumen .stat b { font-size: 1.45em; }
