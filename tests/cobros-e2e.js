@@ -88,7 +88,7 @@ Object.fromEntries([].concat(...Array.from({ length: 21 }, (x, i) => { const f =
     'emitido con el folio 1: total, cliente y panadería de ese momento');
   ok(c1.vence === CB.vence(HOY, 7) && /Pendiente/.test(await texto('#cfFicha .cf-est')), 'vence en 7 días y nace Pendiente');
   const p1 = await descarga('#cfFicha [data-act="cf-pdf"][data-modo="bajar"]'), t1 = pdfTexto(p1.bytes);
-  ok(p1.nombre === 'cobro-0001-almacen-rosa-' + SEM.desde + '.pdf' && p1.bytes.slice(0, 8).toString() === '%PDF-1.4' && /COBRO N.º 0001/.test(t1) && t1.includes(C.pesos(e1.total).replace('$', '$')) && /No válido como factura/.test(t1), 'el PDF se descarga: «COBRO N.º 0001», el total y el pie');
+  ok(p1.nombre === 'cobro-0001-almacen-rosa-' + SEM.desde + '.pdf' && p1.bytes.slice(0, 8).toString() === '%PDF-1.4' && /COBRO N.º 0001/.test(t1) && t1.includes(C.pesos(e1.total)) && /No válido como factura/.test(t1), 'el PDF se descarga: «COBRO N.º 0001», el total y el pie');
   await page.keyboard.press('Escape'); await cerrada();
 
   console.log('4. Cobro mensual del supermercado, y lo que impide emitir');
