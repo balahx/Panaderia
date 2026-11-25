@@ -113,7 +113,7 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
     && nuevo.escrituras[2].ruta === 'precios/mar_cNEW_2026-11-22' && nuevo.escrituras[2].datos.neto === 1550 && nuevo.escrituras[3].datos.neto === 120, '«Crear cliente con estos precios»: cliente regular, datos de cobro y su lista con los netos de la cotización');
 
   console.log('7. Los documentos pasan la copia de las reglas');
-  const AHORA = Date.now(), rosa = { uid: 'rosa' }, tablet = { uid: 'tablet' };
+  const AHORA = Date.now(), rosa = { uid: 'rosa', email: 'rosa@example.com', email_verified: true, proveedor: 'google.com' }, tablet = { uid: 'tablet', email: 'tablet@example.com', email_verified: true, proveedor: 'google.com' };
   const db = { 'config/negocio': { duenos: ['rosa'] }, 'miembros/tablet': { perfil: 'pesaje', activo: true }, 'clientes/c2': CLI[1], 'clientes/c1': CLI[0] }, leer = r => (r in db ? db[r] : null);
   const ts = o => Object.assign({}, o, { en: R.TS });
   const emitir = (q, col, n, datos, f) => { const tras = { [col + '/' + CB.numeroTexto(n)]: ts(datos), 'config/folios': f }, despues = r => (r in tras ? tras[r] : leer(r));

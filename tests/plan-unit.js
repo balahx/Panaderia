@@ -83,7 +83,7 @@ const pes = (fecha, productoId, cantidad, mas) => Object.assign({ id: 'p' + (++n
   const AHORA = Date.now(), HOY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(AHORA));
   const MAN = P.sumarDias(HOY, 1), ANTES = P.sumarDias(HOY, -3);
   const base = { 'config/negocio': { duenos: ['rosa'] }, 'miembros/tablet': { perfil: 'pesaje', activo: true } }, leer = r => base[r] || null;
-  const rosa = { uid: 'rosa' }, tablet = { uid: 'tablet' }, de = f => Object.assign(L.documento(L.validar({ cantidades: { hal: '66', com: '576' }, nota: 'x' }, panes, REC, f).datos, 'rosa', 'Rosa'), { en: R.TS });
+  const rosa = { uid: 'rosa', email: 'rosa@example.com', email_verified: true, proveedor: 'google.com' }, tablet = { uid: 'tablet', email: 'tablet@example.com', email_verified: true, proveedor: 'google.com' }, de = f => Object.assign(L.documento(L.validar({ cantidades: { hal: '66', com: '576' }, nota: 'x' }, panes, REC, f).datos, 'rosa', 'Rosa'), { en: R.TS });
   ok(R.permitido(rosa, 'create', 'planes/' + HOY, de(HOY), null, leer, AHORA) && R.permitido(rosa, 'create', 'planes/' + MAN, de(MAN), null, leer, AHORA), 'se acepta para hoy y mañana');
   ok(!R.permitido(rosa, 'create', 'planes/' + ANTES, de(ANTES), null, leer, AHORA) && !R.permitido(rosa, 'create', 'planes/' + P.sumarDias(HOY, 2), de(P.sumarDias(HOY, 2)), null, leer, AHORA), 'no para un día pasado ni para pasado mañana');
   ok(R.permitido(tablet, 'get', 'planes/' + HOY, null, de(HOY), leer, AHORA) && !R.permitido(tablet, 'get', 'planes/' + MAN, null, de(MAN), leer, AHORA) && !R.permitido(tablet, 'create', 'planes/' + HOY, Object.assign(de(HOY), { por: 'tablet' }), null, leer, AHORA),

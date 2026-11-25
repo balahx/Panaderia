@@ -39,7 +39,7 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   const cop = C.copiarPrecios(precios, prods, 'c1', 'c4', '2026-11-20', '2026-11-21');
   ok(cop.length === 2 && cop.every(x => x.datos.clienteId === 'c4' && x.datos.desde === '2026-11-21' && x.id === x.datos.productoId + '_c4_2026-11-21') && cop.find(x => x.datos.productoId === 'p1').datos.neto === 1450,
     'copiar precios: los de hoy del otro cliente, uno por pan activo, desde la fecha elegida (sin el pan desactivado)');
-  ok(cop.every(x => R.permitido({ uid: 'rosa' }, 'create', 'precios/' + x.id, Object.assign({}, x.datos, { en: R.TS }), null, r => (r === 'config/negocio' ? { duenos: ['rosa'] } : null), Date.now())), 'y las reglas aceptan cada precio copiado');
+  ok(cop.every(x => R.permitido({ uid: 'rosa', email: 'rosa@example.com', email_verified: true, proveedor: 'google.com' }, 'create', 'precios/' + x.id, Object.assign({}, x.datos, { en: R.TS }), null, r => (r === 'config/negocio' ? { duenos: ['rosa'] } : null), Date.now())), 'y las reglas aceptan cada precio copiado');
   ok(C.copiarPrecios(precios, prods, 'c1', 'c4', '2025-06-01', '2025-06-01').length === 0 && C.copiarPrecios(precios, prods, 'c9', 'c4', '2026-11-20', '2026-11-20').length === 0, 'de un cliente sin precios ese día no se copia nada');
   ok(C.soloCliente({ id: 'x', nombre: 'Ventas sueltas', activo: false, tipo: 'suelta', en: 3 }).tipo === 'suelta' && !('en' in C.soloCliente(CLI[0])) && !('tipo' in C.soloCliente(CLI[2])), 'el documento de un cliente lleva nombre, activo y tipo');
 
@@ -90,7 +90,7 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   ok(A.doc.neto === MANO.neto && A.doc.ivaMonto === MANO.iva && A.doc.total === MANO.total && A.doc.neto === T.neto, 'neto, IVA (19 % del neto del mes) y total del cierre = Entregas = a mano');
   ok(A.doc.lineas.length === 5 && A.doc.lineas.every(l => l.clienteId && l.cliente) && A.doc.lineas.map(l => l.clienteId + '/' + l.productoId).join() === 'c1/p1,c1/p2,c2/p1,c2/p2,cs/p1', 'una línea por pan y por cliente');
   ok(A.doc.clientes.map(x => x.clienteId + ':' + x.neto).join() === 'c1:74225,c2:48800,cs:7000' && A.doc.clientes.reduce((t, x) => t + x.neto, 0) === A.doc.neto && !('clienteId' in A.doc), 'el resumen por cliente suma el neto del mes (sin cliente único arriba)');
-  const leerDb = db => r => (r in db ? db[r] : null), AHORA = Date.parse('2026-12-02T15:00:00Z'), quien = { uid: 'rosa', email: 'rosa@example.com', email_verified: true };
+  const leerDb = db => r => (r in db ? db[r] : null), AHORA = Date.parse('2026-12-02T15:00:00Z'), quien = { uid: 'rosa', email: 'rosa@example.com', email_verified: true, proveedor: 'google.com' };
   ok(R.permitido(quien, 'create', 'cierres/2026-11', Object.assign({}, A.doc, { en: R.TS }), null, leerDb({ 'config/negocio': { duenos: ['rosa'] } }), AHORA), 'las reglas (la copia) aceptan el cierre por cliente');
   const panes = CI.panesDeCierre(A.doc);
   ok(panes.length === 2 && panes[0].cantidad === 30.5 + 8 + 15 + 3.5 && panes[0].neto === 44225 + 12800 + 24000 + 7000 && panes[1].cantidad === 160, 'por pan (sumando los clientes): lo que usan Números, Costos y el detalle del cierre');
@@ -125,7 +125,7 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   console.log('8. Reglas (copia a mano): el cliente del pesaje');
   const db = { 'config/negocio': { duenos: ['rosa'] }, 'miembros/tablet': { perfil: 'pesaje', activo: true }, 'productos/p1': prods[0], 'trabajadores/t1': { nombre: 'Luis', activo: true },
     'clientes/c1': CLI[2], 'clientes/c2': CLI[0], 'clientes/cs': CLI[1], 'clientes/c3': CLI[3] };
-  const tablet = { uid: 'tablet' }, ya = Date.now(), hoyCl = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date(ya));
+  const tablet = { uid: 'tablet', email: 'tablet@example.com', email_verified: true, proveedor: 'google.com' }, ya = Date.now(), hoyCl = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date(ya));
   const doc = cid => Object.assign(P.nuevoPesaje({ fecha: hoyCl, hora: '08:00', entregaN: 1, clienteId: cid, productoId: 'p1', cantidad: 2, unidad: 'kg', trabajadorId: 't1', creadoPor: 'tablet' }), { en: R.TS });
   ok(R.permitido(tablet, 'create', 'pesajes/n1', doc('c2'), null, leerDb(db), ya) && R.permitido(tablet, 'create', 'pesajes/n2', doc('cs'), null, leerDb(db), ya), 'la tablet guarda para otro cliente y una venta suelta');
   ok(!R.permitido(tablet, 'create', 'pesajes/n3', doc('c3'), null, leerDb(db), ya) && !R.permitido(tablet, 'create', 'pesajes/n4', doc('zz'), null, leerDb(db), ya), 'no para un cliente desactivado ni para uno que no existe');

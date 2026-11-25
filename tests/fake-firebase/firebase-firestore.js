@@ -13,7 +13,7 @@ const guardar = d => L.setItem(K, JSON.stringify(d));
 const cache = () => { try { return JSON.parse(L.getItem(KC)) || []; } catch (e) { return []; } };
 const recordar = rutas => { const c = new Set(cache()); rutas.forEach(r => c.add(r)); L.setItem(KC, JSON.stringify([...c])); };
 const fuera = () => L.getItem(KF) === '1';
-const quien = () => { try { const u = JSON.parse(L.getItem('fake.sesion') || 'null'); return u ? { uid: u.uid, email: u.email, email_verified: !/^sinverificar/.test(u.email) } : null; } catch (e) { return null; } };
+const quien = () => { try { const u = JSON.parse(L.getItem('fake.sesion') || 'null'); return u ? { uid: u.uid, email: u.email, email_verified: !/^sinverificar/.test(u.email), proveedor: 'google.com' } : null; } catch (e) { return null; } };
 const leer = r => { const d = todo(); return r in d ? d[r] : null; };
 const denegado = () => Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' });
 /* La hora del servidor se pone también dentro de los campos que son mapas (Fase 12: anulado.en, reparto.en); en listas no se puede (como en Firestore). */

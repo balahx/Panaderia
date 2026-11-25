@@ -108,7 +108,7 @@ const cerca = (a, b, e) => Math.abs(a - b) <= (e == null ? 0.0001 : e);
   ok(I.validarMeta('2.500.000').neto === 2500000 && I.validarMeta('$1.234.567').neto === 1234567 && I.validarMeta('').neto === null && I.validarMeta('mucho').error, 'meta escrita a mano');
 
   console.log('7. El documento de la proyección pasa por la copia de las reglas');
-  const neg = { duenos: ['rosa'] }, leer = r => (r === 'config/negocio' ? neg : null), rosa = { uid: 'rosa', email: 'rosa@example.com', email_verified: true };
+  const neg = { duenos: ['rosa'] }, leer = r => (r === 'config/negocio' ? neg : null), rosa = { uid: 'rosa', email: 'rosa@example.com', email_verified: true, proveedor: 'google.com' };
   const doc = Object.assign(I.documentoProyeccion(Object.assign({}, P26, { metas }), { por: 'rosa', quien: 'Rosa' }), { en: R.TS });
   ok(R.permitido(rosa, 'create', 'proyeccion/2026', doc, null, leer, Date.now()), 'se acepta (con metas, nulls y factores)');
   const raro = Object.assign(I.documentoProyeccion(Object.assign({}, P26, { factor: 1.123456789, panes: { a: 1.2, b: 99 }, metas: [1.5, -1, 2e12] }), { por: 'rosa', quien: '' }), { en: R.TS });

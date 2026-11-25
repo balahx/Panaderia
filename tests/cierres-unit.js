@@ -90,7 +90,7 @@ function comprimir(bytes) {
   ok(P3.listo && P3.totales.neto === 2688063 && P3.cuadra && P3.cuadraCant, 'marzo: cuadra con su total');
 
   console.log('5. El documento del cierre (y la copia de las reglas lo acepta)');
-  const quien = { uid: 'rosa', email: 'rosa@example.com', email_verified: true }, AHORA = Date.parse('2026-11-17T15:00:00Z');
+  const quien = { uid: 'rosa', email: 'rosa@example.com', email_verified: true, proveedor: 'google.com' }, AHORA = Date.parse('2026-11-17T15:00:00Z');
   const base = { 'config/negocio': { duenos: ['rosa'], iva: 19 } }, leerDb = db => r => (r in db ? db[r] : null);
   const conTS = d => Object.assign({}, d, { en: R.TS });
   const d1 = CI.documento(P, { iva: 19, cliente: { id: 'c1', nombre: 'Supermercado' }, por: 'rosa', quien: 'Rosa', archivo: 'cierre-octubre-2026.xlsx', hoja: 'Hoja1' });

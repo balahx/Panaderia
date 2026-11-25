@@ -18,20 +18,22 @@
 | 9 | Costos y margen por pan | 10 | ✔ Hecha. Paso 24 verificado por Felipe (20-nov-2026): las 6 casillas (costo por kg de la hallulla = cálculo a mano, simulador, alza de mañana sin efecto hoy, El mes con resultado = margen − gastos, Excel con hoja «Resultado» y Entregas sin costos, externo sí y tablet no), Diagnóstico con 0 bloqueos y versión 0.9.0, emulador en verde |
 | 10 | Plan de producción diario | 11 | ✔ Hecha. Paso 25 verificado por Felipe (20-nov-2026): las 6 casillas (sugerencia = cálculo a mano, «falta» y % cuadran con Pesado hoy, verde desde 95 % y aviso sobre 110 %, tablet con el plan de hoy y sin el de mañana, plan de mañana y día pasado solo lectura), Diagnóstico con 0 bloqueos y versión 0.10.0, emulador en verde |
 | 11 | Varios clientes y ventas sueltas | 12 | ✔ Hecha. Paso 26 verificado por Felipe (21-nov-2026): las 6 casillas, Diagnóstico con 0 bloqueos y versión 0.11.0, emulador en verde |
-| 12 | Cobros y cotizaciones | 13 | ◐ Desarrollada (21-nov-2026, versión 0.12.0). Falta el paso 27 (publicar, anotar los datos para documentos y verificar) |
+| 12 | Cobros y cotizaciones | 13 | ✔ Hecha. Paso 27 verificado por Felipe (24-nov-2026): las 7 casillas (neto del cobro semanal y mensual = Entregas con el filtro del cliente, PDF abierto, impreso y compartido en Windows, iPhone y Android, saldo igual en lista, ficha, PDF, estado de cuenta y Excel, saldo a favor aplicado al cobro siguiente, franja de vencidos y anulación, cotización → cliente con precios, tablet sin cobros), Diagnóstico con 0 bloqueos y versión 0.12.0, emulador en verde con los 481 casos |
 
-Versión de la app: **0.12.0** (caché 2026.11.21.2) · 34 pruebas, todas bien (21-nov-2026, con Firebase, Google y Firestore simulados) · 481 casos de reglas (86 nuevos de la Fase 12): **falta verlos en verde con el emulador** (GitHub Actions, paso 27.2)
+Versión de la app: **0.12.0** (caché 2026.11.21.2) · 34 pruebas, todas bien (21-nov-2026, con Firebase, Google y Firestore simulados) · 518 casos de reglas (481 al cerrar la Fase 12, el emulador en verde el 24-nov-2026; 37 nuevos de la revisión del 25-nov-2026, **aún sin correr en el emulador**)
 
-## Qué sigue: publicar y verificar la Fase 12 (paso 27)
+## Qué sigue
 
-Desarrollada el 21-nov-2026 (lo decidido al desarrollarla está en `decisiones/fase-12.md`, «Desarrollo»). Felipe sigue `GUIA-FIREBASE.md`, **paso 27**: `npm test`, subir el código y ver **«Reglas de Firestore (emulador)»** en verde en GitHub Actions **antes** de publicar, publicar app y reglas juntas, actualizar cada equipo, anotar **Datos para documentos** y los **datos de cobro** de cada cliente, emitir el primer cobro y marcar las 7 casillas (PDF: imprimir y compartir en Windows, iPhone y Android). Si algo falla, un chat de arreglo con el texto de abajo. Los otros futuros (hoja de insumos del día, balanza, plan en el Excel, cumplimiento del mes en Números, recibo de abono en PDF) siguen en su propio chat, con preguntas primero.
+**Primero: la revisión de reglas del 25-nov-2026** (`decisiones/revision-reglas-2026-11.md`): ya está escrita y probada contra la copia a mano, pero **faltan `npm test` (pruebas con navegador) y el emulador en verde (GitHub Actions o `npm run reglas`) antes de publicar**; luego `firebase deploy --only firestore:rules` y verificar (dueño entra en teléfono y computador, la tablet pesa, corrige y cierra entrega, Diagnóstico con 0 bloqueos). La app no cambia: sigue en 0.12.0.
+
+Las fases 0 a 12 del plan están cerradas (la 12 verificada el 24-nov-2026; lo decidido, en `decisiones/fase-12.md`). Queda: **cerrar noviembre** desde Entregas a partir del 1 de diciembre (el primer cierre con líneas por cliente), emitir los cobros de cada semana o mes y, cuando se quiera, un futuro nuevo (hoja de insumos del día, balanza, plan en el Excel, cumplimiento del mes en Números, recibo de abono en PDF), en su propio chat y con preguntas primero.
 
 ## Decisiones generales
 
 - Perfiles: Dueño (todo + accesos), Externo (todo salvo accesos), Pesaje (solo pesaje, sin precios). Ingreso solo con Google; aprobación por los dueños.
 - Tablet con una cuenta de Google; quien pesa toca su nombre; corrige solo lo del día.
 - Pesaje por canasto, kg con 2 decimales o unidades según catálogo, aviso sobre 20 kg, nota opcional, día calendario chileno.
-- Varias entregas por día; se arman solas con los pesajes. Sin guías, mermas ni pagos.
+- Varias entregas por día; se arman solas con los pesajes. Sin guías ni mermas (los pagos de los clientes, desde la Fase 12, como abonos).
 - Cobros (Fase 12): documento interno, no tributario, con el número del folio (transacción); solo dueños y externo; datos de cobro en `clientesCobro` (la tablet lee `clientes`); emitir con folio correlativo y con internet; abonos parciales de la cuenta del cliente (del cobro más antiguo), saldo pendiente y saldo a favor calculados con `abonos`; estado de cuenta en PDF.
 - Varios clientes (Fase 11): cada uno con su lista de precios y su numeración de entregas; «Ventas sueltas» con quién compró; lo pesado antes es del supermercado; total del negocio + filtro por cliente; plan, proyección y metas del negocio entero.
 - Precios netos + IVA; historial de vigencia.
@@ -63,26 +65,20 @@ Desarrollada el 21-nov-2026 (lo decidido al desarrollarla está en `decisiones/f
 | `decisiones/fase-10.md` | Fase 10 · Plan de producción diario |
 | `decisiones/fase-11.md` | Fase 11 · Varios clientes y ventas sueltas |
 | `decisiones/fase-12.md` | Fase 12 · Cobros y cotizaciones |
+| `decisiones/revision-reglas-2026-11.md` | Revisión de reglas (25-nov-2026): sesión solo de Google, bitácora, fechas, mes terminado y tope de la tablet; y lo que quedó por decidir |
 
 **Al cerrar una fase o un arreglo:** lo decidido va en el `decisiones/fase-NN.md` de esa fase (uno nuevo si es fase nueva); aquí solo se actualizan Avance, Qué sigue y Pendientes; los archivos nuevos o cambiados van en `MAPA.md`.
 
 ## Pendientes de información (PLAN §13)
 
+- Revisión de reglas (25-nov-2026): correr el emulador y publicar (ver «Qué sigue»). Por decidir, sin aplicar: congelar costos de meses cerrados, cerrar la lectura de `config/negocio`, y activar la verificación en dos pasos en las cuentas de Google (dueños, externo y tablet).
 - Opcional: cifras del Diagnóstico de la tablet («Apertura de la app» y «Pantalla más lenta»). En el paso 23 se marcaron sin anotar los números.
 - Noviembre de 2026 se cierra desde Entregas a partir del 1 de diciembre; con noviembre y diciembre cerrados se puede proyectar todo 2027.
 - «Ajustes» del plan (§8) aún no existe como pantalla: el IVA quedó dentro de Catálogo → Clientes e IVA.
 - Fase 11: falta ver en el Excel de Windows la hoja «Por cliente» y la columna «Comprador» (probadas con el lector propio de las pruebas).
-- Fase 12: datos de la panadería para los documentos (razón social, RUT, dirección, correo, datos para transferir) y los datos de cobro de cada cliente. Se anotan **en la app** al publicar la 0.12.0 (paso 27.5 y 27.6); no van en el repositorio ni en el chat.
-- Fase 12: confirmar en cada equipo que **Imprimir** abre el PDF (Windows: otra pestaña; iPhone instalado: Compartir) y que **Compartir** adjunta el PDF en correo y WhatsApp (paso 27.8).
 - `Privado/Guia-familia-Panaderia.pdf` es de la versión anterior: la guía actualizada está en `GUIA-FAMILIA.md` y en la app (Más → Ayuda).
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
-
-Después de verificar el paso 27 (para dejarlo anotado):
-```
-Proyecto App Panadería: verifiqué el paso 27 (Fase 12, cobros) con [cuántas] casillas, Diagnóstico con [n] bloqueos
-y versión 0.12.0, emulador [en verde / con fallas: pegar las líneas ✗]. Actualiza ESTADO.md (y decisiones/fase-12.md si hay algo).
-```
 
 Para un arreglo:
 ```

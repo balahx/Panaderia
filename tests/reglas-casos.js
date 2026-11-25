@@ -13,8 +13,13 @@ const CUENTAS = {
   ines: { uid: 'ines', email: 'ines@example.com', email_verified: true },       // externo con el acceso quitado
   carla: { uid: 'carla', email: 'carla@example.com', email_verified: true },    // cuenta nueva, sin acceso
   dani: { uid: 'dani', email: 'dani@example.com', email_verified: false },      // correo sin verificar
+  rosaClave: { uid: 'rosa', email: 'rosa@example.com', email_verified: true, proveedor: 'password' },       // el UID de la dueña, pero con ingreso por correo y clave (no Google)
+  rosaSinVerificar: { uid: 'rosa', email: 'rosa@example.com', email_verified: false },                       // el UID de la dueña, con Google pero el correo sin verificar
+  tabletAnonima: { uid: 'tablet', email_verified: false, proveedor: 'anonymous' },                           // el UID de la tablet, con ingreso anónimo
   nadie: null                                                                    // sin iniciar sesión
 };
+/* `proveedor` = sign_in_provider del token. Las reglas (sesion()) solo aceptan 'google.com' con el correo verificado (revisión del 25-nov-2026). */
+for (const k in CUENTAS) if (CUENTAS[k] && !CUENTAS[k].proveedor) CUENTAS[k].proveedor = 'google.com';
 const miembro = (nombre, perfil, activo) => ({ nombre, correo: nombre.toLowerCase() + '@example.com', perfil, activo, por: 'rosa', en: '@TS' });
 const sinVacios = o => { for (const k in o) if (o[k] === undefined) delete o[k]; return o; };
 const pesaje = (fecha, por, mas) => sinVacios(Object.assign({ fecha, hora: '07:15', entregaN: 1, productoId: 'p1', cantidad: 18.5, unidad: 'kg', trabajadorId: 't1', anulado: false, creadoPor: por, en: '@TS' }, mas || {}));
@@ -601,6 +606,55 @@ function casos(HOY, ANTES, AYER) {
   no('felipe', 'update', 'cotizaciones/0001', 'el cliente enlazado no se cambia', { clienteId: 'c2', cambio: sello('felipe') });
   no('rosa', 'delete', 'cotizaciones/0001', 'una cotización no se borra');
   no('tablet', 'get', 'cotizaciones/0001', 'y la tablet no la lee');
+
+  /* ---------- Revisión de las reglas del 25-nov-2026 ---------- */
+  const campos = n => Object.fromEntries(Array.from({ length: n }, (x, i) => ['campo' + i, i]));   // un mapa con n campos
+  const futuro = sumarDias(HOY, 3);
+
+  t('16b. Revisión de las reglas (1): solo vale la sesión de Google con el correo verificado');
+  si('rosa', 'get', 'precios/pr1', 'control: la dueña con su sesión de Google lee los precios');
+  no('rosaClave', 'get', 'precios/pr1', 'el mismo UID de la dueña, pero con ingreso por correo y clave: nada');
+  no('rosaClave', 'get', 'config/negocio', 'ni siquiera la configuración del negocio');
+  no('rosaClave', 'list', 'productos', 'ni el catálogo');
+  no('rosaClave', 'set', 'productos/pg1', 'ni escribe', { nombre: 'Pan', unidad: 'kg', activo: true, en: '@TS' });
+  no('rosaSinVerificar', 'get', 'precios/pr1', 'con Google pero el correo sin verificar tampoco');
+  no('rosaSinVerificar', 'get', 'config/negocio', 'ni la configuración del negocio');
+  no('tabletAnonima', 'list', 'pesajes', 'la cuenta de la tablet con ingreso anónimo no lee pesajes', null, { fecha: HOY });
+  no('tabletAnonima', 'set', 'pesajes/an1', 'ni anota canastos', pesaje(HOY, 'tablet'));
+
+  t('16b. Revisión de las reglas (2): la bitácora apunta a un canasto que existe');
+  si('tablet', 'set', 'cambios/r1', 'control: la tablet deja constancia de un canasto de hoy', cambio('corregir', HOY, 'tablet'));
+  no('tablet', 'set', 'cambios/r2', 'pero no de un canasto que no existe', cambio('corregir', HOY, 'tablet', { pesajeId: 'no-existe' }));
+  no('tablet', 'set', 'cambios/r3', 'ni de un canasto de otro día con la fecha de hoy', cambio('corregir', HOY, 'tablet', { pesajeId: 'viejo1' }));
+  no('rosa', 'set', 'cambios/r4', 'un dueño tampoco deja constancia de un canasto que no existe', cambio('anular', HOY, 'rosa', { pesajeId: 'no-existe' }));
+  no('tablet', 'set', 'cambios/r5', 'lo de antes no pasa de 12 campos', cambio('corregir', HOY, 'tablet', { antes: campos(13) }));
+  no('rosa', 'set', 'cambios/r6', 'ni lo de después', cambio('corregir', HOY, 'rosa', { despues: campos(13) }));
+  si('rosa', 'set', 'cambios/r7', 'los 11 campos de un canasto sí caben', cambio('corregir', HOY, 'rosa', { antes: campos(11), despues: campos(11) }));
+
+  t('16b. Revisión de las reglas (3): fechas válidas y sin futuro');
+  no('rosa', 'set', 'pesajes/fe1', 'un canasto no lleva mes 00', pesaje('2026-00-10', 'rosa'));
+  no('rosa', 'set', 'pesajes/fe2', 'ni día 32', pesaje('2026-05-32', 'rosa'));
+  no('rosa', 'set', 'pesajes/fe3', 'ni un mes 13', pesaje('2026-13-01', 'rosa'));
+  no('rosa', 'set', 'pesajes/fe4', 'ni una fecha futura (un dueño)', pesaje(futuro, 'rosa'));
+  no('felipe', 'set', 'pesajes/fe5', 'ni el externo', pesaje(futuro, 'felipe'));
+  no('tablet', 'set', 'pesajes/fe6', 'ni la tablet', pesaje(futuro, 'tablet'));
+  no('rosa', 'update', 'pesajes/c1a', 'ni se mueve un canasto a una fecha futura', { fecha: futuro, en: '@TS' });
+  no('rosa', 'set', 'precios/p1_c1_2026-13-45', 'un precio no rige desde un mes 13', { productoId: 'p1', clienteId: 'c1', neto: 1500, desde: '2026-13-45', en: '@TS' });
+  si('rosa', 'set', 'precios/p1_c1_2027-03-01', 'control: un precio desde una fecha válida sí', { productoId: 'p1', clienteId: 'c1', neto: 1500, desde: '2027-03-01', en: '@TS' });
+  no('rosa', 'set', 'recetas/p1_2026-99-99', 'una receta no rige desde el 99', receta('p1', '2026-99-99', 'rosa'));
+  no('rosa', 'set', 'preciosInsumo/i1_2026-02-99', 'ni el precio de un insumo', precioIns('i1', '2026-02-99'));
+
+  t('16b. Revisión de las reglas (5): tope por canasto en la tablet');
+  si('tablet', 'set', 'pesajes/tp1', 'la tablet anota hasta 200 kg en un canasto', pesaje(HOY, 'tablet', { cantidad: 200 }));
+  no('tablet', 'set', 'pesajes/tp2', 'pero no más (un «20» tipeado como «2000»)', pesaje(HOY, 'tablet', { cantidad: 2000 }));
+  no('tablet', 'set', 'pesajes/tp3', 'ni 200,01 kg', pesaje(HOY, 'tablet', { cantidad: 200.01 }));
+  si('tablet', 'set', 'pesajes/tp4', 'por unidad, hasta 2000', pesaje(HOY, 'tablet', { productoId: 'u5', unidad: 'un', cantidad: 2000 }));
+  no('tablet', 'set', 'pesajes/tp5', 'pero no 2001', pesaje(HOY, 'tablet', { productoId: 'u5', unidad: 'un', cantidad: 2001 }));
+  no('tablet', 'set', 'pesajes/tp6', 'y la fecha de ayer (lo anotado sin conexión) tiene el mismo tope', pesaje(AYER, 'tablet', { cantidad: 500 }));
+  si('tablet', 'update', 'pesajes/hoy1', 'corregir un canasto de hoy dentro del tope sí', { cantidad: 150, en: '@TS' });
+  no('tablet', 'update', 'pesajes/hoy1', 'pero no pasarlo del tope', { cantidad: 250, en: '@TS' });
+  si('rosa', 'set', 'pesajes/tp7', 'un dueño no tiene tope (corrige lo que haga falta)', pesaje(HOY, 'rosa', { cantidad: 500 }));
+  si('felipe', 'set', 'pesajes/tp8', 'ni el externo', pesaje(HOY, 'felipe', { productoId: 'u5', unidad: 'un', cantidad: 5000 }));
   return C;
 }
 module.exports = { CUENTAS, semilla, casos };

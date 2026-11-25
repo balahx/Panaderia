@@ -24,7 +24,7 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
   const dbs = {};
   for (const n in CUENTAS) {
     const c = CUENTAS[n];
-    dbs[n] = (c ? env.authenticatedContext(c.uid, { email: c.email, email_verified: c.email_verified }) : env.unauthenticatedContext()).firestore();
+    dbs[n] = (c ? env.authenticatedContext(c.uid, { email: c.email, email_verified: c.email_verified, firebase: { sign_in_provider: c.proveedor, identities: {} } }) : env.unauthenticatedContext()).firestore();
   }
   const TS = () => firebase.firestore.FieldValue.serverTimestamp();
   for (const c of casos(HOY, ANTES, AYER)) {

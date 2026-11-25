@@ -32,6 +32,10 @@ Segunda ronda (21-nov-2026): Felipe pidió sumar **abonos parciales y saldo pend
 - Excel: hoja **«Abonos»** y columnas «Abonado» y «Saldo» en «Cobros»; la lista suma el filtro «Abonados» y muestra Por cobrar, Vencido y Saldo a favor.
 - Propuesta incluida: el cobro no guarda lo abonado ni el saldo; se calculan con la colección `abonos` (una sola fuente).
 
+### Verificación (24-nov-2026)
+
+Felipe verificó el paso 27 de `GUIA-FIREBASE.md` con las **7 casillas** marcadas: el neto del cobro semanal y del mensual = Entregas con el filtro del cliente (con el desglose y el ajuste a la vista), el PDF se abre, se imprime y se comparte por correo y WhatsApp en Windows, iPhone y Android, el saldo con un abono parcial es el mismo en todas partes, el pago de más queda a favor y se aplica al cobro siguiente, la franja de vencidos y la anulación funcionan, la cotización aceptada crea el cliente con sus precios, y la tablet no ve nada de cobros. Diagnóstico con 0 bloqueos y versión 0.12.0 en los tres tipos de equipo; emulador en verde con los 481 casos. **Fase 12 cerrada.**
+
 ### Desarrollo (21-nov-2026, chat 13) · versión 0.12.0
 
 Se desarrolló completa en un solo chat. Lo que se decidió al desarrollarla:

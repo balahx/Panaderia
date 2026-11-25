@@ -9,12 +9,21 @@ rules_version = '2';
 // Fase 10: plan de producción del día (la tablet lee solo el de hoy y no escribe).
 // Fase 11: varios clientes y ventas sueltas: `tipo` en clientes, `clienteId` en pesajes, dias/{fecha}_{clienteId}, cierres por cliente.
 // Fase 12: cobros y cotizaciones (config/empresa, config/folios, clientesCobro, cobros, abonos, cotizaciones): solo dueños y externo.
+// Revisión del 25-nov-2026 (solo reglas y pruebas; la app sigue en 0.12.0): sesión solo de Google y con correo verificado, bitácora más cerrada, fechas estrictas y sin
+// futuro, mes terminado con la hora de invierno y tope por canasto en la tablet (ver decisiones/revision-reglas-2026-11.md).
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // ---------- Quién es quién ----------
-    function sesion() { return request.auth != null; }
+    // Endurecimiento (revisión del 25-nov-2026): solo cuenta con sesión de GOOGLE y correo verificado. La app entra siempre con Google
+    // (signInWithCredential con el id_token); si algún día se activara otro método en la consola (anónimo, correo y clave), esa cuenta
+    // no pasaría ninguna regla.
+    function sesion() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email_verified == true;
+    }
     function esDueno() {
       return sesion()
         && exists(/databases/$(database)/documents/config/negocio)
@@ -33,6 +42,8 @@ service cloud.firestore {
     // ---------- Ayudas ----------
     function nuevo() { return request.resource.data; }
     function texto(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
+    // Fecha AAAA-MM-DD con mes 01 a 12 y día 01 a 31 (no revisa que el día exista en el mes: 30 de febrero pasa; 2026-99-99 no).
+    function fechaValida(f) { return f is string && f.size() == 10 && f.matches('20[0-9][0-9]-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])'); }
     function dosDigitos(n) { return n < 10 ? '0' + string(n) : string(n); }
     function diaDe(t) { return string(t.year()) + '-' + dosDigitos(t.month()) + '-' + dosDigitos(t.day()); }
     // Día calendario chileno según la hora del SERVIDOR. Chile continental está a 3 o 4 horas de UTC según la época del año:
@@ -134,7 +145,7 @@ service cloud.firestore {
         && texto(nuevo().productoId, 1, 60)
         && texto(nuevo().clienteId, 1, 60)
         && nuevo().neto is number && nuevo().neto > 0 && nuevo().neto <= 100000000
-        && nuevo().desde is string && nuevo().desde.size() == 10 && nuevo().desde.matches('[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
+        && fechaValida(nuevo().desde)
         && id == nuevo().productoId + '_' + nuevo().clienteId + '_' + nuevo().desde
         && nuevo().en == request.time;
       allow delete: if esGestion();
@@ -169,15 +180,21 @@ service cloud.firestore {
     // La unidad debe ser la del producto (kg o un) y el trabajador debe existir en la lista.
     // Fase 11: `clienteId` (opcional: sin él = el cliente original). Si viene NUEVO (al crear, o al cambiarlo en una corrección), el cliente
     // debe existir y estar activo; si no cambia, se acepta aunque después se haya desactivado (para corregir otra cosa de ese canasto).
-    function fechaValida(f) { return f is string && f.size() == 10 && f.matches('[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'); }
     // Lo anotado sin conexión cerca de la medianoche puede llegar al servidor al día siguiente: la tablet puede CREAR con la fecha de ayer.
     function esAyer(fecha) {
       return fecha == diaDe(request.time - duration.value(27, 'h')) || fecha == diaDe(request.time - duration.value(28, 'h'));
     }
+    // Revisión del 25-nov-2026: un canasto no lleva fecha futura (tope = hoy según la hora del servidor, con la holgura de la medianoche de
+    // esHoy: en invierno acepta una hora de más, nunca un día) y la TABLET tiene un tope por canasto: 10 veces el aviso de la app
+    // (AVISO_KG = 20), para que un «20» tipeado como «2000» no pase. Dueños y externo no tienen tope (corrigen lo que haga falta).
+    function noFutura(fecha) { return fecha <= diaDe(request.time - duration.value(3, 'h')); }
+    function topeTablet() {
+      return (nuevo().unidad == 'kg' && nuevo().cantidad <= 200) || (nuevo().unidad == 'un' && nuevo().cantidad <= 2000);
+    }
     function pesajeValido() {
       return nuevo().keys().hasOnly(['fecha', 'hora', 'entregaN', 'clienteId', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'nota', 'anulado', 'creadoPor', 'en'])
         && nuevo().keys().hasAll(['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'anulado', 'creadoPor', 'en'])
-        && fechaValida(nuevo().fecha)
+        && fechaValida(nuevo().fecha) && noFutura(nuevo().fecha)
         && nuevo().hora is string && nuevo().hora.matches('([01][0-9]|2[0-3]):[0-5][0-9]')
         && nuevo().entregaN is int && nuevo().entregaN >= 1 && nuevo().entregaN <= 50
         && texto(nuevo().productoId, 1, 60)
@@ -210,10 +227,10 @@ service cloud.firestore {
     match /pesajes/{id} {
       allow read: if esGestion() || (esPesaje() && esHoy(resource.data.fecha));
       allow create: if pesajeValido() && nuevo().creadoPor == request.auth.uid && clienteAlCrear()
-        && ((esGestion() && mesAbierto(nuevo().fecha)) || (esPesaje() && (esHoy(nuevo().fecha) || esAyer(nuevo().fecha))));
+        && ((esGestion() && mesAbierto(nuevo().fecha)) || (esPesaje() && (esHoy(nuevo().fecha) || esAyer(nuevo().fecha)) && topeTablet()));
       allow update: if pesajeValido() && nuevo().creadoPor == resource.data.creadoPor && clienteAlCorregir()
         && ((esGestion() && mesAbierto(resource.data.fecha) && mesAbierto(nuevo().fecha))
-          || (esPesaje() && esHoy(resource.data.fecha) && nuevo().fecha == resource.data.fecha));
+          || (esPesaje() && esHoy(resource.data.fecha) && nuevo().fecha == resource.data.fecha && topeTablet()));
       allow delete: if false;
     }
     // Entrega en curso del día: dias/{fecha} = { entregaN, por, en }. «Cerrar entrega» la sube en uno; «volver a abrir» la baja en uno.
@@ -251,7 +268,9 @@ service cloud.firestore {
     // (queda constancia de quién y cuándo); reabierto, se vuelve a cerrar (o a importar) o se borra.
     // Fase 11: las líneas van por pan y por cliente (clienteId y cliente en cada línea; hasta 600) y `clientes` resume a cada uno (hasta 50).
     function mesValido(mes) { return mes.matches('20[0-9][0-9]-(0[1-9]|1[0-2])'); }
-    function mesTerminado(mes) { return mes + '-31' < diaDe(request.time - duration.value(3, 'h')); }
+    // Con 4 horas (no 3): en horario de invierno (UTC-4) el día chileno es el de «ahora − 4 h»; con 3 horas el mes se daba por terminado
+    // una hora antes (23:00 del último día de mayo, julio y agosto). En verano (UTC-3) el mes se da por terminado una hora más tarde: no importa.
+    function mesTerminado(mes) { return mes + '-31' < diaDe(request.time - duration.value(4, 'h')); }
     function cierreValido(mes) {
       return mesValido(mes) && mesTerminado(mes)
         && nuevo().keys().hasOnly(['mes', 'origen', 'cerrado', 'clienteId', 'cliente', 'clientes', 'iva', 'lineas', 'neto', 'ivaMonto', 'total', 'kg', 'un',
@@ -554,6 +573,9 @@ service cloud.firestore {
     }
     // Bitácora de correcciones: se agrega junto con cada corrección, anulación o reactivación de un pesaje; nunca se cambia ni se borra.
     // La tablet deja constancia solo de lo del día. `quien` (opcional, Fase 5): nombre de la cuenta, para el registro general.
+    // Revisión del 25-nov-2026: la constancia debe apuntar a un canasto que existe (la app la guarda en el mismo lote que la corrección, así
+    // que el canasto ya está) y la tablet, además, solo de un canasto cuya fecha sea la de la constancia; `antes` y `despues` no pasan de
+    // 12 campos (un pesaje tiene 11). Lo que las reglas no pueden exigir es que cada corrección TRAIGA su constancia: eso lo hace la app.
     match /cambios/{id} {
       allow read: if esGestion();
       allow create: if conAcceso()
@@ -563,10 +585,13 @@ service cloud.firestore {
         && texto(nuevo().pesajeId, 1, 60)
         && fechaValida(nuevo().fecha)
         && nuevo().antes is map && nuevo().despues is map
+        && nuevo().antes.keys().size() <= 12 && nuevo().despues.keys().size() <= 12
         && nuevo().por == request.auth.uid
         && (!('quien' in nuevo()) || texto(nuevo().quien, 1, 60))
         && nuevo().en == request.time
-        && (esGestion() || esHoy(nuevo().fecha));
+        && exists(/databases/$(database)/documents/pesajes/$(nuevo().pesajeId))
+        && (esGestion() || (esHoy(nuevo().fecha)
+          && get(/databases/$(database)/documents/pesajes/$(nuevo().pesajeId)).data.fecha == nuevo().fecha));
       allow update, delete: if false;
     }
   }

@@ -110,7 +110,7 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ '
   ok(uno.hojas.Cobros.filas.length === 3 && uno.hojas.Cobros.filas[1][0] === '0009' && /Sin abonos/.test(uno.hojas.Abonos.filas[1][0]), 'el Excel de un cliente trae solo sus cobros y abonos');
 
   console.log('8. Los abonos pasan la copia de las reglas');
-  const AHORA = Date.now(), rosa = { uid: 'rosa' }, db = { 'config/negocio': { duenos: ['rosa'] }, 'clientes/c2': CLI[0] }, leerDb = r => (r in db ? db[r] : null);
+  const AHORA = Date.now(), rosa = { uid: 'rosa', email: 'rosa@example.com', email_verified: true, proveedor: 'google.com' }, db = { 'config/negocio': { duenos: ['rosa'] }, 'clientes/c2': CLI[0] }, leerDb = r => (r in db ? db[r] : null);
   const d = A.documento(A.validarAbono({ clienteId: 'c2', fecha: HOY, monto: '50.000', medio: 'cheque', nota: 'Cheque 123' }, HOY).datos, [{ cobro: 1, monto: 50000 }], 0, 'rosa', 'Rosa');
   ok(R.permitido(rosa, 'create', 'abonos/x1', Object.assign({}, d, { en: R.TS }), null, leerDb, AHORA), 'el abono armado por la app se acepta');
   const guardado = Object.assign({}, d, { en: AHORA });

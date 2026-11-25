@@ -49,6 +49,14 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
   ok(R.esManana('2026-11-15', t) && !R.esManana('2026-11-16', t) && !R.esManana('2026-11-14', t), 'a las 23:30 del 14, «mañana» es el 15 (plan de producción, Fase 10)');
   ok(R.esManana('2026-07-15', t2) && R.esManana('2026-07-16', t2), 'y en la hora dudosa de la medianoche se aceptan los dos días, como en «hoy»');
 
+  console.log('17b. Revisión del 25-nov-2026: mes terminado con la hora de invierno y canastos sin fecha futura');
+  ok(!R.mesTerminado('2026-05', Date.UTC(2026, 5, 1, 3, 30)) && R.mesTerminado('2026-05', Date.UTC(2026, 5, 1, 4, 30)),
+    'en invierno (UTC-4) mayo NO termina a las 23:30 del 31 (antes terminaba una hora antes) y sí a las 00:30 del 1 de junio');
+  ok(!R.mesTerminado('2026-11', Date.UTC(2026, 11, 1, 3, 30)) && R.mesTerminado('2026-11', Date.UTC(2026, 11, 1, 4, 30)),
+    'en verano (UTC-3) noviembre termina a la 01:30 del 1 de diciembre (una hora más tarde: no importa)');
+  ok(R.noFutura('2026-11-14', t) && !R.noFutura('2026-11-15', t), 'a las 23:30 del 14 de noviembre un canasto del 15 es del futuro');
+  ok(R.noFutura('2026-07-14', t2) && !R.noFutura('2026-07-16', t2), 'y en invierno, a las 23:30 del 14, el 16 es del futuro');
+
   console.log('18. firestore.rules');
   const rules = fs.readFileSync(path.join(__dirname, '..', 'firestore.rules'), 'utf8').replace(/\/\/.*$/gm, '');
   const cols = [...new Set((rules.match(/match \/([A-Za-z]+)\//g) || []).map(x => x.slice(7, -1)))].filter(x => x !== 'databases').sort();
@@ -70,6 +78,20 @@ const dia = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago
   const conf = c => (new RegExp('match \\/config\\/' + c + ' \\{([\\s\\S]*?)\\n    \\}').exec(rules) || [])[1] || '';
   ok(['empresa', 'folios'].every(c => /allow read: if esGestion\(\);/.test(conf(c)) && !/esPesaje|conAcceso|sesion\(\)/.test(conf(c))), 'config/empresa y config/folios (Fase 12): solo gestión');
   ok(/getAfter\(/.test(rules) && /existsAfter\(/.test(rules) && /allow delete: if false;/.test((/match \/cobros\/\{n\} \{([\s\S]*?)\n    \}/.exec(rules) || [])[1] || ''), 'cobros: el número sale del folio en la misma escritura (getAfter) y no se borran');
+  /* Revisión del 25-nov-2026: lo que la copia a mano no puede probar por sí sola, se mira en el texto de las reglas reales. */
+  ok(/function sesion\(\) \{[^}]*request\.auth != null[^}]*sign_in_provider == 'google\.com'[^}]*email_verified == true/.test(rules), 'sesion(): solo Google y con el correo verificado');
+  ok(/function fechaValida\(f\)[^\n]*\(0\[1-9\]\|1\[0-2\]\)-\(0\[1-9\]\|\[12\]\[0-9\]\|3\[01\]\)/.test(rules) && !/\.matches\('\[0-9\]\[0-9\]\[0-9\]\[0-9\]-/.test(rules),
+    'las fechas llevan mes 01 a 12 y día 01 a 31 (y ninguna regla trae su propia expresión floja)');
+  ok(/function mesTerminado\(mes\)[^\n]*duration\.value\(4, 'h'\)/.test(rules), 'mesTerminado usa la hora de invierno (4 horas)');
+  ok(/function noFutura\(fecha\)[^\n]*duration\.value\(3, 'h'\)/.test(rules) && /fechaValida\(nuevo\(\)\.fecha\) && noFutura\(nuevo\(\)\.fecha\)/.test(rules), 'un canasto no lleva fecha futura');
+  const pes = (/match \/pesajes\/\{id\} \{([\s\S]*?)\n    \}/.exec(rules) || [])[1] || '';
+  ok(/allow create:[^;]*esPesaje\(\)[^;]*topeTablet\(\)/.test(pes) && /allow update:[^;]*esPesaje\(\)[^;]*topeTablet\(\)/.test(pes)
+    && /nuevo\(\)\.unidad == 'kg' && nuevo\(\)\.cantidad <= 200/.test(rules) && /nuevo\(\)\.unidad == 'un' && nuevo\(\)\.cantidad <= 2000/.test(rules),
+    'pesajes: la tablet tiene tope por canasto (200 kg o 2000 unidades) al crear y al corregir');
+  const cam = (/match \/cambios\/\{id\} \{([\s\S]*?)\n    \}/.exec(rules) || [])[1] || '';
+  ok(/exists\(\/databases\/\$\(database\)\/documents\/pesajes\/\$\(nuevo\(\)\.pesajeId\)\)/.test(cam) && /antes\.keys\(\)\.size\(\) <= 12/.test(cam) && /despues\.keys\(\)\.size\(\) <= 12/.test(cam)
+    && /get\(\/databases\/\$\(database\)\/documents\/pesajes\/\$\(nuevo\(\)\.pesajeId\)\)\.data\.fecha == nuevo\(\)\.fecha/.test(cam),
+    'cambios: la constancia apunta a un canasto que existe (y la tablet, a uno de la misma fecha); antes y después, hasta 12 campos');
   ok((rules.match(/\{/g) || []).length === (rules.match(/\}/g) || []).length && (rules.match(/\(/g) || []).length === (rules.match(/\)/g) || []).length, 'llaves y paréntesis equilibrados');
   const sinPunto = rules.split('\n').map((l, i) => [i + 1, l.trim()]).filter(x => /^allow /.test(x[1])).filter(x => { let j = x[0] - 1, L = rules.split('\n'); while (j < L.length && !/;\s*$/.test(L[j])) { if (/^\s*(allow|match|function)\b/.test(L[j + 1] || '')) return true; j++; } return false; });
   ok(sinPunto.length === 0, 'cada «allow» termina en punto y coma' + (sinPunto.length ? ' · línea ' + sinPunto[0][0] : ''));

@@ -2,7 +2,7 @@
    tests/reglas-unit.js. La verdad la dice el emulador (tests/rules-emulator.js, en GitHub Actions) con los MISMOS casos
    (tests/reglas-casos.js): si esta copia y las reglas reales se separan, una de las dos pruebas falla.
    permitido(quien, op, ruta, datos, previo, leer, ahora, despues)
-     quien: { uid, email, email_verified } o null · op: 'get' | 'list' | 'create' | 'update' | 'delete'
+     quien: { uid, email, email_verified, proveedor ('google.com' = sign_in_provider del token) } o null · op: 'get' | 'list' | 'create' | 'update' | 'delete'
      datos: documento nuevo (create/update, ya combinado con el anterior) o el filtro de la consulta (list: { campo: valor })
      previo: documento actual (o null) · leer(ruta): documento guardado o null · ahora: milisegundos (hora del servidor)
      despues(ruta): cómo queda cada documento si el lote (o la transacción) completo se guarda: es el getAfter() de las reglas (Fase 12).
@@ -18,12 +18,17 @@ const dia = ms => new Date(ms).toISOString().slice(0, 10);
 export const esHoy = (fecha, ahora) => fecha === dia(ahora - 3 * 3600000) || fecha === dia(ahora - 4 * 3600000);
 export const esAyer = (fecha, ahora) => fecha === dia(ahora - 27 * 3600000) || fecha === dia(ahora - 28 * 3600000);
 export const esManana = (fecha, ahora) => fecha === dia(ahora + 21 * 3600000) || fecha === dia(ahora + 20 * 3600000);   // Fase 10
-const fechaValida = f => typeof f === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(f);
+/* Revisión del 25-nov-2026: mes 01 a 12 y día 01 a 31 (2026-99-99 ya no pasa). */
+const fechaValida = f => typeof f === 'string' && /^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/.test(f);
+/* Un canasto no lleva fecha futura (hoy según ahora − 3 h) y la tablet tiene tope por canasto (200 kg o 2000 unidades). */
+export const noFutura = (fecha, ahora) => fecha <= dia(ahora - 3 * 3600000);
+const topeTablet = d => (d.unidad === 'kg' && d.cantidad <= 200) || (d.unidad === 'un' && d.cantidad <= 2000);
 const mapa = v => !!v && typeof v === 'object' && !Array.isArray(v) && !esTS(v);
 const entero = v => Number.isInteger(v);
 /* Fase 6: el mes de una fecha está cerrado si cierres/{AAAA-MM} tiene cerrado == true. */
 const mesAbierto = (f, leer) => { const c = leer('cierres/' + String(f).slice(0, 7)); return !c || c.cerrado !== true; };
-const mesTerminado = (mes, ahora) => mes + '-31' < dia(ahora - 3 * 3600000);
+/* Con 4 horas: en invierno (UTC-4) el día chileno es el de «ahora − 4 h» (con 3 el mes se cerraba una hora antes). */
+export const mesTerminado = (mes, ahora) => mes + '-31' < dia(ahora - 4 * 3600000);
 const CIERRE = ['mes', 'origen', 'cerrado', 'clienteId', 'cliente', 'clientes', 'iva', 'lineas', 'neto', 'ivaMonto', 'total', 'kg', 'un', 'canastos', 'dias', 'sinPrecio', 'archivo', 'hoja',
   'reabiertoPor', 'reabiertoQuien', 'reabiertoEn', 'por', 'quien', 'en'];
 function cierreValido(id, d, q, ahora) {
@@ -142,7 +147,7 @@ export function permitido(quien, op, ruta, datos, previo, leer, ahora, despues) 
   catch (e) { return false; }   // como en las reglas reales: un error al evaluar es un «no»
 }
 function evaluar(q, op, ruta, d, prev, leer, ahora, tras) {
-  if (!q) return false;
+  if (!q || q.proveedor !== 'google.com' || q.email_verified !== true) return false;   // sesion(): solo Google y con correo verificado
   const [col, id, ...resto] = ruta.split('/');
   if (resto.length) return false;
   const neg = leer('config/negocio'), yo = leer('miembros/' + q.uid);
@@ -195,7 +200,7 @@ function evaluar(q, op, ruta, d, prev, leer, ahora, tras) {
     if (leerOp || op === 'delete') return gestion;
     const K = ['productoId', 'clienteId', 'neto', 'desde', 'en'];
     return gestion && solo(d, K) && todas(d, K) && texto(d.productoId, 1, 60) && texto(d.clienteId, 1, 60) && num(d.neto) && d.neto > 0 && d.neto <= 100000000
-      && typeof d.desde === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d.desde) && id === d.productoId + '_' + d.clienteId + '_' + d.desde && esTS(d.en);
+      && fechaValida(d.desde) && id === d.productoId + '_' + d.clienteId + '_' + d.desde && esTS(d.en);
   }
   if (col === 'trabajadores') {
     if (leerOp) return acceso;
@@ -213,7 +218,7 @@ function evaluar(q, op, ruta, d, prev, leer, ahora, tras) {
     if (op === 'delete') return false;
     const prod = leer('productos/' + d.productoId);
     const valido = solo(d, ['fecha', 'hora', 'entregaN', 'clienteId', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'nota', 'anulado', 'creadoPor', 'en'])
-      && todas(d, ['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'anulado', 'creadoPor', 'en']) && fechaValida(d.fecha)
+      && todas(d, ['fecha', 'hora', 'entregaN', 'productoId', 'cantidad', 'unidad', 'trabajadorId', 'anulado', 'creadoPor', 'en']) && fechaValida(d.fecha) && noFutura(d.fecha, ahora)
       && typeof d.hora === 'string' && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(d.hora)
       && Number.isInteger(d.entregaN) && d.entregaN >= 1 && d.entregaN <= 50
       && texto(d.productoId, 1, 60) && texto(d.trabajadorId, 1, 60)
@@ -221,8 +226,8 @@ function evaluar(q, op, ruta, d, prev, leer, ahora, tras) {
       && (!('nota' in d) || texto(d.nota, 1, 200)) && (!('clienteId' in d) || texto(d.clienteId, 1, 60)) && typeof d.anulado === 'boolean' && esTS(d.en)
       && !!prod && prod.unidad === d.unidad && !!leer('trabajadores/' + d.trabajadorId);
     const activo = cid => { const x = leer('clientes/' + cid); return !!x && x.activo === true; };   // Fase 11
-    if (op === 'create') return valido && (!('clienteId' in d) || activo(d.clienteId)) && d.creadoPor === q.uid && ((gestion && mesAbierto(d.fecha, leer)) || (pesaje && (esHoy(d.fecha, ahora) || esAyer(d.fecha, ahora))));
-    return valido && (!('clienteId' in d) || d.clienteId === (prev.clienteId || '') || activo(d.clienteId)) && d.creadoPor === prev.creadoPor && ((gestion && mesAbierto(prev.fecha, leer) && mesAbierto(d.fecha, leer)) || (pesaje && esHoy(prev.fecha, ahora) && d.fecha === prev.fecha));
+    if (op === 'create') return valido && (!('clienteId' in d) || activo(d.clienteId)) && d.creadoPor === q.uid && ((gestion && mesAbierto(d.fecha, leer)) || (pesaje && (esHoy(d.fecha, ahora) || esAyer(d.fecha, ahora)) && topeTablet(d)));
+    return valido && (!('clienteId' in d) || d.clienteId === (prev.clienteId || '') || activo(d.clienteId)) && d.creadoPor === prev.creadoPor && ((gestion && mesAbierto(prev.fecha, leer) && mesAbierto(d.fecha, leer)) || (pesaje && esHoy(prev.fecha, ahora) && d.fecha === prev.fecha && topeTablet(d)));
   }
   if (col === 'dias') {   // Fase 11: dias/{fecha} (cliente original) o dias/{fecha}_{clienteId} (otro cliente, que debe existir)
     const partes = String(id || '').split('_'), f = partes[0];
@@ -261,7 +266,9 @@ function evaluar(q, op, ruta, d, prev, leer, ahora, tras) {
     if (leerOp) return gestion;
     const K = ['tipo', 'pesajeId', 'fecha', 'antes', 'despues', 'por', 'en'];
     return op === 'create' && acceso && solo(d, K.concat(['quien'])) && todas(d, K) && ['corregir', 'anular', 'reactivar'].includes(d.tipo) && texto(d.pesajeId, 1, 60)
-      && fechaValida(d.fecha) && mapa(d.antes) && mapa(d.despues) && d.por === q.uid && (!('quien' in d) || texto(d.quien, 1, 60)) && esTS(d.en) && (gestion || esHoy(d.fecha, ahora));
+      && fechaValida(d.fecha) && mapa(d.antes) && mapa(d.despues) && Object.keys(d.antes).length <= 12 && Object.keys(d.despues).length <= 12
+      && d.por === q.uid && (!('quien' in d) || texto(d.quien, 1, 60)) && esTS(d.en)
+      && !!leer('pesajes/' + d.pesajeId) && (gestion || (esHoy(d.fecha, ahora) && leer('pesajes/' + d.pesajeId).fecha === d.fecha));   // revisión 25-nov-2026: el canasto existe
   }
   return false;
 }
