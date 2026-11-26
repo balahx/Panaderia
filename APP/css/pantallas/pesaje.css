@@ -1,0 +1,41 @@
+/* Pesaje (tablet, Fase 4). En la panadería la letra va grande (data-escala="grande": los tamaños en em crecen solos).
+   Desde 700 px, el pan a la izquierda y el teclado a la derecha, para no tener que bajar la pantalla. «Para:» de la Fase 11 y
+   la línea del plan en cada botón de pan (Fase 10). */
+.pes-quien { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-4); flex-wrap: wrap; margin: 0 0 var(--esp-5); }
+.pes-quien > span { display: inline-flex; align-items: center; gap: var(--esp-3); font-size: 1.05em; }
+.pes-quien .ic { color: var(--muted); }
+.pes-entrega-h { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-5); flex-wrap: wrap; }
+.pes-entrega-h .eyebrow { margin-bottom: 2px; }
+.pes-n { display: block; font: 700 2em/1 var(--font-display); }
+.pes-entrega small { display: block; color: var(--muted); font-size: var(--letra-apoyo); margin-top: 2px; }
+.pes-entrega .lnk { margin-top: var(--esp-2); }
+.pes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr)); gap: var(--esp-4); }
+.pes-op { min-height: 3.6em; padding: var(--esp-3) var(--esp-5); border-radius: var(--radio-xl); border: 2px solid var(--line-control); background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; justify-content: center; }
+.pes-op b { font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.pes-op small { color: var(--muted); font-size: var(--letra-rotulo); }
+.pes-op[aria-pressed="true"] { border-color: var(--btn); background: var(--gold-bg); box-shadow: inset 0 0 0 2px var(--btn); }
+.pes-display { font: 700 3em/1.1 var(--font-display); text-align: right; padding: var(--esp-4) var(--esp-7); margin: 0 0 var(--esp-4); border-radius: var(--radio-xl); background: var(--surface2); border: 1.5px solid var(--line-control); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pes-teclas { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--esp-3); }
+.pes-tecla { min-height: 3.2em; border-radius: var(--radio-xl); border: 1.5px solid var(--line-control); background: var(--surface); color: var(--ink); font: 700 var(--letra-cifra-m)/1 var(--font-display); cursor: pointer; }
+.pes-tecla:active { background: var(--surface2); }
+.pes-guardar { margin-top: var(--esp-5); }
+#pesTeclado .actions { margin-top: var(--esp-4); }
+#pesTeclado .warn-t { margin: 0 0 var(--esp-4); }
+.pes-fila .pes-hora { flex: none; min-width: 3.2em; color: var(--muted); font-variant-numeric: tabular-nums; font-size: var(--letra-apoyo); }
+.pes-fila .pes-cant { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.pes-fila.anulado .mt b, .pes-fila.anulado .pes-cant { text-decoration: line-through; color: var(--muted); }
+.pes-tot { padding: var(--esp-1) var(--esp-6); }
+.pes-guardar { scroll-margin-bottom: calc(var(--barh, 72px) + 12px); }
+.pes-vacio { display: none; }
+@media (min-width: 700px) {
+  .pes-trabajo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--esp-8); align-items: start; }
+  .pes-trabajo .pes-grid { grid-template-columns: repeat(auto-fill, minmax(8em, 1fr)); }
+  .pes-vacio { display: grid; place-items: center; min-height: 12em; border: 1.5px dashed var(--line-strong); border-radius: var(--radio-2xl); text-align: center; padding: var(--esp-7); }
+  .pes-vacio p { margin: 0; }
+  .pes-tecla { min-height: 2.9em; }
+}
+.pes-op small.pes-plan-l { font-weight: 600; color: var(--ink); }
+.pes-op small.pes-plan-l.est-cumplido { color: var(--ok); }
+.pes-op small.pes-plan-l.est-sobre { color: var(--warn-ink); background: var(--warn-bg); border-radius: var(--radio-xs); padding: 0 var(--esp-1); align-self: flex-start; }
+.pes-para { margin-top: var(--esp-1); }
+.pes-para-b { width: 100%; }

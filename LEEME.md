@@ -48,6 +48,8 @@ node tools/vendor.js        descarga el SDK de Firebase dentro de la app (una ve
 npm run servir              abre la app en http://localhost:5000
 npm test                    todas las pruebas (unos 2 minutos)
 npm run reglas              las reglas contra el emulador de Firebase (necesita Java; también corre en GitHub Actions)
+npm run huella -- huellas/antes      guarda cómo se ve cada pantalla (Fase 13; antes de tocar el CSS)
+npm run comparar -- huellas/antes huellas/despues   qué cambió a la vista después del cambio
 ```
 
 **Publicar una versión:** `npm run funcion` (o `npm run arreglo`) sube la versión, `npm test`, subir a GitHub y esperar el verde de **Actions**, y luego `firebase deploy --only hosting` (más `,firestore:rules` si cambiaron las reglas). Detalle en `GUIA-FIREBASE.md`, paso 12.

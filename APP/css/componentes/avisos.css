@@ -1,0 +1,24 @@
+/* Avisos: sin conexión, actualización (franja, bloque de «Más», punto del engranaje) y franjas con botones (accesos, sin precio,
+   cobros vencidos, respaldo). */
+.netbar { display: flex; align-items: center; gap: var(--esp-4); padding: var(--esp-4) var(--esp-5); margin: 0 0 var(--esp-5); border-radius: var(--radio-l); background: var(--warn-bg); color: var(--warn-ink); font-size: var(--letra-apoyo); line-height: 1.35; }
+.netbar b { display: block; font-size: 1.07em; }
+.netbar .ic { flex: none; }
+.updbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-3) var(--esp-5); padding: var(--esp-4) var(--esp-5); margin: 0 0 var(--esp-5); border-radius: var(--radio-l); background: var(--gold-bg); color: var(--ink); border-left: 3px solid var(--gold); }
+.updbar > div { flex: 1 1 200px; min-width: 0; font-size: var(--letra-apoyo); line-height: 1.35; }
+.updbar b { display: block; font-size: 1.07em; }
+.updbar .btn, .updbar .lnk { flex: none; }
+.upd { display: grid; gap: var(--esp-3); margin: 0 0 var(--esp-6); padding: var(--esp-6); border: 1px solid var(--line); border-radius: var(--radio-xl); background: var(--surface2); }
+.upd p { margin: 0; }
+.upd .btn.block { margin: var(--esp-1) 0 0; }
+.upd-ver { font-weight: 600; color: var(--ink); }
+.upd-ok { color: var(--ok); font-weight: 600; }
+.upd-new { background: var(--gold-bg); padding: var(--esp-4) var(--esp-5); border-radius: var(--radio-m); border-left: 3px solid var(--gold); }
+.ver-line { text-align: center; color: var(--muted); font-size: var(--letra-detalle); margin: var(--esp-8) 0 var(--esp-1); letter-spacing: .02em; }
+[data-upd] #gear::after { content: ""; position: absolute; top: 7px; right: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2px var(--bg); }
+.aviso { display: flex; align-items: center; gap: var(--esp-4); width: 100%; text-align: left; background: var(--warn-bg); color: var(--warn-ink); border: 0; border-radius: var(--radio-l); padding: var(--esp-4) var(--esp-5); margin: 0 0 var(--esp-6); min-height: 48px; font: 600 var(--letra-fila) var(--font-body); cursor: pointer; }
+.aviso span { flex: 1; }
+.aviso .ic { flex: none; width: 20px; height: 20px; }
+.aviso.franja { cursor: default; flex-wrap: wrap; }
+.aviso.franja span:not(.franja-b) { flex: 1 1 14em; }
+.franja-b { display: flex; gap: var(--esp-3); flex: none; margin-left: auto; }
+.franja-b .btn.ghost { color: var(--warn-ink); border-color: currentColor; }

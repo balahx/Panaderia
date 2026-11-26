@@ -1,7 +1,7 @@
 /* Aviso de privacidad (PLAN, Fase 8): breve, en una hoja. Se abre con data-act="privacidad" desde el ingreso, la espera de
    aprobación y «Más» (todos los perfiles, también la tablet). Lo atiende app.js antes de saber si hay sesión.
    Si App Check está configurado (reCAPTCHA de Google), el aviso lo dice y nombra las políticas de Google: es la condición de
-   Google para ocultar la insignia de reCAPTCHA (css/componentes.css, .grecaptcha-badge). */
+   Google para ocultar la insignia de reCAPTCHA (css/pantallas/ayuda.css, .grecaptcha-badge). */
 import { hoja } from '../core/ui.js';
 import * as nube from '../core/nube.js';
 

@@ -44,7 +44,7 @@ Ingreso **solo con cuenta de Google**. Quien ingresa por primera vez envía una 
 13. **Cobros y cotizaciones** (dueños y externo, Fase 12): cobros semanales o mensuales por cliente armados con sus entregas, precios con IVA incluido, descuento sobre el total, PDF para imprimir y compartir, estado pagado o vencido; cotizaciones a posibles clientes.
 
 **Después de la entrega principal:** costos y margen por pan (Fase 9: ingredientes por receta, gastos del mes, simulador de precio); plan de producción diario.
-**Lista de futuros:** insumos (harina, levadura), conexión con balanza, informe para la contadora. **Varios clientes y ventas sueltas:** Fase 11 (planificada el 20-nov-2026). **Cobros y cotizaciones:** Fase 12 (planificada el 21-nov-2026).
+**Lista de futuros:** insumos (harina, levadura), conexión con balanza, informe para la contadora. **Varios clientes y ventas sueltas:** Fase 11 (planificada el 20-nov-2026). **Cobros y cotizaciones:** Fase 12 (planificada el 21-nov-2026). **Pulido de diseño y botones:** Fase 13 (planificada el 25-nov-2026).
 **Descartado:** asistencia de trabajadores, facturación electrónica.
 
 ## 4. Qué se toma de la "app de muestra"
@@ -319,7 +319,7 @@ Planificada el 20-nov-2026 con las respuestas de Felipe (dos rondas de preguntas
 
 **Fuera de la fase:** pedidos de los clientes, plan o metas por cliente, cobros, pagos, guías y facturas por cliente, cambiar el precio en una venta suelta, varios clientes de ventas sueltas y margen por cliente en la pantalla Costos (está en el Excel). Quedan como futuros si hacen falta.
 
-### Fase 12 · Cobros y cotizaciones — chat 13 (desarrollada el 21-nov-2026; falta el paso 27)
+### Fase 12 · Cobros y cotizaciones — chat 13 ✔
 Planificada el 21-nov-2026 con las respuestas de Felipe (`decisiones/fase-12.md`, «Planificación»). Versión de llegada: **0.12.0**. **Solo dueños y externo, que hacen todo** (emitir, marcar pagado, anular con constancia, cotizar); la tablet no ve nada de esto. El cobro es un **documento interno, no tributario**; al pie lleva «Documento de cobro. No válido como factura.». La factura del SII, si se pide, se sigue haciendo aparte y su número se puede anotar en el cobro. Cambia la decisión «sin pagos» (§3): desde esta fase se registran los **abonos** (pagos totales o parciales) y el **saldo pendiente** de cada cobro y de cada cliente (sumado el 21-nov-2026, segunda ronda de preguntas).
 
 **Qué se agrega**
@@ -394,6 +394,54 @@ Planificada el 21-nov-2026 con las respuestas de Felipe (`decisiones/fase-12.md`
 **Listo cuando:** el cobro semanal y el mensual de un cliente dan el mismo neto que Entregas con el filtro de ese cliente en esas fechas, y total = neto − descuento + IVA, con el ajuste de redondeo a la vista; el PDF se abre, se imprime y se comparte (correo y WhatsApp) desde Windows, iPhone y Android; dos equipos no pueden sacar el mismo número; un cobro emitido no cambia y avisa si los canastos cambiaron; con abonos parciales, el saldo de cada cobro y de cada cliente es el mismo en la lista, la ficha del cliente, el PDF, el estado de cuenta y el Excel; un pago de más queda a favor y se aplica al cobro siguiente; vencer y anular se ven en Por cobrar, en la franja y en el Excel; una cotización aceptada crea el cliente con sus precios; la tablet no ve nada de esto; la versión 0.12.0 tiene el Diagnóstico con 0 bloqueos y el emulador en verde.
 
 **Fuera de la fase:** recibo de abono en PDF; factura o boleta electrónica (sigue descartada); enviar correos desde la app sin pasar por Compartir (pediría un servidor, fuera del plan gratuito); recordatorios automáticos al cliente; intereses por atraso; cobros de ventas sueltas o de enero a octubre de 2026; cotizar productos que no están en el catálogo; logo o nombre propio; firma. Quedan como futuros si hacen falta.
+
+### Fase 13 · Pulido de diseño y botones — chats 14 a 17
+Planificada el 25-nov-2026 a partir de la revisión de diseño (chat «Optimización de diseño y botones», solo lectura) y las respuestas de Felipe. **Cuatro partes, cada una en su chat corto**, que suben Z como un arreglo: A → **0.12.1**, B → 0.12.2, C → 0.12.3, D → 0.12.4. No cambia datos, reglas, permisos ni funciones: solo cómo se ve y cómo responde al tocar. Lo decidido y lo hecho en cada parte va en `decisiones/fase-13.md`.
+
+**Decisiones (25-nov-2026)**
+- **Tablet: Samsung Galaxy Tab S6, en horizontal.** Su pantalla equivale a unos **1280 × 800 px** (2560 × 1600 a densidad 2; el tamaño real se confirma en la tablet en la parte C), así que la app usa la **disposición de escritorio** (menú a la izquierda desde 1024 px) con la letra grande del pesaje. La franja de 700 a 1023 px (tablet en vertical) pasa a segundo plano.
+- **Se conserva el engranaje** del encabezado: lleva a Más y marca la actualización pendiente.
+- **«Cerrar entrega» destacado en la tablet** (parte C).
+- **Sin `light-dark()`**: para no dejar fuera equipos antiguos se sigue con el CSS actual. El tema oscuro queda en sus **dos bloques** (el del sistema, `prefers-color-scheme`, y `data-theme="dark"`), y una prueba comprueba que son iguales.
+
+**Lo que encontró la revisión** (resumen): solo las teclas del pesaje responden al toque y el `:hover` de filas y menú queda «pegado» en pantallas táctiles; los bordes de botones secundarios, campos y botones de pan tienen 1,7 a 2,5:1 de contraste (WCAG pide 3:1 para reconocer un control); botones de 44 y 46 px casi iguales y bajo los 48 px recomendables en tablet; muchas acciones importantes como botón secundario (también «Cerrar entrega»); lo deshabilitado solo baja la opacidad; unos 17 tamaños de letra, cinco radios mezclados y nada de espaciado ni sombras comunes; campos (16 px), insignias (12 px) y menú (11,5 px) no crecen con la letra grande; las hojas usan `90vh`; `componentes.css` está ordenado por fase y no por componente. **Se conserva:** áreas seguras, movimiento reducido, foco visible, teclado grande y la política de contenido sin estilos en línea.
+
+**Parte A · Base de diseño, sin cambio visible (chat 14, 0.12.1) ✔** (25-nov-2026: huella igual en las 910 vistas)
+- **Tokens** en `css/tokens.css`, con los **valores de hoy**: radios (`--radio-*`), espacios (`--esp-*`), tamaños de letra con nombre (`--letra-*`; los que no crecen con la letra grande quedan en px a la vista: campo, insignia, menú), alturas táctiles (`--toque` 44 px, `--alto-control` 46 px, `--alto-grande` 56 px), sombras (`--sombra-*`), el fondo detrás de las hojas (`--velo`) y **`--line-control`** (borde de los controles; por ahora igual a `--line-strong`). Así las partes siguientes cambian **el valor de un token** y no cada regla.
+- **Colores solo en `tokens.css`** (también los de sombras y velo).
+- **CSS por componente:** `componentes.css` se reparte en `css/componentes/` (piezas comunes: superficies, campos, hojas, avisos, botones, gráficos) y `css/pantallas/` (lo propio de cada pantalla, como en `js/pantallas/`), en un orden que respeta la cascada de hoy. `index.html` y `sw.js` (`ASSETS`) cargan los archivos nuevos.
+- **Huella de diseño** (`tools/huella.js`): con `PAN_HUELLA=<carpeta>`, `a11y.js` guarda los estilos calculados de cada elemento y una captura de cada vista (también a 800 px y a 1280 × 800, claro y oscuro); `node tools/huella.js antes despues` dice qué cambió, en qué elemento y qué propiedad. Sirve aquí para probar que no cambió nada y en B, C y D para revisar que cambie solo lo buscado.
+- **`tests/diseno-unit.js`** (sin navegador): los dos bloques del tema oscuro son iguales; cada color del tema claro tiene su valor oscuro; cada CSS de `index.html` existe y está en `ASSETS`, y no hay CSS que no se cargue; ningún color fuera de `tokens.css`; toda `var(--x)` está definida; cada archivo de CSS ≤ 300 líneas.
+- **Listo cuando:** la huella antes y después es **igual en todas las vistas** de `a11y.js` (320, 360 claro y oscuro, 390, 800 y 1280 claro y oscuro); `a11y.js`, `csp.js`, `pwa.js`, `rendimiento.js` y el resto de las pruebas en verde; versión 0.12.1.
+
+**Parte B · Botones (chat 15, 0.12.2)**
+- **Tres niveles:** primario (relleno), secundario (borde con contraste) y terciario (enlace). Una acción principal por pantalla u hoja; las demás, secundarias o terciarias.
+- **Un solo tamaño táctil de 48 px** (`--toque` y `--alto-control`); `.btn.sm` se distingue por el relleno y la letra, no por una altura menor.
+- **Estados:** `:active` (se hunde o se oscurece), foco visible, `:hover` solo con `@media (hover: hover)` (también filas y menú) y transición de 120 ms (nada con movimiento reducido).
+- **`--line-control` con 3:1 o más** en claro y oscuro: campos, botones secundarios, botones de pan, teclas, radios y opciones.
+- **Deshabilitado que explica:** junto al botón, qué falta («Elige un pan», «Anota la cantidad»), no solo la opacidad.
+- **Un componente** para ‹ Anterior · Hoy · Siguiente › (Hoy, Entregas, Registro y Números).
+- `a11y.js` revisa además los 48 px y el contraste del borde de los controles.
+- **Listo cuando:** todo control con borde de 3:1 o más en claro y oscuro; ningún botón táctil bajo 48 px; la huella muestra solo los cambios esperados.
+
+**Parte C · Tablet y pesaje (chat 16, 0.12.3)**
+- Para la **Tab S6 en horizontal** (≈ 1280 × 800, menú a la izquierda, letra grande): Pesaje **sin bajar la pantalla**: quién pesa, «Para:», la entrega, los panes, el visor, el teclado y «Guardar canasto» a la vista, con dos columnas que aprovechen el ancho (hoy el contenido llega a 760 px).
+- Campos, insignias y menú en `em` con mínimo de 16 px, para que crezcan con la letra grande.
+- **«Cerrar entrega» destacado:** botón grande en la cabecera de la entrega, a la vista; la confirmación sigue igual.
+- **Confirmación visual al guardar un canasto** (el canasto nuevo se marca un momento en «Pesado hoy»), además del aviso.
+- El Diagnóstico muestra el **tamaño de la pantalla** (ancho × alto en px) para confirmar la tablet real.
+- Tablet en vertical (700 a 1023 px): dos columnas útiles si caben; sin prioridad.
+- Pruebas: `pesaje-e2e.js` y `a11y.js` a 1280 × 800 con letra grande; guardar un canasto en 3 toques o menos.
+- **Listo cuando:** probado en la Tab S6 real en horizontal; el teclado y «Guardar canasto» se ven sin bajar la pantalla; guardar un canasto sigue en 3 toques o menos.
+
+**Parte D · Navegación y pantallas de dueños (chat 17, 0.12.4)**
+- Menú inferior con letra de 12 a 13 px; el engranaje se conserva; en el computador y la tablet, el menú lateral de hoy.
+- Hojas con `dvh` (y `vh` de respaldo para equipos antiguos).
+- **Letra en 4 pasos:** juntar los tamaños casi iguales (.84 y .87 em; .9, .92, .94 y .96 em) cambiando el valor de los tokens.
+- Revisar la densidad de Hoy, Entregas y Cobros y los estados vacíos.
+- **Listo cuando:** revisión a 320 px en claro y oscuro, en un iPhone y en Windows; Diagnóstico con 0 bloqueos.
+
+**Fuera de la fase:** elegir el tema claro u oscuro dentro de la app (sigue al del equipo), cambiar la paleta o el ícono, modo compacto, animaciones más allá de la transición corta.
 
 ## 11. Organización de los chats
 

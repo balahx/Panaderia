@@ -1,0 +1,20 @@
+/* Hojas (paneles desde abajo; centradas en el computador), ventana de confirmación y aviso flotante (toast). */
+dialog { border: 0; padding: 0; background: var(--surface); color: var(--ink); width: 100%; max-width: 560px; margin: auto auto 0; border-radius: var(--radio-hoja) var(--radio-hoja) 0 0; max-height: 90vh; overflow: hidden; }
+dialog[open] { display: flex; flex-direction: column; }
+dialog::backdrop { background: var(--velo); }
+.sheet-h { display: flex; justify-content: space-between; align-items: center; gap: var(--esp-4); padding: var(--esp-5) var(--esp-3) var(--esp-1) var(--esp-8); }
+.sheet-h h2 { margin: 0; overflow-wrap: anywhere; }
+.sheet-h .icon-btn { flex: none; }
+.sheet-b { overflow: auto; padding: var(--esp-2) var(--esp-8) calc(22px + env(safe-area-inset-bottom, 0px)); }
+dialog.cfm { margin: auto; max-width: min(380px, calc(100vw - 32px)); border-radius: var(--radio-hoja); }
+.cfm-in { padding: 22px 20px var(--esp-8); display: grid; gap: var(--esp-4); }
+.cfm-in h2 { margin: 0; }
+.cfm-in p { margin: 0; color: var(--muted); }
+.cfm-b { display: flex; flex-wrap: wrap; gap: var(--esp-4); justify-content: flex-end; margin-top: var(--esp-2); }
+.cfm-b .btn { flex: 1 1 140px; }
+#toast { position: fixed; inset: auto; left: 50%; bottom: calc(var(--barh, 72px) + 14px); margin: 0; border: 0; transform: translateX(-50%); z-index: 40; background: var(--ink); color: var(--bg); padding: var(--esp-4) var(--esp-6); border-radius: var(--radio-l); width: max-content; max-width: min(92vw, 520px); font: 500 var(--letra-nota)/1.3 var(--font-body); box-shadow: var(--sombra-flotante); }
+@media (min-width: 1024px) {
+  dialog { margin: auto; border-radius: var(--radio-hoja); max-width: 520px; }
+  #toast { left: calc(var(--side) + 28px); transform: none; bottom: 24px; }
+}
+.sheet-b .eyebrow { margin-top: var(--esp-8); }

@@ -1,0 +1,15 @@
+/* Ayuda (temas que se abren de a uno) y aviso de privacidad (Fase 8). reCAPTCHA (App Check) pone una insignia fija abajo a la
+   derecha que tapa la barra; Google permite ocultarla si la app muestra su aviso (pantallas/privacidad.js: en el ingreso y en el aviso). */
+.ayuda-lista { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radio-xl); margin: 0 0 var(--esp-6); overflow: hidden; }
+.ayuda { border-bottom: 1px solid var(--line); }
+.ayuda:last-child { border-bottom: 0; }
+.ayuda summary { min-height: 52px; display: flex; align-items: center; gap: var(--esp-4); padding: var(--esp-3) var(--esp-6); cursor: pointer; font-weight: 600; list-style: none; }
+.ayuda summary::-webkit-details-marker { display: none; }
+.ayuda summary::after { content: ""; margin-left: auto; flex: none; width: 9px; height: 9px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.ayuda[open] summary::after { transform: rotate(-135deg); }
+.ayuda-b { padding: 0 var(--esp-6) var(--esp-5); }
+.ayuda-b ol, .priv ul { margin: var(--esp-1) 0 var(--esp-4); padding-left: 1.3em; }
+.ayuda-b li, .priv li { margin: 0 0 var(--esp-2); }
+.priv-t { font: 600 1em/1.3 var(--font-body); margin: var(--esp-7) 0 var(--esp-1); }
+.priv a.lnk, .legal a.lnk { color: inherit; }
+.grecaptcha-badge { visibility: hidden; }

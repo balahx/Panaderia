@@ -1,0 +1,25 @@
+/* Plan de producción del día (Fase 10): cada pan con su plan, lo pesado, el % y lo que falta. Verde desde 95 % («cumplido»),
+   aviso sobre 110 % («sobre el plan»): el estado va siempre en palabras, el color solo acompaña. En la tablet, con letra grande. */
+.plan-h { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-4); flex-wrap: wrap; margin: 0 0 var(--esp-3); }
+.plan-h h2 { margin: 0; }
+.plan-lista { display: grid; gap: 0; }
+.plan-f { padding: var(--esp-4) 0; border-bottom: 1px solid var(--line); }
+.plan-f:last-child { border-bottom: 0; }
+.plan-l { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); }
+.plan-l b { font-weight: 600; overflow-wrap: anywhere; }
+.plan-l .badge { flex: none; }
+.plan-n { display: flex; flex-wrap: wrap; gap: 2px var(--esp-6); color: var(--muted); font-size: .92em; margin-top: 2px; }
+.plan-n b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.plan-pct { margin-left: auto; font: 700 1.1em/1.2 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.plan-falta { margin: var(--esp-1) 0 0; font-weight: 600; }
+.est-cumplido .plan-falta { color: var(--ok); }
+.est-sobre .plan-falta { color: var(--warn-ink); background: var(--warn-bg); display: inline-block; padding: 2px var(--esp-3); border-radius: var(--radio-s); }
+.barra.sobre .barra-valor { fill: var(--warn-ink); }
+.plan-fuera-t { margin: var(--esp-6) 0 var(--esp-1); }
+.plan-tot { margin-top: var(--esp-4); background: var(--surface2); border-radius: var(--radio-m); }
+.plan-man { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-4); flex-wrap: wrap; margin-top: var(--esp-5); padding-top: var(--esp-4); border-top: 1px solid var(--line); }
+.plan-campo { margin: 0 0 var(--esp-1); }
+.plan-campo .lab .muted { font-weight: 400; }
+.plan-info { margin: var(--esp-1) 0 var(--esp-4); min-height: 1.2em; }
+.pes-plan { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radio-2xl); padding: var(--esp-5) var(--esp-6); }
+.pes-plan h2 { margin-top: 0; }

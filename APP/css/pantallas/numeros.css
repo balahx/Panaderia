@@ -1,0 +1,11 @@
+/* Números (Fase 7): variaciones, comparaciones, el año y la proyección. */
+.var { white-space: nowrap; font-weight: 600; }
+.var.sube { color: var(--ok); }
+.var.baja { color: var(--bad); }
+.comp + .comp { margin-top: var(--esp-2); }
+.comp .reg-dia { margin-top: var(--esp-4); }
+.ind-pan .mt small .var { font-size: 1em; }
+.anio-fila .mt small + small { margin-top: 1px; }
+.py-panes { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5em, 1fr)); gap: 0 var(--esp-5); }
+.py-pan .lab { overflow-wrap: anywhere; }
+#pyVista { margin: var(--esp-7) 0 var(--esp-1); }

@@ -1,0 +1,18 @@
+/* Campos y formularios: texto, etiquetas, error del formulario, radios, casillas, archivo, dos columnas (.dos) y el filtro «Cliente». */
+.txt { width: 100%; min-height: var(--alto-control); border: 1.5px solid var(--line-control); border-radius: var(--radio-m); background: var(--surface2); color: var(--ink); font: 500 var(--letra-campo) var(--font-body); padding: 0 var(--esp-5); }
+.txt:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
+.lab { display: block; font: 600 var(--letra-pie) var(--font-body); color: var(--muted); margin: var(--esp-5) 0 var(--esp-1); }
+.form-error { color: var(--bad); font-weight: 600; font-size: var(--letra-nota); margin: var(--esp-4) 0 0; }
+.radios { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--esp-3); }
+.radios legend { padding: 0; width: 100%; }
+.radio { flex: 1 1 130px; display: flex; align-items: center; gap: var(--esp-4); min-height: var(--alto-control); padding: 0 var(--esp-5); border: 1.5px solid var(--line-control); border-radius: var(--radio-m); background: var(--surface2); cursor: pointer; font-weight: 500; }
+.radio input { width: 20px; height: 20px; margin: 0; accent-color: var(--btn); flex: none; }
+.radio:has(input:checked) { border-color: var(--btn); }
+.txt + .muted { margin-top: var(--esp-2); }
+.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5em, 1fr)); gap: 0 var(--esp-5); }
+.txt.archivo { padding: var(--esp-3) var(--esp-4); min-height: 48px; }
+.txt.archivo::file-selector-button { min-height: 32px; margin-right: var(--esp-4); padding: var(--esp-1) var(--esp-5); border: 1px solid var(--line-control); border-radius: var(--radio-m); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.check { display: flex; align-items: flex-start; gap: var(--esp-4); min-height: var(--toque); padding: var(--esp-3) 0; cursor: pointer; }
+.check input { flex: none; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--gold); }
+.filtro-cliente { margin: 0 0 var(--esp-5); }
+.filtro-cliente .txt { max-width: 26rem; }

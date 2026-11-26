@@ -1,0 +1,19 @@
+/* Ingreso, pantallas de espera (estado-ic) y Accesos (.persona). */
+.gate { padding-block: 28px 40px; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; }
+.gate .hero { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 0 0 26px; }
+.gate .hero .mk { width: 112px; height: 112px; border-radius: 28px; }
+.gate .hero .mk .ic { width: 68px; height: 68px; stroke-width: 1.5; }
+.gate .hero .nm { font: 700 52px/1 var(--font-display); letter-spacing: .06em; text-transform: uppercase; margin-top: var(--esp-6); }
+.gate .hero .sl { font: 600 15px/1.3 var(--font-body); color: var(--gold-ink); margin-top: var(--esp-2); }
+.gate .lead { color: var(--muted); margin: 0 0 var(--esp-8); text-align: center; }
+.gate .card { max-width: 420px; width: 100%; margin-inline: auto; }
+.gate .legal { color: var(--muted); font-size: var(--letra-pie); text-align: center; margin: var(--esp-6) auto 0; max-width: 46ch; }
+.persona { display: flex; align-items: center; gap: var(--esp-5); padding: var(--esp-4) var(--esp-6); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.persona:last-child { border-bottom: 0; }
+.persona .who { flex: 1 1 150px; min-width: 0; }
+.persona .who b { display: block; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.persona .who small { display: block; color: var(--muted); font-size: var(--letra-detalle); overflow-wrap: anywhere; }
+.persona-b { display: flex; align-items: center; gap: var(--esp-3); flex-wrap: wrap; }
+.estado-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; margin: var(--esp-1) auto var(--esp-5); background: var(--ok); color: var(--on-ok); }
+.estado-ic .ic { width: 28px; height: 28px; }
+.gate .legal b { overflow-wrap: anywhere; }

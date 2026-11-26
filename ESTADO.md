@@ -19,14 +19,17 @@
 | 10 | Plan de producción diario | 11 | ✔ Hecha. Paso 25 verificado por Felipe (20-nov-2026): las 6 casillas (sugerencia = cálculo a mano, «falta» y % cuadran con Pesado hoy, verde desde 95 % y aviso sobre 110 %, tablet con el plan de hoy y sin el de mañana, plan de mañana y día pasado solo lectura), Diagnóstico con 0 bloqueos y versión 0.10.0, emulador en verde |
 | 11 | Varios clientes y ventas sueltas | 12 | ✔ Hecha. Paso 26 verificado por Felipe (21-nov-2026): las 6 casillas, Diagnóstico con 0 bloqueos y versión 0.11.0, emulador en verde |
 | 12 | Cobros y cotizaciones | 13 | ✔ Hecha. Paso 27 verificado por Felipe (24-nov-2026): las 7 casillas (neto del cobro semanal y mensual = Entregas con el filtro del cliente, PDF abierto, impreso y compartido en Windows, iPhone y Android, saldo igual en lista, ficha, PDF, estado de cuenta y Excel, saldo a favor aplicado al cobro siguiente, franja de vencidos y anulación, cotización → cliente con precios, tablet sin cobros), Diagnóstico con 0 bloqueos y versión 0.12.0, emulador en verde con los 481 casos |
+| 13 | Pulido de diseño y botones, en cuatro partes (PLAN «Fase 13») | 14 a 17 | **Parte A hecha** (25-nov-2026, chat 14): base de diseño sin cambio a la vista, versión 0.12.1. Faltan B (botones), C (tablet y pesaje) y D (navegación y pantallas de dueños) |
 
-Versión de la app: **0.12.0** (caché 2026.11.21.2) · 34 pruebas, todas bien (21-nov-2026, con Firebase, Google y Firestore simulados) · 518 casos de reglas (481 al cerrar la Fase 12, el emulador en verde el 24-nov-2026; 37 nuevos de la revisión del 25-nov-2026, **aún sin correr en el emulador**)
+Versión de la app: **0.12.1** (caché 2026.11.25.1) · 35 pruebas, todas bien (25-nov-2026, con Firebase, Google y Firestore simulados) · 518 casos de reglas (481 al cerrar la Fase 12; con los 37 nuevos de la revisión del 25-nov-2026, el emulador en verde el 25-nov-2026 y publicada ese día)
 
 ## Qué sigue
 
-**Primero: la revisión de reglas del 25-nov-2026** (`decisiones/revision-reglas-2026-11.md`): ya está escrita y probada contra la copia a mano, pero **faltan `npm test` (pruebas con navegador) y el emulador en verde (GitHub Actions o `npm run reglas`) antes de publicar**; luego `firebase deploy --only firestore:rules` y verificar (dueño entra en teléfono y computador, la tablet pesa, corrige y cierra entrega, Diagnóstico con 0 bloqueos). La app no cambia: sigue en 0.12.0.
+**Fase 13 · Pulido de diseño y botones** (planificada el 25-nov-2026; lo decidido, en `decisiones/fase-13.md`). **Parte A hecha** (0.12.1): fichas de diseño en `tokens.css`, el CSS repartido en `css/componentes/` y `css/pantallas/`, la huella de diseño (`npm run huella` y `npm run comparar`) y `tests/diseno-unit.js`; la huella antes y después es igual. **Por hacer con la 0.12.1:** `npm test`, subir a GitHub, esperar el verde y `firebase deploy --only hosting`; en un equipo, revisar que todo se ve igual que antes (Más → Diagnóstico con versión 0.12.1). **Siguiente: parte B · Botones** (0.12.2), con el texto de abajo.
 
-Las fases 0 a 12 del plan están cerradas (la 12 verificada el 24-nov-2026; lo decidido, en `decisiones/fase-12.md`). Queda: **cerrar noviembre** desde Entregas a partir del 1 de diciembre (el primer cierre con líneas por cliente), emitir los cobros de cada semana o mes y, cuando se quiera, un futuro nuevo (hoja de insumos del día, balanza, plan en el Excel, cumplimiento del mes en Números, recibo de abono en PDF), en su propio chat y con preguntas primero.
+Sigue pendiente, aparte: **cerrar noviembre** desde Entregas a partir del 1 de diciembre (el primer cierre con líneas por cliente) y emitir los cobros de cada semana o mes. Futuros posibles, cada uno en su chat y con preguntas primero: hoja de insumos del día, balanza, plan en el Excel, cumplimiento del mes en Números, recibo de abono en PDF.
+
+La revisión de reglas del 25-nov-2026 (`decisiones/revision-reglas-2026-11.md`) quedó publicada ese día; las fases 0 a 12 están cerradas.
 
 ## Decisiones generales
 
@@ -43,6 +46,7 @@ Las fases 0 a 12 del plan están cerradas (la 12 verificada el 24-nov-2026; lo d
 - Sincronización con la caché sin conexión propia de Firestore (confirmado; no se usa `sync.js` ni `reads.js` de la muestra).
 - Los dueños crean el catálogo en la app, con precios; el precio es interno (dueños y externo).
 - Sin compilación; SDK y Excel alojados en la app; un archivo por pantalla (≤ ~300 líneas).
+- Diseño (Fase 13): colores y escalas (letra, espacios, radios, alturas, sombras) solo en `css/tokens.css`; el tema oscuro en dos bloques iguales (sin `light-dark()`); CSS por pieza común y por pantalla; la tablet es una Samsung Galaxy Tab S6 en horizontal.
 - Seguridad de la auditoría aplicada desde el inicio (PLAN §9).
 - Commits y PR: autor Felipe González con su correo, sin coautoría, sin Claude-Session ni enlace de sesión.
 - Carpetas: app en `APP\`; `privado\` y `app de muestra\` fuera del repositorio.
@@ -65,13 +69,14 @@ Las fases 0 a 12 del plan están cerradas (la 12 verificada el 24-nov-2026; lo d
 | `decisiones/fase-10.md` | Fase 10 · Plan de producción diario |
 | `decisiones/fase-11.md` | Fase 11 · Varios clientes y ventas sueltas |
 | `decisiones/fase-12.md` | Fase 12 · Cobros y cotizaciones |
+| `decisiones/fase-13.md` | Fase 13 · Pulido de diseño y botones (planificación y cada parte) |
 | `decisiones/revision-reglas-2026-11.md` | Revisión de reglas (25-nov-2026): sesión solo de Google, bitácora, fechas, mes terminado y tope de la tablet; y lo que quedó por decidir |
 
 **Al cerrar una fase o un arreglo:** lo decidido va en el `decisiones/fase-NN.md` de esa fase (uno nuevo si es fase nueva); aquí solo se actualizan Avance, Qué sigue y Pendientes; los archivos nuevos o cambiados van en `MAPA.md`.
 
 ## Pendientes de información (PLAN §13)
 
-- Revisión de reglas (25-nov-2026): correr el emulador y publicar (ver «Qué sigue»). Por decidir, sin aplicar: congelar costos de meses cerrados, cerrar la lectura de `config/negocio`, y activar la verificación en dos pasos en las cuentas de Google (dueños, externo y tablet).
+- Revisión de reglas (25-nov-2026): ya publicada. Por decidir, sin aplicar: congelar costos de meses cerrados, cerrar la lectura de `config/negocio`, y activar la verificación en dos pasos en las cuentas de Google (dueños, externo y tablet).
 - Opcional: cifras del Diagnóstico de la tablet («Apertura de la app» y «Pantalla más lenta»). En el paso 23 se marcaron sin anotar los números.
 - Noviembre de 2026 se cierra desde Entregas a partir del 1 de diciembre; con noviembre y diciembre cerrados se puede proyectar todo 2027.
 - «Ajustes» del plan (§8) aún no existe como pantalla: el IVA quedó dentro de Catálogo → Clientes e IVA.
@@ -79,6 +84,14 @@ Las fases 0 a 12 del plan están cerradas (la 12 verificada el 24-nov-2026; lo d
 - `Privado/Guia-familia-Panaderia.pdf` es de la versión anterior: la guía actualizada está en `GUIA-FAMILIA.md` y en la app (Más → Ayuda).
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
+
+Para la parte siguiente de la Fase 13 (B; después, cambiando la letra y el nombre, C y D):
+```
+Proyecto App Panadería, Fase 13 · Pulido de diseño y botones, parte B (botones).
+Lee D:\APP Panaderia\ESTADO.md, MAPA.md, decisiones/fase-13.md y de PLAN.md solo «Fase 13».
+Toma la huella antes de cambiar nada (npm run huella), desarrolla solo la parte B, compara la huella al final,
+prueba, sube la versión (Z) y deja ESTADO.md actualizado.
+```
 
 Para un arreglo:
 ```

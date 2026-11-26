@@ -8,6 +8,7 @@ serviceAccount*.json
 *.pem
 *.key
 tests/shots/
+huellas/
 node_modules/
 
 # Archivos locales de Firebase y del sistema

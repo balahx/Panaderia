@@ -21,7 +21,7 @@ const pngSize = f => { const b = fs.readFileSync(f); return b.toString('ascii', 
   await page.reload(); await page.waitForSelector('#btnGoogle');   // ya controlado por el service worker
   ok(!!(await page.evaluate(() => navigator.serviceWorker.controller)), 'el service worker controla la página');
   const cached = await page.evaluate(async () => (await (await caches.open('panaderia-' + window.PAN_VERSION.v)).keys()).map(r => new URL(r.url).pathname));
-  ok(['/index.html', '/js/app.js', '/js/core/nube.js', '/js/core/acceso.js', '/js/pantallas/ingreso.js', '/css/tokens.css', '/css/base.css', '/css/componentes.css', '/firebase-config.js', '/version.js', '/guard.js', '/manifest.webmanifest', '/vendor/firebase/firebase-app.js', '/vendor/firebase/firebase-auth.js'].every(p => cached.includes(p)), 'archivos en caché (incluido el SDK local): ' + cached.length);
+  ok(['/index.html', '/js/app.js', '/js/core/nube.js', '/js/core/acceso.js', '/js/pantallas/ingreso.js', '/css/tokens.css', '/css/base.css', '/css/componentes/botones.css', '/css/pantallas/pesaje.css', '/firebase-config.js', '/version.js', '/guard.js', '/manifest.webmanifest', '/vendor/firebase/firebase-app.js', '/vendor/firebase/firebase-auth.js'].every(p => cached.includes(p)), 'archivos en caché (incluido el SDK local): ' + cached.length);
   await ctx.setOffline(true);
   await page.reload(); await page.waitForSelector('#btnGoogle');
   ok(true, 'sin conexión y sin sesión, la app abre desde la caché');

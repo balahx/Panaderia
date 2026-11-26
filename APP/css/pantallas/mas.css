@@ -1,0 +1,8 @@
+/* «Más»: cabecera de la cuenta y grupos. */
+.av { width: 46px; height: 46px; border-radius: 50%; background: var(--btn); color: var(--btn-ink); display: grid; place-items: center; font: 700 20px/1 var(--font-display); letter-spacing: .04em; flex: none; }
+.more-head { display: flex; align-items: center; gap: var(--esp-5); }
+.more-head .who { flex: 1; min-width: 0; }
+.more-head .who b { display: block; font-size: 1.13em; line-height: 1.2; overflow-wrap: anywhere; }
+.more-head .who small { color: var(--muted); font-size: var(--letra-detalle); overflow-wrap: anywhere; }
+.more-head .badge { flex: none; }
+.mas-grupo { margin: var(--esp-8) 0 var(--esp-2); }

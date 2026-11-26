@@ -7,22 +7,22 @@
 @font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-style: normal; font-display: swap; src: url('../fonts/BarlowCondensed-Bold.woff') format('woff'); }
 
 /* Paleta cálida «Panadería»: crema de miga, café de corteza y dorado de horno. Claro y oscuro con la misma estructura.
-   --fs es la base de la letra: la pantalla de pesaje (Fase 4) la sube con [data-escala="grande"]. */
+   Los colores de la app se escriben SOLO aquí (lo revisa tests/diseno-unit.js).
+   --line-control (Fase 13): borde de campos, botones secundarios, botones de pan y teclas; hoy igual a --line-strong (la parte B lo sube a 3:1). */
 :root {
   --bg: #FAF5EC; --surface: #FFFDF8; --surface2: #F3EADB; --ink: #2E2018; --muted: #6B5645;
-  --line: #E6D9C4; --line-strong: #C7B292; --btn: #8A4B1E; --btn-ink: #FFFFFF;
+  --line: #E6D9C4; --line-strong: #C7B292; --line-control: #C7B292; --btn: #8A4B1E; --btn-ink: #FFFFFF;
   --focus: #8A4B1E; --ok: #2F6B3F; --on-ok: #FFFFFF; --bad: #B4372A; --on-bad: #FFFFFF;
   --gold: #B5791F; --gold-ink: #7A4F0C; --gold-bg: #F8EBCF;
   --warn-bg: #FFEFC2; --warn-ink: #5E4200;
-  --fs: 15px;
-  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
-  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
-:root[data-escala="grande"] { --fs: 19px; }
+/* Tema oscuro: el mismo bloque dos veces, porque sin light-dark() (decisión de la Fase 13, para equipos antiguos) no hay forma de
+   escribirlo una sola vez para el sistema y para data-theme="dark". Si se cambia uno, se cambia el otro: tests/diseno-unit.js
+   comprueba que son iguales y que tienen los mismos colores que el claro. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #1C1410; --surface: #281D17; --surface2: #34261E; --ink: #F6EDE2; --muted: #CDB9A5;
-    --line: #45342A; --line-strong: #6A503F; --btn: #D99455; --btn-ink: #20120A;
+    --line: #45342A; --line-strong: #6A503F; --line-control: #6A503F; --btn: #D99455; --btn-ink: #20120A;
     --focus: #F0B27A; --ok: #6CC38C; --on-ok: #06210F; --bad: #FF8273; --on-bad: #2A0A06;
     --gold: #E5B25A; --gold-ink: #E5B25A; --gold-bg: #3A2C17;
     --warn-bg: #3A2D08; --warn-ink: #F3D58A;
@@ -31,9 +31,47 @@
 }
 :root[data-theme="dark"] {
   --bg: #1C1410; --surface: #281D17; --surface2: #34261E; --ink: #F6EDE2; --muted: #CDB9A5;
-  --line: #45342A; --line-strong: #6A503F; --btn: #D99455; --btn-ink: #20120A;
+  --line: #45342A; --line-strong: #6A503F; --line-control: #6A503F; --btn: #D99455; --btn-ink: #20120A;
   --focus: #F0B27A; --ok: #6CC38C; --on-ok: #06210F; --bad: #FF8273; --on-bad: #2A0A06;
   --gold: #E5B25A; --gold-ink: #E5B25A; --gold-bg: #3A2C17;
   --warn-bg: #3A2D08; --warn-ink: #F3D58A;
   color-scheme: dark;
 }
+
+/* Escalas de diseño (Fase 13, parte A), iguales en claro y oscuro. Tienen los valores de antes (nada cambió a la vista): las partes
+   siguientes cambian el valor del token y no cada regla. Lo que no calza en una escala queda escrito en su regla.
+   --fs es la base de la letra: la pantalla de pesaje (Fase 4) la sube con [data-escala="grande"] y lo que va en em crece con ella. */
+:root {
+  --fs: 15px;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Letra, de menor a mayor (em: relativa a la letra de alrededor). La parte D junta los pasos casi iguales. */
+  --letra-rotulo: .8em;     /* rótulos en mayúsculas (.eyebrow), línea chica de los botones de pan */
+  --letra-detalle: .84em;   /* segunda línea de las filas y fichas */
+  --letra-pie: .87em;       /* etiquetas de campos, textos al pie, leyendas */
+  --letra-apoyo: .9em;      /* textos de apoyo, botón chico, segmentos */
+  --letra-nota: .94em;      /* notas, avisos, enlaces */
+  --letra-fila: .96em;      /* filas clave-valor, franjas */
+  --letra-cifra-m: 1.6em;   /* h2, teclas del pesaje, cifras medianas */
+  --letra-cifra: 1.9em;     /* cifras destacadas (precio de hoy, totales) */
+  /* En px: no crecen con la letra grande (la parte C los pasa a em) */
+  --letra-campo: 16px;      /* campos (16 px evita que el iPhone agrande la página al escribir) */
+  --letra-insignia: 12px;
+  --letra-menu: 11.5px;     /* menú inferior */
+  --letra-menu-lateral: 15px;   /* menú lateral (computador y tablet en horizontal) */
+  /* Espacios */
+  --esp-1: 4px; --esp-2: 6px; --esp-3: 8px; --esp-4: 10px; --esp-5: 12px; --esp-6: 14px; --esp-7: 16px; --esp-8: 18px;
+  /* Radios */
+  --radio-xs: 6px; --radio-s: 8px; --radio-m: 10px; --radio-l: 12px; --radio-xl: 14px; --radio-2xl: 16px; --radio-hoja: 18px; --radio-pildora: 99px;
+  /* Alturas táctiles (la parte B las lleva a 48 px) */
+  --toque: 44px;            /* lo mínimo que se puede tocar: enlaces, segmentos, botón chico, botón de ícono */
+  --alto-control: 46px;     /* botones y campos */
+  --alto-grande: 56px;      /* botón grande (.btn.lg) */
+  --alto-fila: 56px;        /* filas de las listas (.mrow) */
+  /* Sombras */
+  --sombra-flotante: 0 6px 24px rgba(0, 0, 0, .28);   /* aviso flotante (toast) */
+  --sombra-elegido: 0 1px 3px rgba(0, 0, 0, .14);     /* segmento elegido */
+}
+:root[data-escala="grande"] { --fs: 19px; }
+/* Velo detrás de las hojas. Va en ::backdrop porque en Chrome anterior al 122 el fondo de un dialog no hereda variables de :root. */
+::backdrop { --velo: rgba(28, 16, 8, .55); }

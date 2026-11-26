@@ -1,0 +1,16 @@
+/* Hoy, Entregas y Registro general: entregas con sus canastos, días del mes, filtros, bitácora y clientes. */
+.entrega-h { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-4); margin: 0 0 2px; }
+.entrega-h b { font: 700 1.35em/1.1 var(--font-display); }
+.entrega details { margin-top: var(--esp-3); }
+.entrega summary { min-height: var(--toque); display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+.entrega details .mlist { margin: var(--esp-2) 0 0; }
+.ent-dia .entrega-h b { font-size: 1.15em; }
+.ent-monto { font: 700 1.1em/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.ent-dia .mlist { margin: var(--esp-3) 0 0; }
+.ent-dia .actions { margin-top: var(--esp-4); }
+.filtros .seg { margin: var(--esp-6) 0 0; }
+.reg-dia { font: 600 .95em var(--font-body); color: var(--muted); margin: var(--esp-7) 0 var(--esp-2); }
+.mrow.cambio .mt small + small { margin-top: 2px; }
+.mrow.cambio:disabled { cursor: default; opacity: 1; }
+#hoyAnotar .ic { width: 18px; height: 18px; }
+.hoy-cli { margin-top: var(--esp-8); }

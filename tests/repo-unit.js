@@ -3,7 +3,7 @@
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const ROOT = path.resolve(__dirname, '..');
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + m); };
-const FUERA = new Set(['.git', 'node_modules', 'privado', 'app de muestra', '.firebase']);
+const FUERA = new Set(['.git', 'node_modules', 'privado', 'app de muestra', '.firebase', 'huellas']);   // huellas/: tools/huella.js (Fase 13)
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => FUERA.has(e.name) ? [] : e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
 const rel = f => path.relative(ROOT, f).split(path.sep).join('/');
 const files = walk(ROOT), texto = f => /\.(js|json|md|css|html|yml|yaml|rules|webmanifest|txt|svg)$|(^|\/)\.[a-z]+$/.test(rel(f)) ? fs.readFileSync(f, 'utf8') : '';
@@ -22,7 +22,7 @@ ok(hall.length === 0, 'ningún archivo trae claves privadas, tokens ni correos r
 
 console.log('2. .gitignore');
 const gi = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8').split(/\r?\n/).map(x => x.trim());
-const falta = ['privado/', 'app de muestra/', '.env*', 'serviceAccount*.json', '*adminsdk*.json', '*.pem', '*.key', 'tests/shots/', 'node_modules/'].filter(x => !gi.includes(x));
+const falta = ['privado/', 'app de muestra/', '.env*', 'serviceAccount*.json', '*adminsdk*.json', '*.pem', '*.key', 'tests/shots/', 'huellas/', 'node_modules/'].filter(x => !gi.includes(x));
 ok(falta.length === 0, '.gitignore excluye lo privado y las claves' + (falta.length ? ' · falta: ' + falta.join(', ') : ''));
 
 console.log('3. Integración continua');

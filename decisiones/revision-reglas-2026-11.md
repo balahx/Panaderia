@@ -2,7 +2,7 @@
 
 Revisión pedida por Felipe sobre `firestore.rules` (versión de la app 0.12.0). **Solo cambian reglas y pruebas: la app no se toca ni se sube de versión.** Se publica con `firebase deploy --only firestore:rules`.
 
-Estado: **escrito y probado contra la copia a mano** (`tests/reglas-unit.js`, 0 fallas). **Falta correrlo contra el emulador** (GitHub Actions o `npm run reglas`): ese es el único que ejecuta las reglas reales. No publicar antes de que esté en verde.
+Estado: **publicada el 25-nov-2026** con `firebase deploy --only firestore:rules`. Felipe revisó la app después de publicar y todo funciona. Antes de publicar, `reglas-unit.js` pasó contra la copia a mano; en GitHub Actions falló una vez `cobros-e2e.js` (prueba 11, un clic que esperó 30 s); no se repitió al correrlo de nuevo en otro entorno y se tomó como falla puntual. Al volver a correr, GitHub Actions quedó en verde, con el emulador y los 518 casos.
 
 ## Qué cambió
 
@@ -29,7 +29,7 @@ Los topes (200 y 2000) los puse yo como red de seguridad: se cambian en `topeTab
 - **Comprobado:** `reglas-unit.js` pasa de 507 a 554 comprobaciones, 0 fallas (las 47 nuevas: 37 casos, 4 de reloj y 6 de texto de las reglas); 27 de los 37 casos nuevos fallan contra la copia a mano anterior (detectan el cambio, el resto ya estaba rechazado por otra regla). Las otras seis pruebas unitarias dan lo mismo que antes, todas en verde.
 - **No comprobado:** (1) las reglas REALES con el emulador de Firestore (no había emulador ni red donde se hizo el cambio): hay que correrlo; (2) las pruebas con navegador (`npm test`, los `*-e2e.js`), que usan la copia a mano y el usuario falso de `firebase-firestore.js`; el cambio no debería afectarlas, pero hay que correrlas.
 
-## Antes de publicar
+## Cómo se publicó (y cómo volver atrás)
 
 1. Correr `npm test` (con navegador) y subir los cambios; esperar el emulador en verde en GitHub Actions (o `npm run reglas` con Java).
 2. Publicar solo reglas: `firebase deploy --only firestore:rules`.

@@ -14,9 +14,12 @@
    Fase 12: Cobros (lista con la franja de vencidos, nuevo cobro con vista previa y con error, la ficha vencida, abonada y anulada, factura,
    anular, pagar saldo), abonos (nuevo con error, ficha, cambiar reparto), estado de cuenta, cotizaciones (lista, nueva con error, ficha,
    crear cliente), datos para documentos (con error) y la ficha del cliente con «Por cobrar» y sus datos de cobro.
+   Fase 13: con --huella <carpeta> (o PAN_HUELLA=<carpeta>) guarda además la huella de cada vista (estilos calculados y captura) y recorre también 800 y 1280 px;
+   tools/huella.js compara dos huellas (lo que se ve antes y después de un cambio de CSS).
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
 const { crear } = require('../tools/servidor.js'), { fakeGoogle } = require('./fake-firebase/google.js');
+const HUELLA = process.argv.includes('--huella') ? process.argv[process.argv.indexOf('--huella') + 1] : process.env.PAN_HUELLA, huella = require('../tools/huella.js');   // Fase 13: huella de diseño (ver tools/huella.js)
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + m); };
 const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', iva: 19 },
   'solicitudes/u-7': { nombre: 'Persona Con Un Nombre Bastante Largo', correo: 'persona.con.un.correo.largo@example.com', creado: 1794600000000 },
@@ -86,9 +89,11 @@ const CHECK = () => {
 
 (async () => {
   const br = await chromium.launch(), srv = crear({ fake: true }), URL = await srv.abrir(), errors = [];
-  for (const [w, scheme] of [[320, 'light'], [360, 'light'], [360, 'dark'], [390, 'light']]) {   // 320 px (Fase 8): equivale a ampliar al 400 % (WCAG, «reflow»)
+  const PANTALLAS = [[320, 'light'], [360, 'light'], [360, 'dark'], [390, 'light']];   // 320 px (Fase 8): equivale a ampliar al 400 % (WCAG, «reflow»)
+  if (HUELLA) PANTALLAS.push([800, 'light'], [1280, 'light'], [1280, 'dark']);   // Fase 13: con la huella, también la tablet en vertical y la Tab S6 en horizontal
+  for (const [w, scheme] of PANTALLAS) {
     console.log('Pantalla de ' + w + ' px · ' + (scheme === 'dark' ? 'oscuro' : 'claro'));
-    const ctx = await br.newContext({ viewport: { width: w, height: 780 }, serviceWorkers: 'block', colorScheme: scheme }), page = await ctx.newPage();
+    const ctx = await br.newContext({ viewport: { width: w, height: w >= 1024 ? 800 : 780 }, serviceWorkers: 'block', colorScheme: scheme }), page = await ctx.newPage();
     page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/net::ERR/.test(m.text())) errors.push(m.text()); });
     const bad = {}, note = (label, r) => {
       const issues = [];
@@ -98,7 +103,7 @@ const CHECK = () => {
       if (issues.length) bad[label] = issues;
     };
     let vistas = 0;
-    const look = async label => { vistas++; await page.waitForTimeout(200); note(label, await page.evaluate(CHECK)); };
+    const look = async label => { vistas++; await page.waitForTimeout(200); note(label, await page.evaluate(CHECK)); if (HUELLA) await huella.guardar(HUELLA, w + '-' + scheme, vistas, label, page); };
     const tocar = sel => page.click(sel), cerrar = async () => { await page.keyboard.press('Escape'); await page.waitForSelector('#dlg:not([open])', { state: 'attached' }); };
     const hoja = async (label, sel, espera) => { await tocar(sel); await page.waitForSelector('#dlg[open] ' + espera); await look(label); };
     const sub = async s => { await tocar('.seg [data-sub="' + s + '"]'); await page.waitForSelector('#catCuerpo[data-sub="' + s + '"]'); };

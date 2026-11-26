@@ -1,0 +1,4 @@
+/* Costos y margen (Fase 9): gastos del mes y filas de la receta. */
+.gasto-f { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: var(--esp-3); margin: 0 0 var(--esp-3); }
+.gasto-f .txt { margin: 0; }
+.rec-f .lab .muted { font-weight: 400; }

@@ -5,7 +5,9 @@ const CACHE = 'panaderia-' + self.PAN_VERSION.v;
 const NET_WAIT = 3000, NET_WAIT_SLOW = 0;   // ms que se espera a la red antes de abrir desde la copia guardada (menos si la red ya falló hace poco)
 let slowUntil = 0;
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './version.js', './guard.js', './firebase-config.js',
-  './css/tokens.css', './css/base.css', './css/componentes.css',
+  './css/tokens.css', './css/base.css',
+  './css/componentes/superficies.css', './css/componentes/campos.css', './css/componentes/hojas.css', './css/componentes/avisos.css', './css/componentes/botones.css', './css/componentes/graficos.css',
+  './css/pantallas/ingreso.css', './css/pantallas/mas.css', './css/pantallas/pesaje.css', './css/pantallas/hoy.css', './css/pantallas/cierres.css', './css/pantallas/numeros.css', './css/pantallas/ayuda.css', './css/pantallas/costos.css', './css/pantallas/plan.css', './css/pantallas/cobros.css',
   './js/app.js',
   './js/core/nube.js', './js/core/acceso.js', './js/core/perfil.js', './js/core/ui.js', './js/core/formato.js', './js/core/iconos.js', './js/core/actualizar.js', './js/core/catalogo.js', './js/core/pesaje.js', './js/core/ventas.js', './js/core/xlsx.js', './js/core/excel.js', './js/core/respaldo.js', './js/core/xlsx-leer.js', './js/core/cierres.js', './js/core/indicadores.js', './js/core/costos.js', './js/core/plan.js',
   './js/core/rut.js', './js/core/cobros.js', './js/core/abonos.js', './js/core/cotizaciones.js', './js/core/pdf.js', './js/core/pdf-doc.js',
