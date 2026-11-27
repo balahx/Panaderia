@@ -3,6 +3,7 @@
    Fase 8: Ayuda (todos los perfiles), Aviso de privacidad (lo abre app.js), y el diagnóstico dice si App Check entrega su comprobante,
    qué se bloqueó (si algo) y cuánto tardan la apertura y las pantallas (window.__pan, lo mide app.js).
    Fase 12: grupo «Cobros» con Cobros (lo que se debe, con el total por cobrar), Cotizaciones y Datos para documentos.
+   Fase 13, parte C: el diagnóstico muestra el tamaño de la pantalla (ancho × alto en px, orientación y densidad).
    «Cerrar sesión» lo atiende app.js (vale también en las pantallas de espera). */
 import { esc, iniciales, fechaTexto } from '../core/formato.js';
 import { svg } from '../core/iconos.js';
@@ -38,11 +39,18 @@ export function textoRendimiento(m) {
 const kv = (k, v) => '<div class="kv"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>';
 
 /* Datos para comprobar en cada equipo: instalada, abre sin conexión, sesión con Google */
+/* Fase 13, parte C: el tamaño de la pantalla que usa la app (en px de CSS, los que miden el diseño), su orientación y la densidad.
+   Sirve para confirmar la tablet real (la Tab S6 en horizontal debería dar unos 1280 × 800, menos las barras de Android). */
+export function pantalla() {
+  const w = Math.round(window.innerWidth), h = Math.round(window.innerHeight), d = Math.round((window.devicePixelRatio || 1) * 100) / 100;
+  return w + ' × ' + h + ' px · ' + (w >= h ? 'horizontal' : 'vertical') + ' · densidad ' + String(d).replace('.', ',');
+}
 export function diagnostico(ctx) {
   const ult = (() => { try { return localStorage.getItem('pan.ultimoIngreso') || ''; } catch (e) { return ''; } })(), rend = textoRendimiento(window.__pan);
   return [
     ['Modo', instalada() ? 'Instalada' : 'En el navegador'],
     ['Conexión', navigator.onLine === false ? 'Sin conexión' : 'Con conexión'],
+    ['Pantalla', pantalla()],
     ['Copia sin conexión', navigator.serviceWorker && navigator.serviceWorker.controller ? 'Lista' : 'Aún no (vuelve a abrir la app)'],
     ['Sesión', ctx.user.correo || '—'],
     ['Perfil', perfil.nombrePerfil(ctx.perfil)],

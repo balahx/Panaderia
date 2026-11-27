@@ -424,7 +424,7 @@ Planificada el 25-nov-2026 a partir de la revisión de diseño (chat «Optimizac
 - `a11y.js` revisa además los 48 px y el contraste del borde de los controles.
 - **Listo cuando:** todo control con borde de 3:1 o más en claro y oscuro; ningún botón táctil bajo 48 px; la huella muestra solo los cambios esperados.
 
-**Parte C · Tablet y pesaje (chat 16, 0.12.3)**
+**Parte C · Tablet y pesaje (chat 16, 0.12.3) ✔** (26-nov-2026: a 1280 × 800 todo el pesaje a la vista hasta 715 px, «Cerrar entrega» grande, canasto nuevo marcado, «Pantalla» en el Diagnóstico; falta verlo en la Tab S6 real; lo hecho, en `decisiones/fase-13.md`)
 - Para la **Tab S6 en horizontal** (≈ 1280 × 800, menú a la izquierda, letra grande): Pesaje **sin bajar la pantalla**: quién pesa, «Para:», la entrega, los panes, el visor, el teclado y «Guardar canasto» a la vista, con dos columnas que aprovechen el ancho (hoy el contenido llega a 760 px).
 - Campos, insignias y menú en `em` con mínimo de 16 px, para que crezcan con la letra grande.
 - **«Cerrar entrega» destacado:** botón grande en la cabecera de la entrega, a la vista; la confirmación sigue igual.

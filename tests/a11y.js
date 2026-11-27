@@ -18,6 +18,7 @@
    tools/huella.js compara dos huellas (lo que se ve antes y después de un cambio de CSS).
    Fase 13, parte B: además, el borde de cada control (campos, botones secundarios, botones de pan, teclas, radios, opciones y segmentos)
    tiene 3:1 o más contra lo que lo rodea, y cada pantalla u hoja tiene a lo más una acción principal (botón relleno).
+   Fase 13, parte C: también a 1280 × 800 sin la huella (la Tab S6 en horizontal, con el pesaje en letra grande).
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
 const { crear } = require('../tools/servidor.js'), { fakeGoogle } = require('./fake-firebase/google.js');
@@ -102,8 +103,8 @@ const CHECK = () => {
 
 (async () => {
   const br = await chromium.launch(), srv = crear({ fake: true }), URL = await srv.abrir(), errors = [];
-  const PANTALLAS = [[320, 'light'], [360, 'light'], [360, 'dark'], [390, 'light']];   // 320 px (Fase 8): equivale a ampliar al 400 % (WCAG, «reflow»)
-  if (HUELLA) PANTALLAS.push([800, 'light'], [1280, 'light'], [1280, 'dark']);   // Fase 13: con la huella, también la tablet en vertical y la Tab S6 en horizontal
+  const PANTALLAS = [[320, 'light'], [360, 'light'], [360, 'dark'], [390, 'light'], [1280, 'light']];   // 320 px (Fase 8): equivale a ampliar al 400 % (WCAG, «reflow»); 1280 × 800 (Fase 13, parte C): la Tab S6 en horizontal, con el pesaje en letra grande
+  if (HUELLA) PANTALLAS.splice(4, 1, [800, 'light'], [1280, 'light'], [1280, 'dark']);   // Fase 13: con la huella, también la tablet en vertical y la Tab S6 en horizontal (en el orden de siempre)
   for (const [w, scheme] of PANTALLAS) {
     console.log('Pantalla de ' + w + ' px · ' + (scheme === 'dark' ? 'oscuro' : 'claro'));
     const ctx = await br.newContext({ viewport: { width: w, height: w >= 1024 ? 800 : 780 }, serviceWorkers: 'block', colorScheme: scheme }), page = await ctx.newPage();

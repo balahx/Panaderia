@@ -1,6 +1,8 @@
 /* Pesaje (tablet, Fase 4). En la panadería la letra va grande (data-escala="grande": los tamaños en em crecen solos).
-   Desde 700 px, el pan a la izquierda y el teclado a la derecha, para no tener que bajar la pantalla. «Para:» de la Fase 11 y
-   la línea del plan en cada botón de pan (Fase 10). */
+   Desde 700 px, dos columnas (.pes-tablero): a la izquierda quién pesa, «Para:», la entrega y los panes; a la derecha el teclado con
+   «Guardar canasto». Fase 13, parte C: en la Tab S6 en horizontal (1280 × 800, menú a la izquierda) la pantalla usa todo el ancho y
+   todo eso se ve sin bajar; «Cerrar entrega» grande en la cabecera de la entrega; el canasto recién guardado se marca un momento
+   (.pes-nuevo). «Para:» de la Fase 11 y la línea del plan en cada botón de pan (Fase 10). */
 .pes-quien { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-4); flex-wrap: wrap; margin: 0 0 var(--esp-5); }
 .pes-quien > span { display: inline-flex; align-items: center; gap: var(--esp-3); font-size: 1.05em; }
 .pes-quien .ic { color: var(--muted); }
@@ -9,6 +11,13 @@
 .pes-n { display: block; font: 700 2em/1 var(--font-display); }
 .pes-entrega small { display: block; color: var(--muted); font-size: var(--letra-apoyo); margin-top: 2px; }
 .pes-entrega .lnk { margin-top: var(--esp-2); }
+/* «Cerrar entrega» destacado (parte C): grande, con borde y letra del color de los botones. Sigue siendo secundario (la acción
+   principal es «Guardar canasto»); deshabilitado se ve como todo lo deshabilitado y su motivo va debajo. */
+.btn.pes-cerrar { min-height: var(--alto-grande); padding: 0 var(--esp-8); font: 700 1.15em/1.1 var(--font-display); letter-spacing: .02em; border-width: 2px; }
+.btn.pes-cerrar:not(:disabled) { border-color: var(--btn); color: var(--btn); }
+.btn.pes-cerrar .ic { width: 22px; height: 22px; }
+.pes-entrega-h > div { flex: 1 1 10em; min-width: 0; }
+.pes-entrega-h > .btn { flex: none; }
 .pes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr)); gap: var(--esp-4); }
 .pes-op { min-height: 3.6em; padding: var(--esp-3) var(--esp-5); border-radius: var(--radio-xl); border: 2px solid var(--line-control); background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; justify-content: center; }
 .pes-op b { font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
@@ -29,9 +38,14 @@
 .pes-tot { padding: var(--esp-1) var(--esp-6); }
 .pes-guardar { scroll-margin-bottom: calc(var(--barh, 72px) + 12px); }
 .pes-vacio { display: none; }
+/* El canasto recién guardado (parte C): su fila en «Pesado hoy» y el total de la entrega se marcan unos segundos. Es un fondo fijo que
+   se pone y se quita (no una animación), así se ve también con movimiento reducido. */
+.pes-nuevo { background: var(--gold-bg); box-shadow: inset 4px 0 0 var(--gold); }
+.mrow.pes-nuevo:active { background: var(--gold-bg); }
+small.pes-nuevo { display: inline-block; border-radius: var(--radio-xs); padding: 0 var(--esp-2); margin-left: calc(-1 * var(--esp-2)); color: var(--ink); }
 @media (min-width: 700px) {
-  .pes-trabajo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--esp-8); align-items: start; }
-  .pes-trabajo .pes-grid { grid-template-columns: repeat(auto-fill, minmax(8em, 1fr)); }
+  .pes-tablero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--esp-8); align-items: start; }
+  .pes-panes .pes-grid { grid-template-columns: repeat(auto-fill, minmax(8em, 1fr)); }
   .pes-vacio { display: grid; place-items: center; min-height: 12em; border: 1.5px dashed var(--line-strong); border-radius: var(--radio-2xl); text-align: center; padding: var(--esp-7); }
   .pes-vacio p { margin: 0; }
   .pes-tecla { min-height: 2.9em; }
@@ -41,3 +55,26 @@
 .pes-op small.pes-plan-l.est-sobre { color: var(--warn-ink); background: var(--warn-bg); border-radius: var(--radio-xs); padding: 0 var(--esp-1); align-self: flex-start; }
 .pes-para { margin-top: var(--esp-1); }
 .pes-para-b { width: 100%; }
+/* Tablet en vertical (700 a 1023 px, sin prioridad): como antes, quién pesa, «Para:» y la entrega a todo el ancho y debajo los panes y
+   el teclado lado a lado (.pes-izq deja pasar a sus hijos a la grilla). Ahí sobra alto; lo que falta es ancho. */
+@media (min-width: 700px) and (max-width: 1023.98px) {
+  .pes-tablero { row-gap: 0; }
+  .pes-izq { display: contents; }
+  .pes-izq > * { grid-column: 1 / -1; }
+  .pes-izq > .pes-panes { grid-column: 1; margin-bottom: 0; }
+  #pesTeclado { grid-column: 2; }
+}
+/* Tab S6 en horizontal y computador (≥ 1024 px, menú a la izquierda): la pantalla de pesaje usa el ancho (no los 760 px de las demás),
+   con columnas parejas y tres panes por fila; el título, el visor y la cabecera de la entrega se achican un poco para que el teclado y
+   «Guardar canasto» queden a la vista sin bajar la pantalla. */
+@media (min-width: 1024px) {
+  #view[data-tab="pesaje"] { max-width: 1120px; }
+  #view[data-tab="pesaje"] h1 { font-size: 2.4em; margin-bottom: var(--esp-5); }
+  .pes-tablero { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--esp-8) 28px; }
+  .pes-tablero .pes-grid { grid-template-columns: repeat(auto-fill, minmax(7.5em, 1fr)); gap: var(--esp-3); }
+  .pes-tablero .pes-op { min-height: 3.3em; padding-inline: var(--esp-4); }   /* «Supermercado» cabe en una línea */
+  .pes-tecla { min-height: 2.4em; }   /* 73 px con la letra grande (antes 88): siguen siendo teclas grandes */
+  .pes-izq > .sec:last-child, #pesTeclado { margin-bottom: 0; }
+  .pes-display { font-size: 2.7em; padding: var(--esp-3) var(--esp-7); }
+  .pes-n { font-size: 1.8em; }
+}

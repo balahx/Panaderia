@@ -6,7 +6,10 @@
    Fase 10: con plan de hoy, cada pan del plan dice en su botón cuánto falta («faltan 18 kg», «✓ cumplido») y abajo va el «Plan de hoy».
    Fase 11: con más de un cliente activo, arriba va «Para:» (el cliente elegido queda en el equipo, `pan.cliente`; por omisión el supermercado).
    La entrega en curso y «Cerrar entrega» son las del cliente elegido. «Ventas sueltas» no tiene entregas: al guardar pide «¿Quién compró?»
-   (opcional, queda en la nota). Con un solo cliente la pantalla queda igual que antes. Nunca muestra precios. */
+   (opcional, queda en la nota). Con un solo cliente la pantalla queda igual que antes. Nunca muestra precios.
+   Fase 13, parte C: dos columnas desde 700 px (.pes-tablero: quién pesa, «Para:», la entrega y los panes | el teclado), para que en
+   la Tab S6 en horizontal todo se vea sin bajar; «Cerrar entrega» grande; el canasto recién guardado se marca unos segundos en
+   «Pesado hoy» y en el total de la entrega (st.nuevo), además del aviso. */
 import { esc, fechaTexto } from '../core/formato.js';
 import { svg, emptyHTML, errorHTML } from '../core/iconos.js';
 import { $, ask, hoja, cerrarHoja, toast } from '../core/ui.js';
@@ -16,7 +19,9 @@ import * as P from '../core/pesaje.js';
 import * as canasto from './pesaje-hoja.js';
 import * as plan from './plan.js';
 
-const st = { prod: '', txt: '', nota: '', eligiendo: false };
+const st = { prod: '', txt: '', nota: '', eligiendo: false, nuevo: null };
+const MARCA_MS = 2500;   // cuánto se marca el canasto recién guardado
+const nuevoId = () => (st.nuevo && Date.now() < st.nuevo.hasta ? st.nuevo.id : '');
 const K_QUIEN = 'pan.pesador', K_CLIENTE = 'pan.cliente';
 const pesador = () => { try { return localStorage.getItem(K_QUIEN) || ''; } catch (e) { return ''; } };
 const fijarPesador = id => { try { localStorage.setItem(K_QUIEN, id); } catch (e) { /* sin almacenamiento: se pregunta cada vez */ } };
@@ -64,15 +69,16 @@ function entrega(c) {
   if (cat.esSuelta(cl)) return '<section class="card sec pes-entrega" id="pesEntrega"><p class="eyebrow">' + esc(cl.nombre) + '</p><b class="pes-n">Sin entregas</b><small>Cada canasto es una venta. Al guardar puedes anotar quién compró.</small></section>';
   const doc = diaCli(c), ea = P.entregaActual(pesajesHoy(c), doc, cl && cl.id, original(c)), listo = !!delDia(c) && doc !== undefined, de = varios && cl ? ' de ' + cl.nombre : '';
   const motivo = !listo ? '' : !ea.canastos ? 'Para cerrar la entrega, primero guarda un canasto.' : ea.n >= P.MAX_ENTREGAS ? 'Ya van ' + P.MAX_ENTREGAS + ' entregas hoy: es el máximo.' : '';
+  const marca = nuevoId() && ea.canastos ? ' class="pes-nuevo"' : '';   // parte C: el total recién sumado se marca un momento
   return '<section class="card sec pes-entrega" id="pesEntrega"><div class="pes-entrega-h"><div><p class="eyebrow">Entrega en curso' + esc(de) + '</p><b class="pes-n" id="pesEntregaN">N.º ' + ea.n + '</b>' +
-    '<small>' + (ea.canastos ? ea.canastos + (ea.canastos === 1 ? ' canasto · ' : ' canastos · ') + esc(P.textoTotales(ea)) : 'Sin canastos todavía') + '</small></div>' +
-    '<button class="btn ghost" data-act="pes-cerrar-entrega"' + (!listo || motivo ? ' disabled' : '') + (motivo ? ' aria-describedby="pesCerrarMotivo"' : '') + '>Cerrar entrega</button></div>' +
+    '<small id="pesEntregaRes"' + marca + '>' + (ea.canastos ? ea.canastos + (ea.canastos === 1 ? ' canasto · ' : ' canastos · ') + esc(P.textoTotales(ea)) : 'Sin canastos todavía') + '</small></div>' +
+    '<button class="btn ghost pes-cerrar" data-act="pes-cerrar-entrega"' + (!listo || motivo ? ' disabled' : '') + (motivo ? ' aria-describedby="pesCerrarMotivo"' : '') + '>' + svg('check') + 'Cerrar entrega</button></div>' +
     (motivo ? '<p class="motivo" id="pesCerrarMotivo">' + esc(motivo) + '</p>' : '') +
     (listo && !ea.canastos && ea.n > 1 ? '<button class="lnk" data-act="pes-reabrir">Volver a abrir la entrega n.º ' + (ea.n - 1) + esc(de) + '</button>' : '') + '</section>';
 }
 function panes(prods, c) {
   const linea = p => { const x = plan.lineaPan(c, p.id); return x ? '<small class="pes-plan-l est-' + x.estado + '">' + esc(x.texto) + '</small>' : '<small>' + (p.unidad === 'un' ? 'unidades' : 'kilos') + '</small>'; };
-  return '<section class="sec"><p class="eyebrow" id="pesPanesT">1 · Pan</p><div class="pes-grid" id="pesPanes" role="group" aria-labelledby="pesPanesT">' +
+  return '<section class="sec pes-panes"><p class="eyebrow" id="pesPanesT">1 · Pan</p><div class="pes-grid" id="pesPanes" role="group" aria-labelledby="pesPanesT">' +
     prods.map(p => '<button class="pes-op" data-act="pes-pan" data-id="' + esc(p.id) + '" aria-pressed="' + (p.id === st.prod) + '"><b>' + esc(p.nombre) + '</b>' + linea(p) + '</button>').join('') + '</div></section>';
 }
 /* Fase 13 (parte B): deshabilitado, dice qué falta («Escribe los kilos del canasto.») */
@@ -91,12 +97,13 @@ function teclado(c) {
     '<div class="actions"><button class="btn ghost sm" data-act="pes-nota" id="pesNota">' + (st.nota ? 'Nota: ' + esc(st.nota.length > 24 ? st.nota.slice(0, 24) + '…' : st.nota) : 'Agregar nota') + '</button></div>' +
     guardarBoton(st.txt ? v.error : P.validarCantidad('', p.unidad).error) + '</section>';
 }
+const marcar = (fila, si) => (si ? fila.replace('class="mrow pes-fila', 'class="mrow pes-fila pes-nuevo') : fila);
 function lista(c) {
   const todos = P.recientes(pesajesHoy(c)), R = P.resumen(todos, c.cat.productos, c.cat.trabajadores), pend = todos.filter(p => p._pend).length;
   return '<section class="sec" id="pesHoy"><h2>Pesado hoy</h2><p class="muted" id="pesTotales">' + (R.canastos ? R.canastos + (R.canastos === 1 ? ' canasto · ' : ' canastos · ') + esc(P.textoTotales(R)) : 'Todavía no hay canastos hoy.') + '</p>' +
     (pend ? '<p class="note warn" id="pesPendientes">' + pend + (pend === 1 ? ' registro guardado en este equipo se enviará' : ' registros guardados en este equipo se enviarán') + ' al volver internet. No cierres sesión mientras tanto.</p>' : '') +
     (R.porPan.length ? '<div class="mlist pes-tot">' + R.porPan.map(x => '<div class="kv"><span>' + esc(x.nombre) + '</span><b>' + esc(P.textoCantidad(x.cantidad, x.unidad)) + '</b></div>').join('') + '</div>' : '') +
-    (todos.length ? '<div class="mlist" id="listaPesajes">' + todos.map(p => canasto.filaCanasto(p, c, true)).join('') + '</div><p class="muted chico">Toca un canasto para corregirlo o anularlo (solo los de hoy).</p>' : '') + '</section>';
+    (todos.length ? '<div class="mlist" id="listaPesajes">' + todos.map(p => marcar(canasto.filaCanasto(p, c, true), p.id === nuevoId())).join('') + '</div><p class="muted chico">Toca un canasto para corregirlo o anularlo (solo los de hoy).</p>' : '') + '</section>';
 }
 
 export function html(c) {
@@ -110,7 +117,7 @@ export function html(c) {
   if (st.prod && !prods.some(p => p.id === st.prod)) { st.prod = ''; st.txt = ''; }
   const quien = trabs.find(t => t.id === pesador());
   if (!quien || st.eligiendo) return cab + elegirQuien(trabs, quien);
-  return cab + barraQuien(quien) + barraCliente(c) + entrega(c) + '<div class="pes-trabajo">' + panes(prods, c) + teclado(c) + '</div>' + plan.bloqueTablet(c) + lista(c);
+  return cab + '<div class="pes-tablero"><div class="pes-izq">' + barraQuien(quien) + barraCliente(c) + entrega(c) + panes(prods, c) + '</div>' + teclado(c) + '</div>' + plan.bloqueTablet(c) + lista(c);
 }
 const pintar = c => { $('#view').innerHTML = html(c); };
 function pintarTeclado(c) { const t = $('#pesTeclado'); if (t) t.outerHTML = teclado(c); else pintar(c); }
@@ -126,13 +133,20 @@ function guardar(c, comprador) {
   const seguir = () => {
     const doc = P.nuevoPesaje({ fecha: c.hoy, hora: P.horaChile(new Date()), entregaN: suelta ? 1 : enCurso(c), clienteId: cl && cl.id, productoId: p.id, cantidad: v.cantidad, unidad: p.unidad,
       trabajadorId: pesador(), nota: suelta ? comprador : st.nota, creadoPor: c.user.uid });
-    nube.guardarVarios([{ ruta: 'pesajes/' + cat.nuevoId(), datos: doc }]).catch(canasto.rechazo('el canasto de ' + p.nombre + ' (' + texto + ')'));
+    const id = cat.nuevoId(); marcarNuevo(id);   // antes de guardar: la copia del equipo redibuja al tiro, ya con la marca
+    nube.guardarVarios([{ ruta: 'pesajes/' + id, datos: doc }]).catch(canasto.rechazo('el canasto de ' + p.nombre + ' (' + texto + ')'));
     st.txt = ''; st.nota = '';
     toast((suelta ? 'Venta suelta: ' : 'Guardado: ') + p.nombre + ' ' + texto + (varios && !suelta ? ' para ' + cl.nombre : '') + (suelta && comprador ? ' · ' + comprador : '') + (navigator.onLine === false ? ' · se enviará al volver internet' : ''));
     pintar(c);
   };
   if (v.confirmar) ask({ title: '¿' + texto + ' en un canasto?', text: 'Es mucho más de lo normal. Revisa el número antes de guardar.', ok: 'Sí, guardar', cancel: 'Corregir' }).then(si => { if (si) seguir(); });
   else seguir();
+}
+/* Parte C: el canasto recién guardado queda marcado MARCA_MS (en cada redibujo) y después la marca se quita sola. */
+let quitarMarca = 0;
+function marcarNuevo(id) {
+  st.nuevo = { id, hasta: Date.now() + MARCA_MS }; clearTimeout(quitarMarca);
+  quitarMarca = setTimeout(() => { st.nuevo = null; document.querySelectorAll('#view .pes-nuevo').forEach(e => e.classList.remove('pes-nuevo')); }, MARCA_MS);
 }
 /* Venta suelta: quién compró (opcional; se recomienda solo el nombre de pila). Queda en la nota del canasto. */
 function hojaComprador(nota) {

@@ -1,7 +1,9 @@
 /* Pesaje y entregas de punta a punta (con dobles de Firebase, Google y Firestore): la tablet elige quién pesa, registra canastos en
    3 toques (kilos y unidades, aviso sobre 20 kg, nota, teclado físico), cierra y vuelve a abrir entregas, corrige y anula con constancia,
    trabaja SIN CONEXIÓN (lo anotado aparece en el equipo del dueño al volver internet) y no ve precios. Luego el dueño ve «Hoy» en vivo,
-   con montos del precio vigente, entregas, otro día y corrección. Las reglas reales las prueba el emulador. Uso: node tests/pesaje-e2e.js */
+   con montos del precio vigente, entregas, otro día y corrección. Las reglas reales las prueba el emulador.
+   Fase 13, parte C: a 1280 × 800 (la Tab S6 en horizontal) todo lo del pesaje se ve sin bajar, «Cerrar entrega» es grande, el canasto
+   nuevo se marca un momento, sigue en 3 toques y el Diagnóstico muestra el tamaño de la pantalla. Uso: node tests/pesaje-e2e.js */
 const { chromium } = require('playwright');
 const { crear } = require('../tools/servidor.js'), { fakeGoogle } = require('./fake-firebase/google.js');
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + m); };
@@ -193,6 +195,40 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   ok((await page.locator('#nav button').allTextContents()).join() === 'Hoy,Entregas,Números,Pesaje,Más' && !!(await page.$('#hoyMontos')), 've Hoy con montos, y las pestañas Entregas, Números y Pesaje');
   await tocar('#nav button[data-tab="pesaje"]'); await page.waitForSelector('#pesPanes');
   ok((await page.getAttribute('html', 'data-escala')) === 'grande' && /Pesa: Luis/.test(await page.textContent('#pesQuienActual')), 'en Pesaje la letra crece (y el equipo recuerda quién pesa)');
+  await salir();
+  console.log('12. Fase 13 (parte C): la Tab S6 en horizontal (1280 × 800, letra grande)');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await entrar(TABLET); await page.waitForSelector('#pesPanes');
+  for (const [i, n] of ['Dobladita', 'Pan amasado', 'Integral', 'Pan de molde', 'Coliza integral'].entries()) await db('poner', 'productos/x' + i, { nombre: n, unidad: 'kg', orden: 10 + i, activo: true, en: 1 });
+  await db('poner', 'clientes/c2', { nombre: 'Almacén Rosa', activo: true, tipo: 'regular', en: 2 }); await db('poner', 'clientes/c3', { nombre: 'Casino Norte', activo: true, tipo: 'regular', en: 3 });
+  await page.waitForFunction(() => document.querySelectorAll('#pesPanes .pes-op').length === 8 && document.querySelectorAll('#pesPara .pes-op').length === 3);
+  const VISTA = ['#pesQuienActual', '#pesPara', '#pesEntrega', '[data-act="pes-cerrar-entrega"]', '#pesPanes', '#pesValor', '#pesTeclado .pes-teclas', '#pesNota', '#pesGuardar'];
+  const fuera = () => page.evaluate(L => L.filter(s => { const e = document.querySelector(s); if (!e) return true; const r = e.getBoundingClientRect(); return r.top < 0 || r.bottom > innerHeight || r.right > innerWidth; }), VISTA);
+  const alto = () => page.evaluate(() => Math.round(Math.max(...['#pesGuardarMotivo', '#pesGuardar', '#pesPanes', '#pesEntrega'].map(s => document.querySelector(s)).filter(Boolean).map(e => e.getBoundingClientRect().bottom))));
+  const toques = { n: 0 }, contar = async sel => { toques.n++; await tocar(sel); };
+  await contar('#pesPanes .pes-op:has(b:text-is("Marraqueta"))');
+  const f1 = await fuera(), a1 = await alto();
+  ok(f1.length === 0 && (await page.evaluate(() => scrollY)) === 0, 'con 3 clientes y 8 panes, quién pesa, «Para:», la entrega, los panes, el visor, el teclado y «Guardar canasto» se ven sin bajar' + (f1.length ? ' (fuera: ' + f1.join(', ') + ')' : ''));
+  ok(a1 <= 728, 'y cabe con las barras de Android (lo último termina a ' + a1 + ' px de 800; la Tab S6 instalada deja unos 728)');
+  const [xPan, xTec] = await page.evaluate(() => [document.querySelector('#pesPanes').getBoundingClientRect(), document.querySelector('#pesTeclado').getBoundingClientRect()].map(r => Math.round(r.left)));
+  ok(xTec > xPan + 300 && (await page.evaluate(() => document.querySelector('#view').getBoundingClientRect().width)) > 800, 'dos columnas que usan el ancho: los panes a la izquierda y el teclado a la derecha');
+  const bc = await page.evaluate(() => { const b = document.querySelector('[data-act="pes-cerrar-entrega"]').getBoundingClientRect(); return { h: Math.round(b.height), w: Math.round(b.width) }; });
+  ok(bc.h >= 56 && bc.w >= 150, '«Cerrar entrega» es un botón grande en la cabecera de la entrega (' + bc.w + ' × ' + bc.h + ' px)');
+  ok(await page.evaluate(() => ['.txt', '.badge', '#nav button'].every(s => !document.querySelector(s) || parseFloat(getComputedStyle(document.querySelector(s)).fontSize) >= 15)) &&
+    (await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('#nav button')).fontSize))) === 19, 'con la letra grande crece también el menú (19 px)');
+  await contar('#pesTeclado [data-k="7"]'); await contar('#pesGuardar');
+  await aviso(/Guardado: Marraqueta 7,00 kg para Supermercado/);
+  ok(toques.n <= 3, 'guardar un canasto sigue en 3 toques (' + toques.n + ')');
+  await page.waitForSelector('#listaPesajes .pes-fila.pes-nuevo'); await page.waitForSelector('#pesEntregaRes.pes-nuevo');
+  const marcado = await page.evaluate(() => { const f = document.querySelector('#listaPesajes .pes-nuevo'); return f && /Marraqueta/.test(f.textContent) && /7,00 kg/.test(f.textContent) && document.querySelectorAll('#listaPesajes .pes-nuevo').length === 1; });
+  ok(marcado, 'el canasto recién guardado se marca en «Pesado hoy» (y el total de la entrega), además del aviso');
+  await page.waitForFunction(() => !document.querySelector('#view .pes-nuevo'), null, { timeout: 4000 });
+  ok(true, 'la marca se quita sola a los pocos segundos');
+  ok((await fuera()).length === 0, 'después de guardar, todo sigue a la vista');
+  await tocar('#nav button[data-tab="mas"]'); await tocar('[data-act="diag"]'); await page.waitForSelector('#diag');
+  ok(/Pantalla\s*1280 × 800 px · horizontal · densidad 1/.test(await page.textContent('#diag')), 'el Diagnóstico muestra el tamaño de la pantalla (1280 × 800 px, horizontal)');
+  await page.keyboard.press('Escape'); await cerrada();
+  await page.setViewportSize({ width: 800, height: 1100 });
   await salir();
   ok(errs.length === 0, 'sin errores de JavaScript' + (errs.length ? ': ' + errs.slice(0, 2).join(' | ') : ''));
   await ctx.close(); srv.close(); await br.close();

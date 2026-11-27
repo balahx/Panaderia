@@ -55,11 +55,12 @@
   --letra-fila: .96em;      /* filas clave-valor, franjas */
   --letra-cifra-m: 1.6em;   /* h2, teclas del pesaje, cifras medianas */
   --letra-cifra: 1.9em;     /* cifras destacadas (precio de hoy, totales) */
-  /* En px: no crecen con la letra grande (la parte C los pasa a em) */
-  --letra-campo: 16px;      /* campos (16 px evita que el iPhone agrande la página al escribir) */
-  --letra-insignia: 12px;
-  --letra-menu: 11.5px;     /* menú inferior */
-  --letra-menu-lateral: 15px;   /* menú lateral (computador y tablet en horizontal) */
+  /* Parte C: crecen con la letra grande. Van como fracción de --fs y no en em, para que valgan lo mismo dentro de cualquier pieza
+     (una hoja, un filtro o la barra de abajo): con la letra normal (15 px) dan los px de antes; en el pesaje (19 px), un 27 % más. */
+  --letra-campo: max(16px, calc(var(--fs) * 16 / 15));   /* campos: nunca bajo 16 px (así el iPhone no agranda la página al escribir) */
+  --letra-insignia: calc(var(--fs) * 12 / 15);           /* 12 px · 15,2 px con la letra grande */
+  --letra-menu: calc(var(--fs) * 11.5 / 15);             /* menú inferior: 11,5 px · 14,6 px */
+  --letra-menu-lateral: var(--fs);                       /* menú lateral (computador y tablet en horizontal): 15 px · 19 px */
   /* Espacios */
   --esp-1: 4px; --esp-2: 6px; --esp-3: 8px; --esp-4: 10px; --esp-5: 12px; --esp-6: 14px; --esp-7: 16px; --esp-8: 18px;
   /* Radios */
