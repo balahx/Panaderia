@@ -434,7 +434,7 @@ Planificada el 25-nov-2026 a partir de la revisión de diseño (chat «Optimizac
 - Pruebas: `pesaje-e2e.js` y `a11y.js` a 1280 × 800 con letra grande; guardar un canasto en 3 toques o menos.
 - **Listo cuando:** probado en la Tab S6 real en horizontal; el teclado y «Guardar canasto» se ven sin bajar la pantalla; guardar un canasto sigue en 3 toques o menos.
 
-**Parte D · Navegación y pantallas de dueños (chat 17, 0.12.4)**
+**Parte D · Navegación y pantallas de dueños (chat 17, 0.12.4) ✔** (27-nov-2026: menú de abajo de 13 px sin cortes, hojas con `dvh`, letra en 4 pasos de 12, 13, 14 y 15 px, ‹ · fecha · › en una línea en el teléfono, estado de cobros y cotizaciones bajo el monto, «Ver todos los cobros»; falta la revisión de Felipe en un iPhone y en Windows; lo hecho, en `decisiones/fase-13.md`)
 - Menú inferior con letra de 12 a 13 px; el engranaje se conserva; en el computador y la tablet, el menú lateral de hoy.
 - Hojas con `dvh` (y `vh` de respaldo para equipos antiguos).
 - **Letra en 4 pasos:** juntar los tamaños casi iguales (.84 y .87 em; .9, .92, .94 y .96 em) cambiando el valor de los tokens.

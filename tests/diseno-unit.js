@@ -1,7 +1,8 @@
 /* Base de diseño (Fase 13, parte A), sin navegador: el tema oscuro escrito dos veces es igual en sus dos bloques y tiene los mismos
    colores que el claro; los colores solo están en css/tokens.css; toda variable usada existe y toda escala definida se usa; cada CSS
    de index.html existe, está en el service worker y va en orden (fichas, base, piezas comunes, pantallas), y no sobra ninguno;
-   cada archivo de CSS tiene 300 líneas o menos. Uso: node tests/diseno-unit.js */
+   cada archivo de CSS tiene 300 líneas o menos. Parte D: los altos en vh llevan dvh (con vh de respaldo), la letra va en 4 pasos (12, 13,
+   14 y 15 px) y el menú de abajo tiene letra de 12 a 13 px. Uso: node tests/diseno-unit.js */
 const fs = require('fs'), path = require('path');
 const APP = path.resolve(__dirname, '..', 'APP'), CSS = path.join(APP, 'css');
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + m); };
@@ -83,6 +84,35 @@ const largos = archivos.map(f => [rel(f), leer(f).split('\n').length]).filter(([
 ok(largos.length === 0, 'cada archivo de CSS tiene 300 líneas o menos' + (largos.length ? ': ' + largos.map(x => x.join(' ')).join(', ') : ''));
 const conImport = Object.entries(textos).filter(([, t]) => /@import/.test(t)).map(([f]) => f);
 ok(conImport.length === 0, 'sin @import (cada archivo se carga desde index.html, en paralelo)' + (conImport.length ? ': ' + conImport.join(', ') : ''));
+
+console.log('5. Navegación y letra (parte D)');
+/* Alturas con dvh (lo que se ve de verdad en el teléfono, sin las barras del navegador) y vh de respaldo justo antes, para equipos antiguos */
+const decls = Object.entries(textos).flatMap(([f, t]) => [...t.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ f, sel: m[1].trim(), d: m[2].split(';').map(x => x.trim()).filter(x => x.includes(':')).map(x => [x.slice(0, x.indexOf(':')).trim(), x.slice(x.indexOf(':') + 1).trim()]) })));
+const vhMal = [];
+for (const { f, sel, d } of decls) d.forEach(([p, v], i) => {
+  if (/\d(\.\d+)?vh\b/.test(v) && !(d[i + 1] && d[i + 1][0] === p && /dvh\b/.test(d[i + 1][1]))) vhMal.push(f + ' «' + sel + ' ' + p + '» sin dvh después');
+  if (/dvh\b/.test(v) && !(d[i - 1] && d[i - 1][0] === p && /\d(\.\d+)?vh\b/.test(d[i - 1][1]))) vhMal.push(f + ' «' + sel + ' ' + p + '» sin vh de respaldo antes');
+});
+ok(vhMal.length === 0, 'cada alto en vh va seguido del mismo en dvh, y cada dvh tiene su vh de respaldo antes' + (vhMal.length ? ': ' + vhMal.join(', ') : ''));
+const hojas = decls.find(x => x.f === 'css/componentes/hojas.css' && x.sel === 'dialog');
+ok(!!hojas && hojas.d.some(([p, v]) => p === 'max-height' && /dvh/.test(v)), 'las hojas usan dvh (el teclado o la barra del navegador ya no las tapan)');
+/* Letra en 4 pasos: lo que va bajo el texto normal son 12, 13 y 14 px (con la letra de 15 px); nada de .84, .87, .9, .92, .95… sueltos */
+const FS = 15, enPx = v => { v = (v || '').trim(); let m;
+  if ((m = /^(\d*\.?\d+)em$/.exec(v))) return +m[1] * FS;
+  if ((m = /^(\d*\.?\d+)px$/.exec(v))) return +m[1];
+  if ((m = /^calc\(\s*(\d*\.?\d+)em\s*\/\s*(\d+)\s*\)$/.exec(v))) return +m[1] * FS / +m[2];
+  if ((m = /^var\((--[\w-]+)\)$/.exec(v))) return enPx(claroEsc[m[1]]);
+  if ((m = /^calc\(\s*var\(--fs\)\s*\*\s*(\d*\.?\d+)\s*\/\s*(\d+)\s*\)$/.exec(v))) return FS * +m[1] / +m[2];
+  return NaN; };
+const claroEsc = bloque(sinComentarios(tokCrudo.slice(tokCrudo.indexOf('/* Escalas de diseño'))), ':root') || {};
+const chicas = ['--letra-rotulo', '--letra-detalle', '--letra-pie', '--letra-apoyo', '--letra-nota', '--letra-fila'].map(k => [k, enPx(claroEsc[k])]);
+const pasos = [...new Set(chicas.map(([, v]) => Math.round(v * 100) / 100))].sort((a, b) => a - b);
+ok(chicas.every(([, v]) => !isNaN(v)) && JSON.stringify(pasos) === JSON.stringify([12, 13, 14]), 'la letra bajo el texto normal va en tres pasos: 12, 13 y 14 px (más el texto de 15 px: 4 pasos)' +
+  (JSON.stringify(pasos) === JSON.stringify([12, 13, 14]) ? '' : ': ' + chicas.map(x => x[0] + ' ' + x[1]).join(', ')));
+const sueltas = decls.filter(x => x.f !== 'css/tokens.css').flatMap(({ f, sel, d }) => d.filter(([p, v]) => (p === 'font-size' || p === 'font') && /(^|\s)0?\.\d+em/.test(v)).map(([p, v]) => f + ' «' + sel + ' ' + v + '»'));
+ok(sueltas.length === 0, 'ningún tamaño de letra bajo 1em escrito fuera de las fichas' + (sueltas.length ? ': ' + sueltas.join(', ') : ''));
+const menu = enPx(claroEsc['--letra-menu']);
+ok(menu >= 12 && menu <= 13, 'el menú de abajo tiene letra de 12 a 13 px con la letra normal (' + menu + ' px)');
 
 console.log(fails ? '\nFALLAS: ' + fails : '\nTodo bien');
 process.exit(fails ? 1 : 0);

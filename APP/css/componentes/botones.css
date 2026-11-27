@@ -32,6 +32,12 @@ p .lnk, .muted .lnk, small .lnk, li .lnk { min-height: 0; display: inline; paddi
 /* ‹ Anterior · [fecha o mes] · Hoy · Siguiente › (un solo componente: navPeriodo en js/core/iconos.js) */
 .dia-nav { display: flex; flex-wrap: wrap; gap: var(--esp-3); align-items: center; margin: 0 0 var(--esp-7); }
 .dia-nav .txt { flex: 1 1 150px; width: auto; min-height: var(--toque); }
+.dia-nav .btn { gap: var(--esp-1); }
+/* Parte D: en el teléfono, ‹ y › solos (la palabra sigue para el lector de pantalla) para que ‹ · fecha · › quepan en una línea */
+@media (max-width: 419px) {
+  .dia-nav .dn-t { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .dia-nav .dn-f { font-size: 1.6em; line-height: 1; }
+}
 .btn .ic { width: 18px; height: 18px; flex: none; }
 
 /* Respuesta al tocar: se hunde o se oscurece al apretar; :hover solo con mouse (en pantallas táctiles quedaba «pegado»); 120 ms

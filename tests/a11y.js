@@ -18,6 +18,7 @@
    tools/huella.js compara dos huellas (lo que se ve antes y después de un cambio de CSS).
    Fase 13, parte B: además, el borde de cada control (campos, botones secundarios, botones de pan, teclas, radios, opciones y segmentos)
    tiene 3:1 o más contra lo que lo rodea, y cada pantalla u hoja tiene a lo más una acción principal (botón relleno).
+   Fase 13, parte D: el nombre de cada pestaña del menú se lee entero (sin «…»).
    Fase 13, parte C: también a 1280 × 800 sin la huella (la Tab S6 en horizontal, con el pesaje en letra grande).
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
@@ -67,6 +68,8 @@ const CHECK = () => {
   const vis = el => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && +cs.opacity > 0.05 && !el.closest('details:not([open]) > :not(summary)'); };   // lo de un <details> cerrado no se ve
   const sel = el => { let s = el.tagName.toLowerCase(); if (el.id) s += '#' + el.id; else if (el.className && typeof el.className === 'string') s += '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.'); if (el.dataset && el.dataset.act) s += '[' + el.dataset.act + ']'; return s; };
   const res = { overflowX: document.documentElement.scrollWidth - window.innerWidth, small: [], noName: [], noLabel: [], lowContrast: [], borde: [], primarios: [], h1: document.querySelectorAll('#view h1, #gate h1').length, imgNoAlt: 0 };
+  // Fase 13 (parte D): el nombre de cada pestaña del menú se lee entero (sin «…»), también con la letra más grande del menú
+  res.cortado = [...document.querySelectorAll('#nav button span')].filter(s => vis(s) && s.scrollWidth > s.clientWidth + 1).map(s => s.textContent.trim());
   const root = document.querySelector('#appRoot:not([hidden])') || document.querySelector('#gate');
   const scope = [...document.querySelectorAll('dialog[open]')].pop() || root || document.body;   // la hoja o la confirmación de más arriba
   scope.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=tab]').forEach(el => {
@@ -114,7 +117,7 @@ const CHECK = () => {
       if (r.overflowX > 0) issues.push('desborde lateral de ' + r.overflowX + ' px');
       if (r.h1 !== 1 && !/ingreso/.test(label)) issues.push('títulos principales: ' + r.h1);
       r.small.forEach(x => issues.push('pequeño: ' + x)); r.noName.forEach(x => issues.push('botón sin nombre: ' + x)); r.noLabel.forEach(x => issues.push('campo sin etiqueta: ' + x)); r.lowContrast.forEach(x => issues.push('contraste: ' + x));
-      r.borde.forEach(x => issues.push('borde del control bajo 3:1: ' + x)); if (r.primarios.length) issues.push('acciones principales: ' + r.primarios.length + ' (' + r.primarios.join(', ') + ')');
+      r.borde.forEach(x => issues.push('borde del control bajo 3:1: ' + x)); r.cortado.forEach(x => issues.push('pestaña del menú cortada: «' + x + '»')); if (r.primarios.length) issues.push('acciones principales: ' + r.primarios.length + ' (' + r.primarios.join(', ') + ')');
       if (issues.length) bad[label] = issues;
     };
     let vistas = 0;

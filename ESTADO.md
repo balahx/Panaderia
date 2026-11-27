@@ -19,13 +19,21 @@
 | 10 | Plan de producción diario | 11 | ✔ Hecha. Paso 25 verificado por Felipe (20-nov-2026): las 6 casillas (sugerencia = cálculo a mano, «falta» y % cuadran con Pesado hoy, verde desde 95 % y aviso sobre 110 %, tablet con el plan de hoy y sin el de mañana, plan de mañana y día pasado solo lectura), Diagnóstico con 0 bloqueos y versión 0.10.0, emulador en verde |
 | 11 | Varios clientes y ventas sueltas | 12 | ✔ Hecha. Paso 26 verificado por Felipe (21-nov-2026): las 6 casillas, Diagnóstico con 0 bloqueos y versión 0.11.0, emulador en verde |
 | 12 | Cobros y cotizaciones | 13 | ✔ Hecha. Paso 27 verificado por Felipe (24-nov-2026): las 7 casillas (neto del cobro semanal y mensual = Entregas con el filtro del cliente, PDF abierto, impreso y compartido en Windows, iPhone y Android, saldo igual en lista, ficha, PDF, estado de cuenta y Excel, saldo a favor aplicado al cobro siguiente, franja de vencidos y anulación, cotización → cliente con precios, tablet sin cobros), Diagnóstico con 0 bloqueos y versión 0.12.0, emulador en verde con los 481 casos |
-| 13 | Pulido de diseño y botones, en cuatro partes (PLAN «Fase 13») | 14 a 17 | **Partes A, B y C hechas**: A (25-nov-2026, chat 14) base de diseño sin cambio a la vista, 0.12.1; B (26-nov-2026, chat 15) botones, 0.12.2; C (26-nov-2026, chat 16) tablet y pesaje, 0.12.3, publicada y verificada por Felipe en la Tab S6 real en horizontal (26-nov-2026). Falta D (navegación y pantallas de dueños) |
+| 13 | Pulido de diseño y botones, en cuatro partes (PLAN «Fase 13») | 14 a 17 | **Las cuatro partes hechas**: A (25-nov-2026, chat 14) base de diseño sin cambio a la vista, 0.12.1; B (26-nov-2026, chat 15) botones, 0.12.2; C (26-nov-2026, chat 16) tablet y pesaje, 0.12.3, publicada y verificada por Felipe en la Tab S6 real en horizontal (26-nov-2026); D (27-nov-2026, chat 17) navegación y pantallas de dueños, 0.12.4. **Falta publicar la 0.12.4 y que Felipe la revise en un iPhone y en Windows** (casillas en «Qué sigue») |
 
-Versión de la app: **0.12.3** (caché 2026.11.26.2) · 35 pruebas, todas bien (26-nov-2026, con Firebase, Google y Firestore simulados) · 518 casos de reglas (481 al cerrar la Fase 12; con los 37 nuevos de la revisión del 25-nov-2026, el emulador en verde el 25-nov-2026 y publicada ese día)
+Versión de la app: **0.12.4** (caché 2026.11.27.1) · 35 pruebas, todas bien (27-nov-2026, con Firebase, Google y Firestore simulados) · 518 casos de reglas (481 al cerrar la Fase 12; con los 37 nuevos de la revisión del 25-nov-2026, el emulador en verde el 25-nov-2026 y publicada ese día)
 
 ## Qué sigue
 
-**Fase 13 · Pulido de diseño y botones** (planificada el 25-nov-2026; lo decidido, en `decisiones/fase-13.md`). **Parte A hecha** (0.12.1): fichas de diseño en `tokens.css`, el CSS repartido en `css/componentes/` y `css/pantallas/`, la huella de diseño (`npm run huella` y `npm run comparar`) y `tests/diseno-unit.js`. **Parte B hecha** (0.12.2): borde de los controles de 3:1 o más en claro y oscuro, todo lo tocable de 48 px, una acción principal por pantalla u hoja, respuesta al tocar (y `:hover` solo con mouse), deshabilitado que explica qué falta y un componente para ‹ Anterior · Hoy · Siguiente › (`pantallas/periodo-nav.js`); la huella cambió solo en lo buscado y `a11y.js` revisa ahora 48 px, borde y acción principal. **Parte C hecha** (0.12.3): en la Tab S6 en horizontal el pesaje en dos columnas que usan el ancho (quién pesa, «Para:», la entrega y los panes | el teclado y «Guardar canasto»), todo a la vista sin bajar (medido a 1280 × 800 con 3 clientes y 8 panes: hasta 715 px); «Cerrar entrega» grande al lado del número de la entrega; el canasto recién guardado se marca 2,5 s en «Pesado hoy» y en el total de la entrega; campos, insignias y menú crecen con la letra grande; el Diagnóstico dice el tamaño de la pantalla. La huella cambió solo en el pesaje y el Diagnóstico. **Verificada por Felipe (26-nov-2026)** en la Tab S6 en horizontal con la app instalada: las 4 casillas (Diagnóstico con versión 0.12.3; todo el pesaje a la vista sin bajar; guardar en 3 toques con el canasto marcado; «Cerrar entrega» grande y con su confirmación). Con eso, la 0.12.1, la 0.12.2 y la 0.12.3 quedaron publicadas. **Siguiente: parte D · Navegación y pantallas de dueños** (0.12.4), con el texto de abajo.
+**Fase 13 · Pulido de diseño y botones** (planificada el 25-nov-2026; lo decidido y lo hecho en cada parte, en `decisiones/fase-13.md`). **Partes A, B y C hechas, publicadas y la C verificada** en la Tab S6 (0.12.1 base de diseño, 0.12.2 botones, 0.12.3 tablet y pesaje). **Parte D hecha (0.12.4, 27-nov-2026)**: menú de abajo con letra de 13 px que ya no se corta («Entregas» y «Números» salían con «…» en el teléfono al abrir Pesaje); hojas con `dvh` (la barra del navegador del teléfono ya no tapa el pie de una hoja larga); letra en 4 pasos (12, 13, 14 y 15 px; antes seis tamaños casi iguales); en el teléfono ‹ · fecha · › en una sola línea (Hoy, Entregas, Números, Costos), con el botón para volver al final; en Cobros y Cotizaciones el estado va bajo el monto (el nombre del cliente ya no se parte en cinco líneas); «Ver todos los cobros» cuando un filtro queda vacío. La huella cambió solo en lo buscado.
+
+**Siguiente: publicar la 0.12.4** (`npm run publicar`) **y revisarla** («Listo cuando» de la parte D). Con la app actualizada:
+- [ ] Diagnóstico con **versión 0.12.4 y 0 bloqueos**, en el iPhone y en Windows.
+- [ ] **iPhone**, claro y oscuro: el menú de abajo se lee entero (Hoy, Entregas, Números, Pesaje, Más), **también dentro de Pesaje**; en Hoy y Entregas, **‹ · fecha · › en una línea**.
+- [ ] **iPhone**: abrir una hoja larga (Más → Cobros → «Nuevo cobro») y bajar hasta el final: el último botón se ve entero, sin que lo tape la barra del navegador.
+- [ ] **Windows a 320 px** (Chrome o Edge con el zoom en 400 % y la ventana de unos 1280 px de ancho), claro y oscuro (la app sigue el tema de Windows): Hoy, Entregas y Cobros sin nada cortado ni desbordado; en Cobros el estado de cada cobro bajo el monto; con un estado sin cobros (por ejemplo «Anulados») aparece «Ver todos los cobros» y vuelve a la lista completa.
+
+Con eso la Fase 13 queda cerrada.
 
 Sigue pendiente, aparte: **cerrar noviembre** desde Entregas a partir del 1 de diciembre (el primer cierre con líneas por cliente) y emitir los cobros de cada semana o mes. Futuros posibles, cada uno en su chat y con preguntas primero: hoja de insumos del día, balanza, plan en el Excel, cumplimiento del mes en Números, recibo de abono en PDF.
 
@@ -46,7 +54,7 @@ La revisión de reglas del 25-nov-2026 (`decisiones/revision-reglas-2026-11.md`)
 - Sincronización con la caché sin conexión propia de Firestore (confirmado; no se usa `sync.js` ni `reads.js` de la muestra).
 - Los dueños crean el catálogo en la app, con precios; el precio es interno (dueños y externo).
 - Sin compilación; SDK y Excel alojados en la app; un archivo por pantalla (≤ ~300 líneas).
-- Diseño (Fase 13): colores y escalas (letra, espacios, radios, alturas, sombras) solo en `css/tokens.css`; el tema oscuro en dos bloques iguales (sin `light-dark()`); CSS por pieza común y por pantalla; la tablet es una Samsung Galaxy Tab S6 en horizontal. Botones en tres niveles (primario relleno, secundario con borde de 3:1, enlace), uno principal por pantalla u hoja, todos de 48 px. Pesaje (parte C): desde 1024 px usa el ancho en dos columnas, todo a la vista sin bajar en la Tab S6 en horizontal; campos, insignias y menú crecen con la letra grande.
+- Diseño (Fase 13): colores y escalas (letra, espacios, radios, alturas, sombras) solo en `css/tokens.css`; el tema oscuro en dos bloques iguales (sin `light-dark()`); CSS por pieza común y por pantalla; la tablet es una Samsung Galaxy Tab S6 en horizontal. Botones en tres niveles (primario relleno, secundario con borde de 3:1, enlace), uno principal por pantalla u hoja, todos de 48 px. Pesaje (parte C): desde 1024 px usa el ancho en dos columnas, todo a la vista sin bajar en la Tab S6 en horizontal; campos, insignias y menú lateral crecen con la letra grande. Parte D: letra en 4 pasos (12, 13, 14 y 15 px), menú de abajo de 13 px fijos, hojas con `dvh` (y `vh` de respaldo), ‹ · fecha · › en una línea en el teléfono.
 - Seguridad de la auditoría aplicada desde el inicio (PLAN §9).
 - Commits y PR: autor Felipe González con su correo, sin coautoría, sin Claude-Session ni enlace de sesión.
 - Carpetas: app en `APP\`; `privado\` y `app de muestra\` fuera del repositorio.
@@ -84,14 +92,6 @@ La revisión de reglas del 25-nov-2026 (`decisiones/revision-reglas-2026-11.md`)
 - `Privado/Guia-familia-Panaderia.pdf` es de la versión anterior: la guía actualizada está en `GUIA-FAMILIA.md` y en la app (Más → Ayuda).
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
-
-Para la última parte de la Fase 13 (D):
-```
-Proyecto App Panadería, Fase 13 · Pulido de diseño y botones, parte D (navegación y pantallas de dueños).
-Lee D:\APP Panaderia\ESTADO.md, MAPA.md, decisiones/fase-13.md y de PLAN.md solo «Fase 13».
-Toma la huella antes de cambiar nada (npm run huella), desarrolla solo la parte D, compara la huella al final,
-prueba, sube la versión (Z) y deja ESTADO.md actualizado.
-```
 
 Para un arreglo:
 ```

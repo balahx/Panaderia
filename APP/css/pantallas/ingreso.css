@@ -1,5 +1,5 @@
 /* Ingreso, pantallas de espera (estado-ic) y Accesos (.persona). */
-.gate { padding-block: 28px 40px; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; }
+.gate { padding-block: 28px 40px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; }
 .gate .hero { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 0 0 26px; }
 .gate .hero .mk { width: 112px; height: 112px; border-radius: 28px; }
 .gate .hero .mk .ic { width: 68px; height: 68px; stroke-width: 1.5; }

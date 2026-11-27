@@ -1,5 +1,7 @@
-/* Hojas (paneles desde abajo; centradas en el computador), ventana de confirmación y aviso flotante (toast). */
-dialog { border: 0; padding: 0; background: var(--surface); color: var(--ink); width: 100%; max-width: 560px; margin: auto auto 0; border-radius: var(--radio-hoja) var(--radio-hoja) 0 0; max-height: 90vh; overflow: hidden; }
+/* Hojas (paneles desde abajo; centradas en el computador), ventana de confirmación y aviso flotante (toast).
+   Parte D: el alto máximo de las hojas en dvh (lo que se ve de verdad, sin la barra del navegador del teléfono), con vh antes para
+   equipos que no conocen dvh (Safari anterior a 15,4 y Chrome anterior a 108). */
+dialog { border: 0; padding: 0; background: var(--surface); color: var(--ink); width: 100%; max-width: 560px; margin: auto auto 0; border-radius: var(--radio-hoja) var(--radio-hoja) 0 0; max-height: 90vh; max-height: 90dvh; overflow: hidden; }
 dialog[open] { display: flex; flex-direction: column; }
 dialog::backdrop { background: var(--velo); }
 .sheet-h { display: flex; justify-content: space-between; align-items: center; gap: var(--esp-4); padding: var(--esp-5) var(--esp-3) var(--esp-1) var(--esp-8); }

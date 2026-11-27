@@ -46,20 +46,26 @@
   --fs: 15px;
   --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
   --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  /* Letra, de menor a mayor (em: relativa a la letra de alrededor). La parte D junta los pasos casi iguales. */
-  --letra-rotulo: .8em;     /* rótulos en mayúsculas (.eyebrow), línea chica de los botones de pan */
-  --letra-detalle: .84em;   /* segunda línea de las filas y fichas */
-  --letra-pie: .87em;       /* etiquetas de campos, textos al pie, leyendas */
-  --letra-apoyo: .9em;      /* textos de apoyo, botón chico, segmentos */
-  --letra-nota: .94em;      /* notas, avisos, enlaces */
-  --letra-fila: .96em;      /* filas clave-valor, franjas */
+  /* Letra en 4 pasos (parte D): 12, 13 y 14 px bajo el texto normal de 15 px (en em, así crecen con la letra grande del pesaje).
+     Antes eran seis tamaños casi iguales (.8, .84, .87, .9, .94 y .96 em): .84 y .87 quedaron en 13 px y .9, .94 y .96 en 14 px.
+     Los nombres por uso se conservan y apuntan al paso; para cambiar un paso se cambia aquí y nada más. */
+  --letra-xs: .8em;              /* 12 px */
+  --letra-s: calc(13em / 15);    /* 13 px */
+  --letra-m: calc(14em / 15);    /* 14 px */
+  --letra-rotulo: var(--letra-xs);   /* rótulos en mayúsculas (.eyebrow), línea chica de los botones de pan */
+  --letra-detalle: var(--letra-s);   /* segunda línea de las filas y fichas */
+  --letra-pie: var(--letra-s);       /* etiquetas de campos, textos al pie, leyendas */
+  --letra-apoyo: var(--letra-m);     /* textos de apoyo, botón chico, segmentos, días del registro, cifras del plan */
+  --letra-nota: var(--letra-m);      /* notas, avisos, enlaces */
+  --letra-fila: var(--letra-m);      /* filas clave-valor, franjas */
   --letra-cifra-m: 1.6em;   /* h2, teclas del pesaje, cifras medianas */
   --letra-cifra: 1.9em;     /* cifras destacadas (precio de hoy, totales) */
   /* Parte C: crecen con la letra grande. Van como fracción de --fs y no en em, para que valgan lo mismo dentro de cualquier pieza
      (una hoja, un filtro o la barra de abajo): con la letra normal (15 px) dan los px de antes; en el pesaje (19 px), un 27 % más. */
   --letra-campo: max(16px, calc(var(--fs) * 16 / 15));   /* campos: nunca bajo 16 px (así el iPhone no agranda la página al escribir) */
   --letra-insignia: calc(var(--fs) * 12 / 15);           /* 12 px · 15,2 px con la letra grande */
-  --letra-menu: calc(var(--fs) * 11.5 / 15);             /* menú inferior: 11,5 px · 14,6 px */
+  --letra-menu: 13px;   /* menú inferior. Parte D: 13 px fijos (antes 11,5 px, y 14,6 px con la letra grande, que a 320 y 360 px cortaba
+                           «Entregas» y «Números» con cinco pestañas). La tablet en horizontal usa el menú lateral, que sí crece. */
   --letra-menu-lateral: var(--fs);                       /* menú lateral (computador y tablet en horizontal): 15 px · 19 px */
   /* Espacios */
   --esp-1: 4px; --esp-2: 6px; --esp-3: 8px; --esp-4: 10px; --esp-5: 12px; --esp-6: 14px; --esp-7: 16px; --esp-8: 18px;

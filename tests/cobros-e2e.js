@@ -198,6 +198,10 @@ Object.fromEntries([].concat(...Array.from({ length: 21 }, (x, i) => { const f =
   await tocar('#avisoVencidos [data-act="ir"]'); await page.waitForSelector('#listaCobros');
   ok((await page.inputValue('#cobEstado')) === 'vencido' && (await page.$$('#listaCobros .mrow')).length === 1 && /Vencido/.test(await texto('#listaCobros')) && (await texto('#cobVencido')).includes(C.pesos(e2.total)), '«Ver» lleva a Cobros con el filtro «Vencidos»; arriba, Vencido');
   await page.selectOption('#cobEstado', 'todos');
+  // Fase 13 (parte D): un filtro sin resultados ofrece volver a ver todos
+  await page.selectOption('#cobEstado', 'anulado'); await page.waitForSelector('#cobVerTodos');
+  await tocar('#cobVerTodos'); await page.waitForSelector('#listaCobros');
+  ok((await page.inputValue('#cobEstado')) === 'todos' && (await page.inputValue('#cobCliente')) === '', 'filtro sin resultados: «Ver todos los cobros» quita el cliente y el estado');
 
   console.log('10. «Cambió desde que se emitió» y «Anular y emitir de nuevo»');
   const pc = (await docs('pesajes')).find(p => p.clienteId === 'c2' && p.productoId === 'hal' && p.fecha === SEM.desde);

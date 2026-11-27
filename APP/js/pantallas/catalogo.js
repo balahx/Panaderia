@@ -31,7 +31,7 @@ function filaProducto(p, c, cliente) {
 }
 function listaProductos(c) {
   const todos = cat.ordenarProductos(c.cat.productos), act = cat.activos(todos), des = todos.filter(p => p.activo === false), cliente = clienteLista(c), clis = cat.clientesActivos(c.cat.clientes);
-  return (cliente ? '' : '<div class="note warn" id="faltaCliente">Para anotar precios falta el cliente al que se le vende. <button class="lnk" data-act="cat-sub" data-sub="negocio">Crear el cliente</button></div>') +
+  return (cliente ? '' : '<p class="note warn" id="faltaCliente">Para anotar precios falta el cliente al que se le vende. <button class="lnk" data-act="cat-sub" data-sub="negocio">Crear el cliente</button></p>') +
     (clis.length > 1 ? '<label class="lab" for="catLista">Precios de</label><select class="txt" id="catLista">' + clis.map(x => '<option value="' + esc(x.id) + '"' + (cliente && x.id === cliente.id ? ' selected' : '') + '>' + esc(x.nombre) + '</option>').join('') + '</select>' : '') +
     '<div class="actions arriba"><button class="btn" data-act="cat-nuevo">Agregar producto</button></div>' +
     (act.length ? '<div class="mlist" id="listaProductos">' + act.map(p => filaProducto(p, c, cliente)).join('') + '</div>' +

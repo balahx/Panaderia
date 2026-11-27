@@ -69,6 +69,14 @@ Object.fromEntries([pes('h1', HOY, '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', HOY,
   ok(!!(await page.$('[data-act="ent-mes"][data-d="0"]')) && await page.isEnabled('[data-act="ent-mes"][data-d="1"]'), 'en el mes anterior aparecen «Este mes» y «Siguiente ›»');
   await tocar('[data-act="ent-mes"][data-d="0"]'); await mesEs(mesHoy);
   ok(!(await page.$('[data-act="ent-mes"][data-d="0"]')), '«Este mes» vuelve al mes en curso');
+  // Fase 13 (parte D): ‹ · mes · › en una sola línea, también a 320 px (allí sin las palabras, que siguen siendo el nombre del botón)
+  const fila = () => page.evaluate(() => { const t = ['[data-act="ent-mes"][data-d="-1"]', '#entMes', '[data-act="ent-mes"][data-d="1"]'].map(q => document.querySelector(q).getBoundingClientRect()); return { misma: t.every(r => Math.abs(r.top - t[0].top) < 2), anchos: t.map(r => Math.round(r.width)), palabra: getComputedStyle(document.querySelector('.dia-nav .dn-t')).position !== 'absolute' }; });
+  let f = await fila();
+  ok(f.misma && f.palabra, 'a 420 px: «‹ Anterior», el mes y «Siguiente ›» en una línea, con las palabras');
+  await page.setViewportSize({ width: 320, height: 900 }); f = await fila();
+  ok(f.misma && !f.palabra && f.anchos[0] >= 48 && f.anchos[2] >= 48, 'a 320 px: ‹, el mes y › en una línea (botones de ' + f.anchos[0] + ' y ' + f.anchos[2] + ' px)');
+  ok(await page.getByRole('button', { name: 'Anterior', exact: true }).count() === 1 && await page.getByRole('button', { name: 'Siguiente', exact: true }).count() === 1, 'a 320 px los botones se siguen llamando «Anterior» y «Siguiente» (la flecha no se lee)');
+  await page.setViewportSize({ width: 420, height: 900 });
   if ((await page.inputValue('#entMes')) !== MES) await escribir('#entMes', MES);
   await page.waitForSelector('#entTotal');
   const T1 = await esperado(rMes.desde, hastaMes);

@@ -3,5 +3,5 @@
 .cf-est { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-3); margin: 0 0 var(--esp-3); }
 .qz-pan { border: 1px solid var(--line); border-radius: var(--radio-l); padding: var(--esp-1) var(--esp-5) var(--esp-3); margin: 0 0 var(--esp-4); }
 .qz-pan .check { margin: var(--esp-2) 0 0; font-weight: 600; }
-#listaCobros .mrow .badge, #listaCotizaciones .mrow .badge { margin-left: 2px; }
+#listaCobros .precio .badge, #listaCotizaciones .precio .badge { margin-top: var(--esp-1); }   /* parte D: bajo el monto */
 #cobResumen .stat b { font-size: 1.45em; }

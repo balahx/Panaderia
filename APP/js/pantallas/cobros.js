@@ -29,11 +29,12 @@ function pendiente(c) {
   setTimeout(() => { c = ultimo || c; if (x.que === 'nuevo') nuevo.abrir(c, { clienteId: x.cli }); else if (x.que === 'abono') abono.abrirNuevo(c, { clienteId: x.cli }); else if (x.que === 'cuenta') cuenta.abrir(c, x.cli); }, 0);
 }
 const stat = (id, t, v, w) => '<div class="stat' + (w ? ' alerta' : '') + '" id="' + id + '"><span>' + t + '</span><b>' + esc(cat.pesos(v)) + '</b></div>';
+/* Parte D: la insignia del estado va en la columna del monto, debajo del saldo (en el teléfono el nombre tenía tres columnas a su lado) */
 function filaCobro(c, x) {
   const e = A.estado(x, c.abonos, c.hoy);
   return '<button class="mrow" data-act="cob-ver" data-n="' + x.numero + '"><span class="mt"><b>N.º ' + esc(CB.numeroTexto(x.numero)) + ' · ' + esc(nombreCli(c, x.clienteId) || x.cliente.nombre) + '</b><small>' +
     esc(CB.periodoTexto(x.desde, x.hasta, x.periodo) + (x.anulado ? '' : ' · vence ' + fechaTexto(x.vence))) + '</small></span><span class="precio"><b>' + esc(cat.pesos(x.total)) + '</b><small>' +
-    (x.anulado ? 'no suma' : e.saldo ? 'saldo ' + esc(cat.pesos(e.saldo)) : 'sin saldo') + '</small></span>' + badge(e) + '</button>';
+    (x.anulado ? 'no suma' : e.saldo ? 'saldo ' + esc(cat.pesos(e.saldo)) : 'sin saldo') + '</small>' + badge(e) + '</span></button>';
 }
 const filaAbono = (c, a) => '<button class="mrow" data-act="ab-ver" data-id="' + esc(a.id) + '"><span class="mt"><b>' + esc(cat.pesos(a.monto)) + ' · ' + esc(nombreCli(c, a.clienteId)) + '</b><small>' +
   esc(fechaTexto(a.fecha) + ' · ' + (A.MEDIOS[a.medio] || a.medio) + (a.aFavor ? ' · ' + cat.pesos(a.aFavor) + ' a favor' : '') + (a.anulado ? ' · anulado' : '')) + '</small></span>' + svg('chev', 'go') + '</button>';
@@ -56,7 +57,8 @@ export function html(c) {
     '<div><label class="lab" for="cobEstado">Estado</label><select class="txt" id="cobEstado">' + ESTADOS.map(e => '<option value="' + e[0] + '"' + (e[0] === L.estado ? ' selected' : '') + '>' + e[1] + '</option>').join('') + '</select></div></div>' +
     '<div class="actions arriba"><button class="btn" data-act="cob-nuevo">' + svg('cobro') + 'Nuevo cobro</button><button class="btn ghost" data-act="cob-abono">Anotar abono</button><button class="btn ghost" data-act="cob-cuenta">Estado de cuenta</button></div>' +
     (lista.length ? '<div class="mlist" id="listaCobros">' + lista.slice(0, MAX).map(x => filaCobro(c, x)).join('') + '</div>' + (lista.length > MAX ? '<p class="muted chico">Se muestran los ' + MAX + ' más nuevos: elige un cliente o un estado para ver otros.</p>' : '')
-      : emptyHTML('cobro', c.cobros.length ? 'Ningún cobro con ese filtro' : 'Sin cobros todavía', c.cobros.length ? 'Cambia el cliente o el estado.' : 'Toca «Nuevo cobro»: se arma solo con las entregas del cliente (desde el 1 de noviembre de 2026).')) +
+      : emptyHTML('cobro', c.cobros.length ? 'Ningún cobro con ese filtro' : 'Sin cobros todavía', c.cobros.length ? 'Cambia el cliente o el estado.' : 'Toca «Nuevo cobro»: se arma solo con las entregas del cliente (desde el 1 de noviembre de 2026).',
+        c.cobros.length ? '<button class="lnk" data-act="cob-todos" id="cobVerTodos">Ver todos los cobros</button>' : '')) +   // parte D: salir del filtro sin buscarlo arriba
     (abonos.length ? '<section class="sec" id="cobAbonos"><p class="eyebrow">Últimos abonos</p><div class="mlist">' + abonos.map(a => filaAbono(c, a)).join('') + '</div></section>' : '') +
     '<p class="muted chico">Documento interno de cobro (no es factura). Ventas sueltas no tiene cobros: se paga al momento.</p>';
 }
@@ -66,6 +68,7 @@ export function alActuar(act, el, c) {
   if (act === 'cob-abono') { abono.abrirNuevo(c, { clienteId: L.cliente }); return true; }
   if (act === 'cob-cuenta') { cuenta.abrir(c, L.cliente); return true; }
   if (act === 'cob-ver') { ficha.abrir(c, el.dataset.n); return true; }
+  if (act === 'cob-todos') { L.cliente = ''; L.estado = 'todos'; return 'repintar'; }
   return ficha.alActuar(act, el, c) || abono.alActuar(act, el, c) || nuevo.alActuar(act, el, c) || cuenta.alActuar(act, el, c);
 }
 export function alEscribir(el, c) {

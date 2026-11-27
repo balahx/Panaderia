@@ -9,7 +9,7 @@
 .ent-dia .mlist { margin: var(--esp-3) 0 0; }
 .ent-dia .actions { margin-top: var(--esp-4); }
 .filtros .seg { margin: var(--esp-6) 0 0; }
-.reg-dia { font: 600 .95em var(--font-body); color: var(--muted); margin: var(--esp-7) 0 var(--esp-2); }
+.reg-dia { font: 600 var(--letra-apoyo) var(--font-body); color: var(--muted); margin: var(--esp-7) 0 var(--esp-2); }
 .mrow.cambio .mt small + small { margin-top: 2px; }
 .mrow.cambio:disabled { cursor: default; opacity: 1; }
 #hoyAnotar .ic { width: 18px; height: 18px; }

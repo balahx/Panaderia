@@ -7,10 +7,11 @@ import * as CB from '../core/cobros.js';
 import * as Q from '../core/cotizaciones.js';
 import * as qh from './cotizacion-hoja.js';
 
+/* Parte D: la insignia va en la columna del monto, debajo (en el teléfono el nombre tenía tres columnas a su lado) */
 const fila = (c, q) => '<button class="mrow" data-act="qz-ver" data-n="' + q.numero + '"><span class="mt"><b>N.º ' + esc(CB.numeroTexto(q.numero)) + ' · ' + esc(q.para.nombre) + '</b><small>' +
   esc(fechaTexto(q.fecha) + ' · válida hasta ' + fechaTexto(q.validaHasta) + ' · ' + q.lineas.length + (q.lineas.length === 1 ? ' pan' : ' panes')) + '</small></span>' +
-  (q.total != null ? '<span class="precio"><b>' + esc(cat.pesos(q.total)) + '</b><small>por ' + esc(q.cantidadesPor) + '</small></span>' : '') +
-  '<span class="badge' + (Q.vencida(q, c.hoy) ? ' warn' : q.estado === 'aceptada' ? ' ok' : '') + '">' + esc(Q.etiqueta(q, c.hoy)) + '</span></button>';
+  '<span class="precio">' + (q.total != null ? '<b>' + esc(cat.pesos(q.total)) + '</b><small>por ' + esc(q.cantidadesPor) + '</small>' : '') +
+  '<span class="badge' + (Q.vencida(q, c.hoy) ? ' warn' : q.estado === 'aceptada' ? ' ok' : '') + '">' + esc(Q.etiqueta(q, c.hoy)) + '</span></span></button>';
 export function html(c) {
   const cab = '<button class="lnk volver" data-act="ir" data-tab="mas">‹ Más</button><span class="eyebrow">Cobros</span><h1>Cotizaciones</h1>';
   if (!Array.isArray(c.cotizaciones) || c.empresa === undefined || !c.cat || !c.cat.productos || !c.cat.precios || !c.cat.clientes) return cab + '<div class="spin" role="status" aria-label="Cargando"></div>';
