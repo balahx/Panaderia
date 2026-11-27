@@ -17,7 +17,9 @@
 .pes-display { font: 700 3em/1.1 var(--font-display); text-align: right; padding: var(--esp-4) var(--esp-7); margin: 0 0 var(--esp-4); border-radius: var(--radio-xl); background: var(--surface2); border: 1.5px solid var(--line-control); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .pes-teclas { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--esp-3); }
 .pes-tecla { min-height: 3.2em; border-radius: var(--radio-xl); border: 1.5px solid var(--line-control); background: var(--surface); color: var(--ink); font: 700 var(--letra-cifra-m)/1 var(--font-display); cursor: pointer; }
-.pes-tecla:active { background: var(--surface2); }
+.pes-op, .pes-tecla { transition: background-color var(--transicion), border-color var(--transicion), box-shadow var(--transicion), transform var(--transicion); -webkit-tap-highlight-color: transparent; }
+.pes-tecla:active, .pes-op:active { background: var(--surface2); transform: translateY(1px); }   /* parte B: también los botones de pan y de quién pesa */
+.pes-op[aria-pressed="true"]:active { background: var(--gold-bg); }
 .pes-guardar { margin-top: var(--esp-5); }
 #pesTeclado .actions { margin-top: var(--esp-4); }
 #pesTeclado .warn-t { margin: 0 0 var(--esp-4); }

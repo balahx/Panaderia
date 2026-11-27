@@ -11,6 +11,7 @@ import * as V from '../core/ventas.js';
 import * as I from '../core/indicadores.js';
 import * as D from './meses-datos.js';
 import { seg, cap, barra, irAlMes } from './indicadores.js';
+import { navPeriodo } from './periodo-nav.js';
 
 let anioV = 0, guardando = false;   // año que se mira (0 = el de hoy)
 const anioSel = c => anioV || Number(c.hoy.slice(0, 4));
@@ -60,15 +61,14 @@ function tarjetaProy(t, Pr, a) {
     kv('Precio', I.pctTexto((Pr.factorPrecio - 1) * 100), 'anioPrecio') + kv('Proyectado ' + a, cat.pesos(t.T.proy), 'anioProyTotal') + kv('Metas fijadas', t.T.metasFijadas + ' de 12', 'anioMetasN') +
     (sinBase.length === 12 ? '<p class="warn-t" id="anioSinBase">' + (a - 1) + ' no tiene datos: no hay de dónde proyectar. Si tienes los cierres en Excel, impórtalos en Más → Cierres mensuales; o escribe las metas a mano tocando cada mes.</p>'
       : sinBase.length ? '<p class="muted chico" id="anioSinBase">Sin base en ' + (a - 1) + ': ' + esc(sinBase.join(', ')) + '. Esos meses no se proyectan; su meta se escribe a mano.</p>' : '') +
-    '<div class="actions"><button class="btn ghost" data-act="anio-ajustar">Ajustar proyección</button><button class="btn" id="anioFijar" data-act="anio-fijar"' + (guardando || !t.T.proy ? ' disabled' : '') + '>Usar la proyección como metas</button></div>' +
+    '<div class="actions"><button class="btn ghost" data-act="anio-ajustar">Ajustar proyección</button><button class="btn" id="anioFijar" data-act="anio-fijar"' + (guardando || !t.T.proy ? ' disabled' : '') + (!t.T.proy && sinBase.length ? ' aria-describedby="anioSinBase"' : '') + '>Usar la proyección como metas</button></div>' +
     '<p class="muted chico">Neto proyectado = neto del mismo mes de ' + (a - 1) + ' × crecimiento × precio. Las metas quedan fijas aunque después cambies los factores.</p></section>';
 }
 
 export function html(c) {
   const a = anioSel(c), cur = V.rangoMes(V.mesDe(c.hoy)).desde, per = c.per;
   const cab = '<span class="eyebrow">Indicadores</span><h1>Año ' + a + '</h1>' + seg('anio') +
-    '<div class="dia-nav" role="group" aria-label="Cambiar de año"><button class="btn ghost sm" data-act="anio-cambiar" data-d="-1">‹ ' + (a - 1) + '</button>' +
-    '<button class="btn ghost sm" data-act="anio-cambiar" data-d="1"' + (a >= MAX_ANIO(c) ? ' disabled' : '') + '>' + (a + 1) + ' ›</button></div>';
+    navPeriodo({ act: 'anio-cambiar', aria: 'Cambiar de año', ultimo: a >= MAX_ANIO(c), antes: '‹ ' + (a - 1), despues: (a + 1) + ' ›' });
   const err = c.errCat || (per && per.err);
   if (err) return cab + errorHTML('No se pudieron leer los datos (' + err + ').', { retry: 'recargar' });
   if (!D.listos(c) || !c.proy || !per || per.desde !== cur || !per.pesajes) return cab + '<div class="spin" role="status" aria-label="Cargando"></div>';

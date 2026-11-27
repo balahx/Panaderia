@@ -13,6 +13,7 @@ import * as CI from '../core/cierres.js';
 import { crear, MIME } from '../core/xlsx.js';
 import { puede } from '../core/perfil.js';
 import * as imp from './cierres-importar.js';
+import { navPeriodo } from './periodo-nav.js';
 
 let anio = 0;   // año que se mira (0 = el de hoy)
 const anioDe = c => anio || Number(c.hoy.slice(0, 4));
@@ -76,8 +77,7 @@ export function html(c) {
   if (imp.activo()) return imp.html(c);
   const a = anioDe(c), ahora = V.mesDe(c.hoy), esteAnio = a >= Number(c.hoy.slice(0, 4));
   const cab = '<button class="lnk volver" data-act="ir" data-tab="mas">‹ Más</button><span class="eyebrow">Cierres mensuales</span><h1>Cierres ' + a + '</h1>' +
-    '<div class="dia-nav" role="group" aria-label="Cambiar de año"><button class="btn ghost sm" data-act="cie-anio" data-d="-1">‹ ' + (a - 1) + '</button>' +
-    '<button class="btn ghost sm" data-act="cie-anio" data-d="1"' + (esteAnio ? ' disabled' : '') + '>' + (a + 1) + ' ›</button></div>';
+    navPeriodo({ act: 'cie-anio', aria: 'Cambiar de año', volver: 'Este año', enActual: esteAnio, antes: '‹ ' + (a - 1), despues: (a + 1) + ' ›' });
   if (c.errCat) return cab + errorHTML('No se pudieron leer los datos (' + c.errCat + ').', { retry: 'recargar' });
   if (!c.cierres || !c.cat || !c.cat.productos) return cab + '<div class="spin" role="status" aria-label="Cargando"></div>';
   const meses = []; for (let m = 1; m <= 12; m++) { const k = a + '-' + String(m).padStart(2, '0'); if (k <= ahora) meses.push(k); }
@@ -121,7 +121,7 @@ function verMes(c, mes) {
 export function alActuar(act, el, c) {
   if (imp.activo()) { const r = imp.alActuar(act, el, c); if (r) return r; }
   if (act === 'recargar') { location.reload(); return true; }
-  if (act === 'cie-anio') { anio = Math.min(Number(c.hoy.slice(0, 4)), anioDe(c) + Number(el.dataset.d)); return 'repintar'; }
+  if (act === 'cie-anio') { const d = Number(el.dataset.d); anio = d ? Math.min(Number(c.hoy.slice(0, 4)), anioDe(c) + d) : 0; return 'repintar'; }
   if (act === 'cie-ver') { verMes(c, el.dataset.mes); return true; }
   if (act === 'cie-reabrir') { reabrir(c, el.dataset.mes); return true; }
   if (act === 'cie-plantilla') { descargar('plantilla-cierres.xlsx', crear(CI.plantilla(c.cat && c.cat.productos)), MIME).catch(() => toast('No se pudo descargar la plantilla')); return true; }

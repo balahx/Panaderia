@@ -34,7 +34,7 @@ export function pintar(c) {
     kv('Total del cobro', cat.pesos(cb.total), 'cfTotal') + (cb.descuento ? kv(cb.descuento.texto, '-' + cat.pesos(cb.descuento.conIva)) : '') +
     (cb.anulado ? '' : kv('Abonado', cat.pesos(e.abonado) + (e.previo ? ' (con ' + cat.pesos(e.previo) + ' a favor)' : ''), 'cfAbonado') + kv('Saldo', cat.pesos(e.saldo), 'cfSaldo') + (e.pagadoEl ? kv('Pagado el', fechaTexto(e.pagadoEl)) : '')) +
     kv('Factura SII', cb.factura || '—', 'cfFactura') +
-    '<div id="cfCambio">' + cambioHTML(cb) + '</div>' + botonesPdf('cf-pdf') +
+    '<div id="cfCambio">' + cambioHTML(cb) + '</div>' + botonesPdf('cf-pdf', '', !cb.anulado && e.saldo > 0) +
     (ab.length ? '<p class="eyebrow">Abonos</p><div class="mlist" id="cfAbonos">' + ab.map(a => lineaAbono(a, cb.numero)).join('') + '</div>' : '') +
     '<p class="form-error" role="alert" hidden></p>' +
     (cb.anulado ? '' : '<div class="actions">' + (e.saldo > 0 ? '<button class="btn" data-act="cf-pagar">Pagar saldo</button>' : '') + '<button class="btn ghost" data-act="ab-nuevo" data-cli="' + esc(cb.clienteId) + '">Anotar abono</button>' +
@@ -43,7 +43,7 @@ export function pintar(c) {
 function cambioHTML(cb) {
   if (cb.anulado || !F.cmp || F.cmp.igual) return '';
   return '<p class="note warn">Cambió desde que se emitió: ' + (F.cmp.faltan.length ? 'ahora hay panes sin precio en esas fechas.' : 'hoy esas entregas suman ' + esc(cat.pesos(F.cmp.ahora)) + ' (' + (F.cmp.dif > 0 ? '+' : '') + esc(cat.pesos(F.cmp.dif)) + ').') +
-    ' Un canasto se corrigió, se anuló o se anotó después.</p><div class="actions"><button class="btn" data-act="cf-reemitir">Anular y emitir de nuevo</button></div>';
+    ' Un canasto se corrigió, se anuló o se anotó después.</p><div class="actions"><button class="btn ghost" data-act="cf-reemitir">Anular y emitir de nuevo</button></div>';
 }
 /* Vuelve a armar el período con los canastos de hoy (con la copia del equipo si no hay internet) y avisa si no cuadra. */
 async function revisar(c) {

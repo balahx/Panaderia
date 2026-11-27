@@ -103,7 +103,7 @@ function tarjetaRespaldo(c) {
     '<p class="muted chico" id="datBkAlcance">El catálogo, los precios, los cierres, las metas y los costos van siempre completos. Los años anteriores ya quedaron en sus respaldos.</p>' +
     (marca !== undefined ? '<p class="' + (viejo ? 'note warn' : 'muted') + '" id="datMarca">' + esc(R.textoMarca(marca)) + '</p>' : '') +
     (B.err ? '<p class="form-error" role="alert">' + esc(B.err) + '</p>' : '') + (B.ocupado ? '<p class="muted" role="status">' + esc(B.msg) + '</p>' : B.ultimo ? '<p class="muted chico" id="datBkUltimo">' + esc(B.ultimo) + '</p>' : '') +
-    '<div class="actions"><button class="btn" id="datRespaldo" data-act="dat-respaldo"' + (B.ocupado ? ' disabled' : '') + '>' + svg('bajar') + (B.ocupado ? 'Descargando…' : 'Descargar respaldo') + '</button></div></section>';
+    '<div class="actions"><button class="btn ghost" id="datRespaldo" data-act="dat-respaldo"' + (B.ocupado ? ' disabled' : '') + '>' + svg('bajar') + (B.ocupado ? 'Descargando…' : 'Descargar respaldo') + '</button></div></section>';
 }
 export function html(c) {
   return '<button class="lnk volver" data-act="ir" data-tab="mas">‹ Más</button><span class="eyebrow">Datos</span><h1>Excel y respaldo</h1>' +

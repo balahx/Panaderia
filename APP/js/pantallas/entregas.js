@@ -14,6 +14,7 @@ import { exportar, ocupado } from './datos.js';
 import * as CI from '../core/cierres.js';
 import { cerrarMes, cerrandoMes, totalesTexto } from './cierres.js';
 import * as FC from './filtro-cliente.js';
+import { navPeriodo } from './periodo-nav.js';
 
 let mes = '';   // mes elegido ('' = el mes de hoy)
 const mesDe = c => (mes && mes <= V.mesDe(c.hoy) ? mes : V.mesDe(c.hoy));
@@ -29,9 +30,8 @@ const corto = f => V.diaSemana(f) + ' ' + fechaTexto(f).replace(/ \d{4}$/, '');
 function cabecera(c) {
   const m = mesDe(c), esteMes = m === V.mesDe(c.hoy);
   return '<span class="eyebrow">Entregas</span><h1>' + esc(cap(V.mesTexto(m))) + '</h1>' +
-    '<div class="dia-nav" role="group" aria-label="Cambiar de mes"><button class="btn ghost sm" data-act="ent-mes" data-d="-1">‹ Anterior</button>' +
-    '<label class="vh" for="entMes">Ir a otro mes</label><input class="txt" type="month" id="entMes" max="' + V.mesDe(c.hoy) + '" value="' + m + '">' +
-    '<button class="btn ghost sm" data-act="ent-mes" data-d="1"' + (esteMes ? ' disabled' : '') + '>Siguiente ›</button></div>';
+    navPeriodo({ act: 'ent-mes', aria: 'Cambiar de mes', volver: 'Este mes', enActual: esteMes,
+      campo: '<label class="vh" for="entMes">Ir a otro mes</label><input class="txt" type="month" id="entMes" max="' + V.mesDe(c.hoy) + '" value="' + m + '">' });
 }
 const nombreEnt = (e, varios) => (e.suelta ? esc(e.cliente || 'Ventas sueltas') : 'N.º ' + e.n + (varios && e.cliente ? ' · ' + esc(e.cliente) : ''));
 function filaEntrega(e, varios) {
@@ -103,8 +103,8 @@ export function alActuar(act, el, c) {
   if (act === 'ent-excel') { const r = rango(c); exportar(c, r.desde, r.hasta, false, FC.elegido(c)); return 'repintar'; }   // sin costos: es el de la contadora (Fase 9)
   if (act === 'ent-cerrar') { cerrarMes(c, mesDe(c)); return true; }
   if (act !== 'ent-mes') return false;
-  const m = V.sumarMeses(mesDe(c), Number(el.dataset.d));
-  mes = m >= V.mesDe(c.hoy) ? '' : m;
+  const d = Number(el.dataset.d), m = V.sumarMeses(mesDe(c), d);
+  mes = !d || m >= V.mesDe(c.hoy) ? '' : m;   // 0: «Este mes»
   return 'repintar';
 }
 export function alEscribir(el, c) {

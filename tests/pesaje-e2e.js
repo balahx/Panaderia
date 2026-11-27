@@ -74,6 +74,7 @@ const SEMILLA = { 'config/negocio': { duenos: ['u-1001'], nombre: 'Panadería', 
   ok((await valor()) === '1 kg', 'el botón ⌫ borra el último número');
   await teclas(['borrar']);
   ok(await page.isDisabled('#pesGuardar'), 'vacío no se puede guardar');
+  ok(/Escribe los kilos del canasto/.test(await page.textContent('#pesGuardarMotivo')) && (await page.getAttribute('#pesGuardar', 'aria-describedby')) === 'pesGuardarMotivo', 'deshabilitado, dice qué falta y el botón lo enlaza (Fase 13, parte B)');
 
   console.log('4. Unidades, nota y teclado físico');
   await pan('Pan de completo');

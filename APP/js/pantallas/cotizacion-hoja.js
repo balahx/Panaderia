@@ -74,7 +74,7 @@ export function ver(c, n) {
     q.lineas.map(l => kv(l.nombre, cat.pesos(l.conIva) + (l.cantidad != null ? ' · ' + cat.enCampo(l.cantidad) + (l.unidad === 'un' ? ' un' : ' kg') : ''))).join('') +
     (q.total != null ? kv('Total estimado por ' + q.cantidadesPor, cat.pesos(q.total)) : '') + (q.clienteId ? kv('Cliente creado', cat.nombreCliente(c.cat.clientes, q.clienteId)) : '') +
     botonesPdf('qz-pdf', ' data-n="' + q.numero + '"') + '<p class="form-error" role="alert" hidden></p><div class="actions">' +
-    (q.clienteId ? '' : '<button class="btn" data-act="qz-cliente" data-n="' + q.numero + '">Crear cliente con estos precios</button>' + est('aceptada', 'Marcar aceptada') + est('rechazada', 'Marcar rechazada') + est('enviada', 'Volver a «Enviada»')) +
+    (q.clienteId ? '' : '<button class="btn ghost" data-act="qz-cliente" data-n="' + q.numero + '">Crear cliente con estos precios</button>' + est('aceptada', 'Marcar aceptada') + est('rechazada', 'Marcar rechazada') + est('enviada', 'Volver a «Enviada»')) +
     '<button class="btn ghost" data-act="qz-copiar" data-n="' + q.numero + '">Copiar como nueva</button></div></div>');
 }
 function hojaCliente(c, q) {

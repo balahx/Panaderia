@@ -4,7 +4,7 @@
    Pesaje (con letra grande, teclado, nota y cierre de entrega), «Más» con sus grupos, Registro general (canastos y bitácora),
    Datos (Excel y respaldo), Cierres mensuales (el año, el detalle de un mes, la revisión de una importación, Entregas de un mes cerrado
    y de uno por cerrar, y Hoy en un mes cerrado), Accesos y el Catálogo con sus hojas y formularios, y comprueba que no hay desborde lateral, que todo lo tocable
-   mide al menos 44 px, que todo botón tiene nombre y todo campo su etiqueta, y que el texto tiene contraste suficiente.
+   mide al menos 48 px (Fase 13, parte B; antes 44), que todo botón tiene nombre y todo campo su etiqueta, y que el texto tiene contraste suficiente.
    Fase 8: el aviso de privacidad (desde el ingreso y desde «Más»), la Ayuda (temas cerrados y abiertos) y una pasada a 320 px.
    Fase 10: Hoy con el plan del día (bajo, cumplido y sobre el plan), la hoja del plan (con sugerencias y con error), el plan de mañana y
    la pestaña Pesaje con el plan de hoy y «faltan …» en los botones.
@@ -16,6 +16,8 @@
    crear cliente), datos para documentos (con error) y la ficha del cliente con «Por cobrar» y sus datos de cobro.
    Fase 13: con --huella <carpeta> (o PAN_HUELLA=<carpeta>) guarda además la huella de cada vista (estilos calculados y captura) y recorre también 800 y 1280 px;
    tools/huella.js compara dos huellas (lo que se ve antes y después de un cambio de CSS).
+   Fase 13, parte B: además, el borde de cada control (campos, botones secundarios, botones de pan, teclas, radios, opciones y segmentos)
+   tiene 3:1 o más contra lo que lo rodea, y cada pantalla u hoja tiene a lo más una acción principal (botón relleno).
    Cada pantalla o formulario nuevo se agrega al recorrido. Uso: node tests/a11y.js */
 const { chromium } = require('playwright');
 const { crear } = require('../tools/servidor.js'), { fakeGoogle } = require('./fake-firebase/google.js');
@@ -63,16 +65,27 @@ const CHECK = () => {
   const bgOf = el => { let layers = []; for (let e = el; e; e = e.parentElement) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c.a > 0) { layers.push(c); if (c.a >= 1) break; } } let base = { r: 255, g: 255, b: 255 }; if (!layers.length || layers[layers.length - 1].a < 1) { base = parse(getComputedStyle(document.body).backgroundColor) || base; } for (let i = layers.length - 1; i >= 0; i--) { const c = layers[i]; base = { r: c.r * c.a + base.r * (1 - c.a), g: c.g * c.a + base.g * (1 - c.a), b: c.b * c.a + base.b * (1 - c.a) }; } return base; };
   const vis = el => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && +cs.opacity > 0.05 && !el.closest('details:not([open]) > :not(summary)'); };   // lo de un <details> cerrado no se ve
   const sel = el => { let s = el.tagName.toLowerCase(); if (el.id) s += '#' + el.id; else if (el.className && typeof el.className === 'string') s += '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.'); if (el.dataset && el.dataset.act) s += '[' + el.dataset.act + ']'; return s; };
-  const res = { overflowX: document.documentElement.scrollWidth - window.innerWidth, small: [], noName: [], noLabel: [], lowContrast: [], h1: document.querySelectorAll('#view h1, #gate h1').length, imgNoAlt: 0 };
+  const res = { overflowX: document.documentElement.scrollWidth - window.innerWidth, small: [], noName: [], noLabel: [], lowContrast: [], borde: [], primarios: [], h1: document.querySelectorAll('#view h1, #gate h1').length, imgNoAlt: 0 };
   const root = document.querySelector('#appRoot:not([hidden])') || document.querySelector('#gate');
   const scope = [...document.querySelectorAll('dialog[open]')].pop() || root || document.body;   // la hoja o la confirmación de más arriba
   scope.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=tab]').forEach(el => {
     if (!vis(el)) return; const r = el.getBoundingClientRect();
     const isSw = el.matches('input[type=checkbox],input[type=radio]') && el.closest('label'); const rr = isSw ? el.closest('label').getBoundingClientRect() : r;
-    if ((rr.height < 44 || rr.width < 44) && !(el.matches('.lnk') && el.closest('p, li, small, .muted'))) res.small.push(sel(el) + ' ' + Math.round(rr.width) + 'x' + Math.round(rr.height) + ' "' + (el.innerText || el.value || el.getAttribute('aria-label') || '').trim().slice(0, 18) + '"');
+    if ((rr.height < 48 || rr.width < 48) && !(el.matches('.lnk') && el.closest('p, li, small, .muted'))) res.small.push(sel(el) + ' ' + Math.round(rr.width) + 'x' + Math.round(rr.height) + ' "' + (el.innerText || el.value || el.getAttribute('aria-label') || '').trim().slice(0, 18) + '"');
     if (el.matches('button, a, [role=button], [role=tab]')) { const n = (el.innerText || '').trim() || el.getAttribute('aria-label') || el.getAttribute('title') || (el.querySelector('title') || {}).textContent; if (!n) res.noName.push(sel(el)); }
     else { const id = el.id, has = (id && document.querySelector('label[for="' + id + '"]')) || el.closest('label') || el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || el.getAttribute('title'); if (!has) res.noLabel.push(sel(el) + ' ph="' + (el.placeholder || '') + '"'); }
   });
+  // Fase 13 (parte B): el borde de los controles se distingue de lo que los rodea (WCAG 1.4.11, 3:1); lo deshabilitado no cuenta
+  const razon = (x, y) => { const A = lum([x.r, x.g, x.b]), B = lum([y.r, y.g, y.b]); return (Math.max(A, B) + 0.05) / (Math.min(A, B) + 0.05); };
+  scope.querySelectorAll('.txt, .btn.ghost, .pes-op, .pes-tecla, .radio, .opcion, .seg').forEach(el => {
+    if (!vis(el) || el.disabled) return; const cs = getComputedStyle(el), bc = parse(cs.borderTopColor);
+    if (!bc || !(parseFloat(cs.borderTopWidth) > 0) || cs.borderTopStyle === 'none') return;
+    const fuera = bgOf(el.parentElement), b = { r: bc.r * bc.a + fuera.r * (1 - bc.a), g: bc.g * bc.a + fuera.g * (1 - bc.a), b: bc.b * bc.a + fuera.b * (1 - bc.a) }, x = razon(b, fuera);
+    if (x < 3) res.borde.push(sel(el) + ' ' + x.toFixed(2) + ':1');
+  });
+  // Una acción principal (botón relleno) por pantalla u hoja; las franjas de aviso van aparte
+  const zona = [...document.querySelectorAll('dialog[open]')].pop() || document.querySelector('#appRoot:not([hidden]) #view') || document.querySelector('#gate');
+  if (zona) { const pr = [...zona.querySelectorAll('.btn:not(.ghost):not(.danger)')].filter(vis); if (pr.length > 1) res.primarios = pr.map(sel); }
   const seen = new Set();
   scope.querySelectorAll('*').forEach(el => {
     if (!vis(el)) return; const t = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(' ').trim(); if (!t) return;
@@ -100,6 +113,7 @@ const CHECK = () => {
       if (r.overflowX > 0) issues.push('desborde lateral de ' + r.overflowX + ' px');
       if (r.h1 !== 1 && !/ingreso/.test(label)) issues.push('títulos principales: ' + r.h1);
       r.small.forEach(x => issues.push('pequeño: ' + x)); r.noName.forEach(x => issues.push('botón sin nombre: ' + x)); r.noLabel.forEach(x => issues.push('campo sin etiqueta: ' + x)); r.lowContrast.forEach(x => issues.push('contraste: ' + x));
+      r.borde.forEach(x => issues.push('borde del control bajo 3:1: ' + x)); if (r.primarios.length) issues.push('acciones principales: ' + r.primarios.length + ' (' + r.primarios.join(', ') + ')');
       if (issues.length) bad[label] = issues;
     };
     let vistas = 0;

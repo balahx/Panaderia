@@ -14,6 +14,7 @@ import * as K from '../core/costos.js';
 import * as CI from '../core/cierres.js';
 import { enviar, error, pieHoja } from './catalogo-producto.js';
 import { exportar, ocupado } from './datos.js';
+import { navPeriodo } from './periodo-nav.js';
 
 let mes = '';   // mes elegido ('' = el de hoy)
 const mesDe = c => (mes && mes <= V.mesDe(c.hoy) ? mes : V.mesDe(c.hoy));
@@ -35,9 +36,8 @@ export function datosMes(c) {
 
 function cabecera(c) {
   const m = mesDe(c);
-  return '<div class="dia-nav" role="group" aria-label="Cambiar de mes"><button class="btn ghost sm" data-act="cos-mes-nav" data-d="-1">‹ Anterior</button>' +
-    '<label class="vh" for="cosMes">Ir a otro mes</label><input class="txt" type="month" id="cosMes" max="' + V.mesDe(c.hoy) + '" value="' + m + '">' +
-    '<button class="btn ghost sm" data-act="cos-mes-nav" data-d="1"' + (m === V.mesDe(c.hoy) ? ' disabled' : '') + '>Siguiente ›</button></div>' +
+  return navPeriodo({ act: 'cos-mes-nav', aria: 'Cambiar de mes', volver: 'Este mes', enActual: m === V.mesDe(c.hoy),
+      campo: '<label class="vh" for="cosMes">Ir a otro mes</label><input class="txt" type="month" id="cosMes" max="' + V.mesDe(c.hoy) + '" value="' + m + '">' }) +
     '<p class="eyebrow" id="cosMesNombre">' + esc(cap(V.mesTexto(m))) + (m === V.mesDe(c.hoy) ? ' · hasta hoy' : '') + '</p>';
 }
 function filaPan(p) {
@@ -97,7 +97,7 @@ function textoTotal(lista) {
 }
 
 export function alActuar(act, el, c) {
-  if (act === 'cos-mes-nav') { mes = V.sumarMeses(mesDe(c), Number(el.dataset.d) || 0); if (mes >= V.mesDe(c.hoy)) mes = ''; return true; }
+  if (act === 'cos-mes-nav') { const d = Number(el.dataset.d) || 0; mes = d ? V.sumarMeses(mesDe(c), d) : ''; if (mes >= V.mesDe(c.hoy)) mes = ''; return true; }
   if (act === 'cos-mes-excel') { const r = rango(c); exportar(c, r.desde, r.hasta, true, ''); return true; }
   if (act === 'gas-editar') { hojaGastos(c, mesDe(c)); return true; }
   if (act === 'gas-copiar') {

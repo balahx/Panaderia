@@ -8,10 +8,11 @@
 
 /* Paleta cálida «Panadería»: crema de miga, café de corteza y dorado de horno. Claro y oscuro con la misma estructura.
    Los colores de la app se escriben SOLO aquí (lo revisa tests/diseno-unit.js).
-   --line-control (Fase 13): borde de campos, botones secundarios, botones de pan y teclas; hoy igual a --line-strong (la parte B lo sube a 3:1). */
+   --line-control (Fase 13): borde de campos, botones secundarios, botones de pan, teclas, radios y opciones. Desde la parte B tiene 3:1 o
+   más contra --bg, --surface, --surface2, --gold-bg y --warn-bg (WCAG 1.4.11: reconocer un control); lo revisan tests/diseno-unit.js y a11y.js. */
 :root {
   --bg: #FAF5EC; --surface: #FFFDF8; --surface2: #F3EADB; --ink: #2E2018; --muted: #6B5645;
-  --line: #E6D9C4; --line-strong: #C7B292; --line-control: #C7B292; --btn: #8A4B1E; --btn-ink: #FFFFFF;
+  --line: #E6D9C4; --line-strong: #C7B292; --line-control: #937656; --btn: #8A4B1E; --btn-ink: #FFFFFF;
   --focus: #8A4B1E; --ok: #2F6B3F; --on-ok: #FFFFFF; --bad: #B4372A; --on-bad: #FFFFFF;
   --gold: #B5791F; --gold-ink: #7A4F0C; --gold-bg: #F8EBCF;
   --warn-bg: #FFEFC2; --warn-ink: #5E4200;
@@ -22,7 +23,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #1C1410; --surface: #281D17; --surface2: #34261E; --ink: #F6EDE2; --muted: #CDB9A5;
-    --line: #45342A; --line-strong: #6A503F; --line-control: #6A503F; --btn: #D99455; --btn-ink: #20120A;
+    --line: #45342A; --line-strong: #6A503F; --line-control: #9A7F69; --btn: #D99455; --btn-ink: #20120A;
     --focus: #F0B27A; --ok: #6CC38C; --on-ok: #06210F; --bad: #FF8273; --on-bad: #2A0A06;
     --gold: #E5B25A; --gold-ink: #E5B25A; --gold-bg: #3A2C17;
     --warn-bg: #3A2D08; --warn-ink: #F3D58A;
@@ -31,7 +32,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #1C1410; --surface: #281D17; --surface2: #34261E; --ink: #F6EDE2; --muted: #CDB9A5;
-  --line: #45342A; --line-strong: #6A503F; --line-control: #6A503F; --btn: #D99455; --btn-ink: #20120A;
+  --line: #45342A; --line-strong: #6A503F; --line-control: #9A7F69; --btn: #D99455; --btn-ink: #20120A;
   --focus: #F0B27A; --ok: #6CC38C; --on-ok: #06210F; --bad: #FF8273; --on-bad: #2A0A06;
   --gold: #E5B25A; --gold-ink: #E5B25A; --gold-bg: #3A2C17;
   --warn-bg: #3A2D08; --warn-ink: #F3D58A;
@@ -63,14 +64,16 @@
   --esp-1: 4px; --esp-2: 6px; --esp-3: 8px; --esp-4: 10px; --esp-5: 12px; --esp-6: 14px; --esp-7: 16px; --esp-8: 18px;
   /* Radios */
   --radio-xs: 6px; --radio-s: 8px; --radio-m: 10px; --radio-l: 12px; --radio-xl: 14px; --radio-2xl: 16px; --radio-hoja: 18px; --radio-pildora: 99px;
-  /* Alturas táctiles (la parte B las lleva a 48 px) */
-  --toque: 44px;            /* lo mínimo que se puede tocar: enlaces, segmentos, botón chico, botón de ícono */
-  --alto-control: 46px;     /* botones y campos */
+  /* Alturas táctiles (parte B: un solo tamaño de 48 px; .btn.sm se distingue por el relleno y la letra, no por la altura) */
+  --toque: 48px;            /* lo mínimo que se puede tocar: enlaces, segmentos, botón chico, botón de ícono */
+  --alto-control: var(--toque);   /* botones y campos: el mismo tamaño */
   --alto-grande: 56px;      /* botón grande (.btn.lg) */
   --alto-fila: 56px;        /* filas de las listas (.mrow) */
   /* Sombras */
   --sombra-flotante: 0 6px 24px rgba(0, 0, 0, .28);   /* aviso flotante (toast) */
   --sombra-elegido: 0 1px 3px rgba(0, 0, 0, .14);     /* segmento elegido */
+  /* Respuesta al tocar (parte B): transición corta; con movimiento reducido no hay ninguna (base.css) */
+  --transicion: 120ms ease-out;
 }
 :root[data-escala="grande"] { --fs: 19px; }
 /* Velo detrás de las hojas. Va en ::backdrop porque en Chrome anterior al 122 el fondo de un dialog no hereda variables de :root. */

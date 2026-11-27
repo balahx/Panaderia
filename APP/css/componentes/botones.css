@@ -1,15 +1,20 @@
-/* Botones: principal (.btn), secundario (.btn.ghost), peligro, chico, grande y de ancho completo; botón de ícono, enlace (.lnk),
-   filas de acciones, opciones (.opcion), segmentos (.seg), «Volver» y la navegación de días (.dia-nav).
+/* Botones (Fase 13, parte B), en tres niveles: primario (.btn, relleno: la acción principal, una por pantalla u hoja), secundario
+   (.btn.ghost, borde --line-control de 3:1) y terciario (.lnk, enlace). Además peligro, chico, grande y de ancho completo; botón de
+   ícono, filas de acciones, opciones (.opcion), segmentos (.seg), «Volver», la navegación de períodos (.dia-nav) y .motivo (qué falta
+   para usar un botón deshabilitado). Todo mide 48 px o más (--toque = --alto-control); .btn.sm se distingue por el relleno y la letra.
    Va después de avisos.css: el ícono dentro de un botón (.btn .ic) manda también dentro de una franja. */
 .btn { font: 600 1em var(--font-body); min-height: var(--alto-control); padding: 0 var(--esp-8); border-radius: var(--radio-l); border: 1.5px solid var(--btn); background: var(--btn); color: var(--btn-ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: var(--esp-3); }
 .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line-control); }
 .btn.danger { background: var(--bad); border-color: var(--bad); color: var(--on-bad); }
-.btn.sm { min-height: var(--toque); padding: 0 13px; font-size: var(--letra-apoyo); border-radius: var(--radio-m); }
+.btn.sm { min-height: var(--toque); min-width: var(--toque); padding: 0 13px; font-size: var(--letra-apoyo); border-radius: var(--radio-m); }
 .btn.lg { min-height: var(--alto-grande); font-size: 1.1em; }
 .btn.block { width: 100%; margin-bottom: var(--esp-5); }
-.btn:disabled { opacity: .45; cursor: default; }
+/* Deshabilitado: se ve apagado (borde punteado, letra tenue) y, donde no es obvio, un .motivo al lado dice qué falta */
+.btn:disabled { background: var(--surface2); border-color: var(--line-control); border-style: dashed; color: var(--muted); cursor: not-allowed; }
+.motivo { margin: var(--esp-2) 0 0; color: var(--muted); font-size: var(--letra-nota); }
+.btn.block + .motivo { margin: calc(-1 * var(--esp-3)) 0 var(--esp-5); }
+.actions .motivo { flex-basis: 100%; margin: 0; }
 .icon-btn { position: relative; width: var(--toque); height: var(--toque); border-radius: var(--radio-l); border: 0; background: transparent; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
-.icon-btn:hover { background: var(--surface2); }
 .lnk { background: none; border: 0; padding: var(--esp-3) 2px; min-height: var(--toque); display: inline-flex; align-items: center; font: 600 var(--letra-nota) var(--font-body); color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .lnk.danger { color: var(--bad); }
 p .lnk, .muted .lnk, small .lnk, li .lnk { min-height: 0; display: inline; padding: 0; }
@@ -17,14 +22,32 @@ p .lnk, .muted .lnk, small .lnk, li .lnk { min-height: 0; display: inline; paddi
 .opcion { display: block; width: 100%; text-align: left; background: var(--surface2); border: 1.5px solid var(--line-control); border-radius: var(--radio-l); padding: var(--esp-5) var(--esp-6); margin: 0 0 var(--esp-4); color: var(--ink); font: inherit; cursor: pointer; }
 .opcion b { display: block; font-weight: 600; }
 .opcion small { display: block; color: var(--muted); font-size: var(--letra-apoyo); margin-top: 2px; }
-.opcion:hover:not(:disabled) { border-color: var(--btn); }
-.opcion:disabled { opacity: .6; cursor: default; }
+.opcion:disabled { border-style: dashed; color: var(--muted); cursor: not-allowed; }
 .actions.centro { justify-content: center; }
 .volver { padding-left: 0; min-height: var(--toque); min-width: var(--toque); text-decoration: none; }
-.seg { display: flex; gap: var(--esp-1); padding: var(--esp-1); margin: 0 0 var(--esp-7); background: var(--surface2); border: 1px solid var(--line); border-radius: var(--radio-xl); }
+.seg { display: flex; gap: var(--esp-1); padding: var(--esp-1); margin: 0 0 var(--esp-7); background: var(--surface2); border: 1px solid var(--line-control); border-radius: var(--radio-xl); }
 .seg button { flex: 1 1 0; min-width: 0; min-height: var(--toque); padding: var(--esp-1) var(--esp-2); border: 0; border-radius: var(--radio-m); background: transparent; color: var(--muted); font: 600 var(--letra-apoyo)/1.15 var(--font-body); cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--sombra-elegido); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--sombra-elegido), inset 0 0 0 1.5px var(--line-control); }
 .actions.arriba { margin: 0 0 var(--esp-6); }
+/* ‹ Anterior · [fecha o mes] · Hoy · Siguiente › (un solo componente: navPeriodo en js/core/iconos.js) */
 .dia-nav { display: flex; flex-wrap: wrap; gap: var(--esp-3); align-items: center; margin: 0 0 var(--esp-7); }
 .dia-nav .txt { flex: 1 1 150px; width: auto; min-height: var(--toque); }
 .btn .ic { width: 18px; height: 18px; flex: none; }
+
+/* Respuesta al tocar: se hunde o se oscurece al apretar; :hover solo con mouse (en pantallas táctiles quedaba «pegado»); 120 ms
+   (base.css lo quita con movimiento reducido). El foco visible es el de base.css. */
+.btn, .icon-btn, .lnk, .opcion, .seg button { transition: background-color var(--transicion), border-color var(--transicion), color var(--transicion), box-shadow var(--transicion), filter var(--transicion), transform var(--transicion); -webkit-tap-highlight-color: transparent; }
+.btn:active:not(:disabled) { filter: brightness(.88); transform: translateY(1px); }
+.btn.ghost:active:not(:disabled) { filter: none; background: var(--surface2); border-color: var(--ink); }
+.icon-btn:active, .lnk:active { background: var(--surface2); }
+.lnk:active { border-radius: var(--radio-xs); }
+.opcion:active:not(:disabled) { border-color: var(--btn); transform: translateY(1px); }
+.seg button:active { background: var(--surface); color: var(--ink); }
+@media (hover: hover) {
+  .btn:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn.ghost:hover:not(:disabled) { filter: none; background: var(--surface2); }
+  .icon-btn:hover { background: var(--surface2); }
+  .lnk:hover { text-decoration-thickness: 2px; }
+  .opcion:hover:not(:disabled) { border-color: var(--btn); }
+  .seg button:hover:not([aria-pressed="true"]) { color: var(--ink); }
+}

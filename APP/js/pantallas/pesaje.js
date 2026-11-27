@@ -63,9 +63,11 @@ function entrega(c) {
   const cl = clienteElegido(c), varios = clientes(c).length > 1;
   if (cat.esSuelta(cl)) return '<section class="card sec pes-entrega" id="pesEntrega"><p class="eyebrow">' + esc(cl.nombre) + '</p><b class="pes-n">Sin entregas</b><small>Cada canasto es una venta. Al guardar puedes anotar quién compró.</small></section>';
   const doc = diaCli(c), ea = P.entregaActual(pesajesHoy(c), doc, cl && cl.id, original(c)), listo = !!delDia(c) && doc !== undefined, de = varios && cl ? ' de ' + cl.nombre : '';
+  const motivo = !listo ? '' : !ea.canastos ? 'Para cerrar la entrega, primero guarda un canasto.' : ea.n >= P.MAX_ENTREGAS ? 'Ya van ' + P.MAX_ENTREGAS + ' entregas hoy: es el máximo.' : '';
   return '<section class="card sec pes-entrega" id="pesEntrega"><div class="pes-entrega-h"><div><p class="eyebrow">Entrega en curso' + esc(de) + '</p><b class="pes-n" id="pesEntregaN">N.º ' + ea.n + '</b>' +
     '<small>' + (ea.canastos ? ea.canastos + (ea.canastos === 1 ? ' canasto · ' : ' canastos · ') + esc(P.textoTotales(ea)) : 'Sin canastos todavía') + '</small></div>' +
-    '<button class="btn ghost" data-act="pes-cerrar-entrega"' + (!listo || !ea.canastos || ea.n >= P.MAX_ENTREGAS ? ' disabled' : '') + '>Cerrar entrega</button></div>' +
+    '<button class="btn ghost" data-act="pes-cerrar-entrega"' + (!listo || motivo ? ' disabled' : '') + (motivo ? ' aria-describedby="pesCerrarMotivo"' : '') + '>Cerrar entrega</button></div>' +
+    (motivo ? '<p class="motivo" id="pesCerrarMotivo">' + esc(motivo) + '</p>' : '') +
     (listo && !ea.canastos && ea.n > 1 ? '<button class="lnk" data-act="pes-reabrir">Volver a abrir la entrega n.º ' + (ea.n - 1) + esc(de) + '</button>' : '') + '</section>';
 }
 function panes(prods, c) {
@@ -73,6 +75,9 @@ function panes(prods, c) {
   return '<section class="sec"><p class="eyebrow" id="pesPanesT">1 · Pan</p><div class="pes-grid" id="pesPanes" role="group" aria-labelledby="pesPanesT">' +
     prods.map(p => '<button class="pes-op" data-act="pes-pan" data-id="' + esc(p.id) + '" aria-pressed="' + (p.id === st.prod) + '"><b>' + esc(p.nombre) + '</b>' + linea(p) + '</button>').join('') + '</div></section>';
 }
+/* Fase 13 (parte B): deshabilitado, dice qué falta («Escribe los kilos del canasto.») */
+const guardarBoton = motivo => '<button class="btn lg block pes-guardar" data-act="pes-guardar" id="pesGuardar"' + (motivo ? ' disabled aria-describedby="pesGuardarMotivo"' : '') + '>3 · Guardar canasto</button>' +
+  (motivo ? '<p class="motivo" id="pesGuardarMotivo">' + esc(motivo) + '</p>' : '');
 const TECLAS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 function teclado(c) {
   const p = productos(c).find(x => x.id === st.prod);
@@ -84,7 +89,7 @@ function teclado(c) {
     (v.aviso ? '<p class="warn-t" id="pesAviso">' + esc(v.aviso) + '</p>' : '') +
     '<div class="pes-teclas">' + TECLAS.map(k => tecla(k, k)).join('') + (kg ? tecla(',', ',', 'Coma decimal') : tecla('limpiar', 'C', 'Borrar todo')) + tecla('0', '0') + tecla('borrar', '⌫', 'Borrar el último número') + '</div>' +
     '<div class="actions"><button class="btn ghost sm" data-act="pes-nota" id="pesNota">' + (st.nota ? 'Nota: ' + esc(st.nota.length > 24 ? st.nota.slice(0, 24) + '…' : st.nota) : 'Agregar nota') + '</button></div>' +
-    '<button class="btn lg block pes-guardar" data-act="pes-guardar" id="pesGuardar"' + (st.txt && !v.error ? '' : ' disabled') + '>3 · Guardar canasto</button></section>';
+    guardarBoton(st.txt ? v.error : P.validarCantidad('', p.unidad).error) + '</section>';
 }
 function lista(c) {
   const todos = P.recientes(pesajesHoy(c)), R = P.resumen(todos, c.cat.productos, c.cat.trabajadores), pend = todos.filter(p => p._pend).length;

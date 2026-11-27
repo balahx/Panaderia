@@ -40,7 +40,8 @@ export async function pdf(modo, nombre, armar) {
   else if (modo === 'imprimir') { const r = await abrirEnVisor(nombre, b, MIME); if (r === 'descargado') toast('Se descargó el PDF: ábrelo para imprimirlo.'); }
   else { await descargar(nombre, b, MIME); toast('PDF descargado'); }
 }
-export const botonesPdf = (act, extra) => '<div class="actions pdf-b"><button class="btn" data-act="' + act + '" data-modo="bajar"' + (extra || '') + '>' + svg('bajar') + 'Descargar PDF</button>' +
+/* secundario (Fase 13, parte B): el PDF no es la acción principal de esa hoja (por ejemplo, la ficha de un cobro con saldo: «Pagar saldo») */
+export const botonesPdf = (act, extra, secundario) => '<div class="actions pdf-b"><button class="btn' + (secundario ? ' ghost' : '') + '" data-act="' + act + '" data-modo="bajar"' + (extra || '') + '>' + svg('bajar') + 'Descargar PDF</button>' +
   '<button class="btn ghost" data-act="' + act + '" data-modo="compartir"' + (extra || '') + '>' + svg('compartir') + 'Compartir</button>' +
   '<button class="btn ghost" data-act="' + act + '" data-modo="imprimir"' + (extra || '') + '>' + svg('imprimir') + 'Imprimir</button></div>';
 

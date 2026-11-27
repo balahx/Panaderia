@@ -19,13 +19,13 @@
 | 10 | Plan de producción diario | 11 | ✔ Hecha. Paso 25 verificado por Felipe (20-nov-2026): las 6 casillas (sugerencia = cálculo a mano, «falta» y % cuadran con Pesado hoy, verde desde 95 % y aviso sobre 110 %, tablet con el plan de hoy y sin el de mañana, plan de mañana y día pasado solo lectura), Diagnóstico con 0 bloqueos y versión 0.10.0, emulador en verde |
 | 11 | Varios clientes y ventas sueltas | 12 | ✔ Hecha. Paso 26 verificado por Felipe (21-nov-2026): las 6 casillas, Diagnóstico con 0 bloqueos y versión 0.11.0, emulador en verde |
 | 12 | Cobros y cotizaciones | 13 | ✔ Hecha. Paso 27 verificado por Felipe (24-nov-2026): las 7 casillas (neto del cobro semanal y mensual = Entregas con el filtro del cliente, PDF abierto, impreso y compartido en Windows, iPhone y Android, saldo igual en lista, ficha, PDF, estado de cuenta y Excel, saldo a favor aplicado al cobro siguiente, franja de vencidos y anulación, cotización → cliente con precios, tablet sin cobros), Diagnóstico con 0 bloqueos y versión 0.12.0, emulador en verde con los 481 casos |
-| 13 | Pulido de diseño y botones, en cuatro partes (PLAN «Fase 13») | 14 a 17 | **Parte A hecha** (25-nov-2026, chat 14): base de diseño sin cambio a la vista, versión 0.12.1. Faltan B (botones), C (tablet y pesaje) y D (navegación y pantallas de dueños) |
+| 13 | Pulido de diseño y botones, en cuatro partes (PLAN «Fase 13») | 14 a 17 | **Partes A y B hechas**: A (25-nov-2026, chat 14) base de diseño sin cambio a la vista, 0.12.1; B (26-nov-2026, chat 15) botones, 0.12.2. Faltan C (tablet y pesaje) y D (navegación y pantallas de dueños) |
 
-Versión de la app: **0.12.1** (caché 2026.11.25.1) · 35 pruebas, todas bien (25-nov-2026, con Firebase, Google y Firestore simulados) · 518 casos de reglas (481 al cerrar la Fase 12; con los 37 nuevos de la revisión del 25-nov-2026, el emulador en verde el 25-nov-2026 y publicada ese día)
+Versión de la app: **0.12.2** (caché 2026.11.26.1) · 35 pruebas, todas bien (26-nov-2026, con Firebase, Google y Firestore simulados) · 518 casos de reglas (481 al cerrar la Fase 12; con los 37 nuevos de la revisión del 25-nov-2026, el emulador en verde el 25-nov-2026 y publicada ese día)
 
 ## Qué sigue
 
-**Fase 13 · Pulido de diseño y botones** (planificada el 25-nov-2026; lo decidido, en `decisiones/fase-13.md`). **Parte A hecha** (0.12.1): fichas de diseño en `tokens.css`, el CSS repartido en `css/componentes/` y `css/pantallas/`, la huella de diseño (`npm run huella` y `npm run comparar`) y `tests/diseno-unit.js`; la huella antes y después es igual. **Por hacer con la 0.12.1:** `npm test`, subir a GitHub, esperar el verde y `firebase deploy --only hosting`; en un equipo, revisar que todo se ve igual que antes (Más → Diagnóstico con versión 0.12.1). **Siguiente: parte B · Botones** (0.12.2), con el texto de abajo.
+**Fase 13 · Pulido de diseño y botones** (planificada el 25-nov-2026; lo decidido, en `decisiones/fase-13.md`). **Parte A hecha** (0.12.1): fichas de diseño en `tokens.css`, el CSS repartido en `css/componentes/` y `css/pantallas/`, la huella de diseño (`npm run huella` y `npm run comparar`) y `tests/diseno-unit.js`. **Parte B hecha** (0.12.2): borde de los controles de 3:1 o más en claro y oscuro, todo lo tocable de 48 px, una acción principal por pantalla u hoja, respuesta al tocar (y `:hover` solo con mouse), deshabilitado que explica qué falta y un componente para ‹ Anterior · Hoy · Siguiente › (`pantallas/periodo-nav.js`); la huella cambió solo en lo buscado y `a11y.js` revisa ahora 48 px, borde y acción principal. **Por hacer con la 0.12.2** (incluye la 0.12.1, si no se publicó): `npm test`, subir a GitHub, esperar el verde y `firebase deploy --only hosting`; en un equipo, Más → Diagnóstico con versión 0.12.2 y mirar Pesaje, Hoy y una hoja (bordes más marcados, botones de 48 px, «Guardar canasto» apagado con «Escribe los kilos del canasto.»). **Siguiente: parte C · Tablet y pesaje** (0.12.3), con el texto de abajo.
 
 Sigue pendiente, aparte: **cerrar noviembre** desde Entregas a partir del 1 de diciembre (el primer cierre con líneas por cliente) y emitir los cobros de cada semana o mes. Futuros posibles, cada uno en su chat y con preguntas primero: hoja de insumos del día, balanza, plan en el Excel, cumplimiento del mes en Números, recibo de abono en PDF.
 
@@ -46,7 +46,7 @@ La revisión de reglas del 25-nov-2026 (`decisiones/revision-reglas-2026-11.md`)
 - Sincronización con la caché sin conexión propia de Firestore (confirmado; no se usa `sync.js` ni `reads.js` de la muestra).
 - Los dueños crean el catálogo en la app, con precios; el precio es interno (dueños y externo).
 - Sin compilación; SDK y Excel alojados en la app; un archivo por pantalla (≤ ~300 líneas).
-- Diseño (Fase 13): colores y escalas (letra, espacios, radios, alturas, sombras) solo en `css/tokens.css`; el tema oscuro en dos bloques iguales (sin `light-dark()`); CSS por pieza común y por pantalla; la tablet es una Samsung Galaxy Tab S6 en horizontal.
+- Diseño (Fase 13): colores y escalas (letra, espacios, radios, alturas, sombras) solo en `css/tokens.css`; el tema oscuro en dos bloques iguales (sin `light-dark()`); CSS por pieza común y por pantalla; la tablet es una Samsung Galaxy Tab S6 en horizontal. Botones en tres niveles (primario relleno, secundario con borde de 3:1, enlace), uno principal por pantalla u hoja, todos de 48 px.
 - Seguridad de la auditoría aplicada desde el inicio (PLAN §9).
 - Commits y PR: autor Felipe González con su correo, sin coautoría, sin Claude-Session ni enlace de sesión.
 - Carpetas: app en `APP\`; `privado\` y `app de muestra\` fuera del repositorio.
@@ -85,11 +85,11 @@ La revisión de reglas del 25-nov-2026 (`decisiones/revision-reglas-2026-11.md`)
 
 ## Texto para iniciar el próximo chat (copiar y pegar)
 
-Para la parte siguiente de la Fase 13 (B; después, cambiando la letra y el nombre, C y D):
+Para la parte siguiente de la Fase 13 (C; después, cambiando la letra y el nombre, D):
 ```
-Proyecto App Panadería, Fase 13 · Pulido de diseño y botones, parte B (botones).
+Proyecto App Panadería, Fase 13 · Pulido de diseño y botones, parte C (tablet y pesaje).
 Lee D:\APP Panaderia\ESTADO.md, MAPA.md, decisiones/fase-13.md y de PLAN.md solo «Fase 13».
-Toma la huella antes de cambiar nada (npm run huella), desarrolla solo la parte B, compara la huella al final,
+Toma la huella antes de cambiar nada (npm run huella), desarrolla solo la parte C, compara la huella al final,
 prueba, sube la versión (Z) y deja ESTADO.md actualizado.
 ```
 

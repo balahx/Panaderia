@@ -81,7 +81,7 @@ function previa(c) {
   const box = $('#cnPrevia'); if (!box) return;
   const X = armado(c), p = $('#cnPeriodo'), btn = $('#cnEmitir');
   if (p) p.textContent = X.P ? CB.periodoTexto(N.desde, N.hasta, N.tipo) + (X.P.aviso ? '. ' + X.P.aviso : '') : '';
-  if (btn) btn.disabled = !X.a || !!X.bloqueo;
+  if (btn) { btn.disabled = !X.a || !!X.bloqueo; if (X.bloqueo) btn.setAttribute('aria-describedby', 'cnBloqueo'); else btn.removeAttribute('aria-describedby'); }
   if (N.err) { box.innerHTML = '<p class="note warn">' + esc(N.err) + '</p>'; return; }
   if (X.cargando) { box.innerHTML = '<div class="spin" role="status" aria-label="Leyendo los canastos"></div>'; return; }
   if (!X.a) { box.innerHTML = X.bloqueo ? '<p class="note warn" id="cnBloqueo">' + esc(X.bloqueo) + '</p>' : ''; return; }

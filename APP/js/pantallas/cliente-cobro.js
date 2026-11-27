@@ -12,7 +12,7 @@ import { error } from './catalogo-producto.js';
 import { campo, valor, campoDescuento, leerDescuento, enviar } from './cobros-comun.js';
 
 const kv = (k, v, id) => '<div class="kv"' + (id ? ' id="' + id + '"' : '') + '><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>';
-const ir = (cl, que, t, prim) => '<button class="btn' + (prim ? '' : ' ghost') + '" data-act="ir" data-tab="cobros" data-cli="' + esc(cl.id) + '" data-abrir="' + que + '">' + t + '</button>';
+const ir = (cl, que, t) => '<button class="btn ghost" data-act="ir" data-tab="cobros" data-cli="' + esc(cl.id) + '" data-abrir="' + que + '">' + t + '</button>';
 export function resumenDatos(dc) {
   if (!dc) return 'Sin datos de cobro: el cobro saldrá con el nombre del cliente, mensual, a ' + CB.PLAZO + ' días.';
   return [dc.razonSocial, dc.rut ? 'RUT ' + dc.rut : '', CB.PERIODOS[dc.periodo], 'plazo ' + dc.plazo + (dc.plazo === 1 ? ' día' : ' días'), dc.descuento ? CB.textoDescuento(dc.descuento) : ''].filter(Boolean).join(' · ');
@@ -26,7 +26,7 @@ export function bloque(cl, c) {
   return '<section class="sec" id="cliCobro"><p class="eyebrow">Por cobrar</p>' + kv('Saldo pendiente', cat.pesos(cu.porCobrar), 'cliPorCobrar') + kv('Vencido', cat.pesos(cu.vencido), 'cliVencido') +
     kv('Saldo a favor', cat.pesos(cu.aFavor), 'cliAFavor') + kv('Cobros con saldo', cu.conSaldo + (cu.vencidos ? ' (' + cu.vencidos + (cu.vencidos === 1 ? ' vencido)' : ' vencidos)') : '')) +
     '<p class="muted chico" id="cliDatosCobro">' + esc(resumenDatos(dc)) + '</p>' +
-    '<div class="actions">' + ir(cl, 'nuevo', 'Nuevo cobro', true) + ir(cl, 'abono', 'Anotar abono') + ir(cl, 'cuenta', 'Estado de cuenta') +
+    '<div class="actions">' + ir(cl, 'nuevo', 'Nuevo cobro') + ir(cl, 'abono', 'Anotar abono') + ir(cl, 'cuenta', 'Estado de cuenta') +
     '<button class="btn ghost" data-act="cc-datos" data-id="' + esc(cl.id) + '">Datos de cobro</button></div></section>';
 }
 function hojaDatos(cl, c) {

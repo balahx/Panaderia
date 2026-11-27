@@ -16,6 +16,7 @@ import * as anotar from './anotar.js';
 import { cerradoEl, textoOrigen } from '../core/cierres.js';
 import * as plan from './plan.js';
 import * as FC from './filtro-cliente.js';
+import { navPeriodo } from './periodo-nav.js';
 
 let sel = '';   // día elegido ('' = seguir el día de hoy, también pasada la medianoche)
 export const fecha = c => (sel && sel <= c.hoy ? sel : c.hoy);
@@ -27,10 +28,8 @@ const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
 function cabecera(c, f) {
   const esHoy = f === c.hoy;
   return '<span class="eyebrow" id="hoySaludo">' + (esHoy ? 'Hola, ' + esc((c.user.nombre || '').split(' ')[0]) + ' · ' : '') + esc(fechaTexto(f)) + '</span><h1>' + (esHoy ? 'Pesado hoy' : 'Pesado el ' + esc(fechaTexto(f))) + '</h1>' +
-    '<div class="dia-nav" role="group" aria-label="Cambiar de día"><button class="btn ghost sm" data-act="hoy-dia" data-d="-1">‹ Anterior</button>' +
-    '<label class="vh" for="hoyFecha">Ir a otro día</label><input class="txt" type="date" id="hoyFecha" max="' + c.hoy + '" value="' + f + '">' +
-    (esHoy ? '' : '<button class="btn ghost sm" data-act="hoy-dia" data-d="0">Hoy</button>') +
-    '<button class="btn ghost sm" data-act="hoy-dia" data-d="1"' + (esHoy ? ' disabled' : '') + '>Siguiente ›</button></div>';
+    navPeriodo({ act: 'hoy-dia', aria: 'Cambiar de día', volver: 'Hoy', enActual: esHoy,
+      campo: '<label class="vh" for="hoyFecha">Ir a otro día</label><input class="txt" type="date" id="hoyFecha" max="' + c.hoy + '" value="' + f + '">' });
 }
 /* Venta del día: líneas de venta (un pan en una entrega de un cliente) con el precio vigente ese día para ese cliente. null si no hay clientes. */
 function venta(c, todos) {

@@ -62,6 +62,13 @@ Object.fromEntries([pes('h1', HOY, '05:10', 1, 'p1', 18.5, 'kg'), pes('h2', HOY,
 
   console.log('2. Entregas del mes');
   await tocar('#nav button[data-tab="entregas"]'); await page.waitForSelector('#entMes');
+  // Fase 13 (parte B): ‹ Anterior · Este mes · Siguiente ›, el mismo componente de Hoy y Números (pantallas/periodo-nav.js)
+  const mesHoy = HOY.slice(0, 7), mesEs = m => page.waitForFunction(x => document.querySelector('#entMes') && document.querySelector('#entMes').value === x, m);
+  ok(!(await page.$('[data-act="ent-mes"][data-d="0"]')) && await page.isDisabled('[data-act="ent-mes"][data-d="1"]'), 'en el mes en curso no hay «Este mes» y «Siguiente ›» está deshabilitado');
+  await tocar('[data-act="ent-mes"][data-d="-1"]'); await page.waitForFunction(x => document.querySelector('#entMes') && document.querySelector('#entMes').value < x, mesHoy);
+  ok(!!(await page.$('[data-act="ent-mes"][data-d="0"]')) && await page.isEnabled('[data-act="ent-mes"][data-d="1"]'), 'en el mes anterior aparecen «Este mes» y «Siguiente ›»');
+  await tocar('[data-act="ent-mes"][data-d="0"]'); await mesEs(mesHoy);
+  ok(!(await page.$('[data-act="ent-mes"][data-d="0"]')), '«Este mes» vuelve al mes en curso');
   if ((await page.inputValue('#entMes')) !== MES) await escribir('#entMes', MES);
   await page.waitForSelector('#entTotal');
   const T1 = await esperado(rMes.desde, hastaMes);

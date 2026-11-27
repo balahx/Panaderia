@@ -34,6 +34,15 @@ if (claro && enMedia && porAtributo) {
   const noHex = Object.entries(claro).concat(Object.entries(enMedia)).filter(([k, v]) => k.startsWith('--') && !/^#[0-9A-F]{6}$/.test(v));
   ok(noHex.length === 0, 'la paleta son colores #RRGGBB' + (noHex.length ? ': ' + noHex.map(x => x.join(' ')).join(', ') : ''));
   ok(claro['--line-control'] && enMedia['--line-control'], '--line-control (borde de los controles) existe en claro y oscuro');
+  // Fase 13, parte B: el borde de los controles se distingue (WCAG 1.4.11: 3:1) de todos los fondos donde puede ir un control
+  const lum = h => { const c = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const razon = (a, b) => { const A = lum(a), B = lum(b); return (Math.max(A, B) + 0.05) / (Math.min(A, B) + 0.05); };
+  const FONDOS = ['--bg', '--surface', '--surface2', '--gold-bg', '--warn-bg'];
+  for (const [nombre, T] of [['claro', claro], ['oscuro', enMedia]]) {
+    if (!/^#[0-9A-F]{6}$/.test(T['--line-control'] || '')) continue;
+    const bajos = FONDOS.filter(f => T[f] && razon(T['--line-control'], T[f]) < 3).map(f => f + ' ' + razon(T['--line-control'], T[f]).toFixed(2) + ':1');
+    ok(bajos.length === 0, '--line-control del tema ' + nombre + ' tiene 3:1 o más contra ' + FONDOS.join(', ') + (bajos.length ? ': ' + bajos.join(', ') : ''));
+  }
 }
 
 console.log('2. Colores solo en tokens.css');

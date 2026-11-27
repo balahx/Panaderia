@@ -17,9 +17,10 @@
 .spin { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line-strong); border-top-color: var(--btn); margin: var(--esp-3) auto; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .mlist { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radio-xl); margin: 0 0 var(--esp-6); overflow: hidden; }
-.mrow { display: flex; align-items: center; gap: var(--esp-5); width: 100%; min-height: var(--alto-fila); padding: var(--esp-3) var(--esp-6); background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); text-align: left; cursor: pointer; font: inherit; }
+.mrow { display: flex; align-items: center; gap: var(--esp-5); width: 100%; min-height: var(--alto-fila); padding: var(--esp-3) var(--esp-6); background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); text-align: left; cursor: pointer; font: inherit; transition: background-color var(--transicion); -webkit-tap-highlight-color: transparent; }
 .mrow:last-child { border-bottom: 0; }
-.mrow:hover { background: var(--surface2); }
+.mrow:active:not(:disabled) { background: var(--surface2); }   /* parte B: al tocar; el :hover, solo con mouse (abajo) */
+@media (hover: hover) { .mrow:hover { background: var(--surface2); } }
 .mrow .ic { color: var(--muted); flex: none; }
 .mrow .mt { flex: 1; min-width: 0; }
 .mrow .mt b { display: block; font-weight: 600; line-height: 1.2; }
@@ -56,7 +57,8 @@
 .hist-f b { display: block; font-weight: 600; }
 .hist-f small { display: block; color: var(--muted); font-size: var(--letra-pie); }
 .mrow.fija { cursor: default; }
-.mrow.fija:hover { background: none; }
+.mrow.fija:active { background: none; }
+@media (hover: hover) { .mrow.fija:hover { background: none; } }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5em, 1fr)); gap: var(--esp-4); margin: 0 0 var(--esp-6); }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radio-xl); padding: var(--esp-4) var(--esp-5); }
 .stat b { display: block; font: 700 var(--letra-cifra)/1.05 var(--font-display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

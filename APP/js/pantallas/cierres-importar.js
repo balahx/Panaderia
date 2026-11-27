@@ -121,8 +121,9 @@ export function html(c) {
     R.map(r => tarjeta(r, c)).join('') +
     '<section class="card sec" id="impResumen"><p class="eyebrow">Listo para importar</p>' + kv('Meses', String(listos.length) + ' de ' + R.length) + kv('Neto de esos meses', cat.pesos(neto)) +
     (I.msg ? '<p class="muted" role="status">' + esc(I.msg) + '</p>' : '') +
-    '<div class="actions"><button class="btn" id="impConfirmar" data-act="imp-importar"' + (!listos.length || I.importando ? ' disabled' : '') + '>' + svg('check') + (I.importando ? 'Importando…' : 'Importar ' + listos.length + (listos.length === 1 ? ' mes' : ' meses')) + '</button>' +
+    '<div class="actions"><button class="btn" id="impConfirmar" data-act="imp-importar"' + (!listos.length || I.importando ? ' disabled' : '') + (!listos.length && !I.importando ? ' aria-describedby="impMotivo"' : '') + '>' + svg('check') + (I.importando ? 'Importando…' : 'Importar ' + listos.length + (listos.length === 1 ? ' mes' : ' meses')) + '</button>' +
     '<button class="btn ghost" data-act="imp-cancelar"' + (I.importando ? ' disabled' : '') + '>Cancelar</button></div>' +
+    (!listos.length && !I.importando ? '<p class="motivo" id="impMotivo">Ningún mes está listo: revisa los avisos de cada mes o elige el pan de cada nombre del Excel.</p>' : '') +
     '<label class="lab" for="impMas">Agregar otros archivos</label><input class="txt archivo" type="file" id="impMas" multiple accept=".xlsx,' + MIME + '"></section>';
 }
 /* Resultado de la última importación, para la pantalla Cierres. */

@@ -414,7 +414,7 @@ Planificada el 25-nov-2026 a partir de la revisión de diseño (chat «Optimizac
 - **`tests/diseno-unit.js`** (sin navegador): los dos bloques del tema oscuro son iguales; cada color del tema claro tiene su valor oscuro; cada CSS de `index.html` existe y está en `ASSETS`, y no hay CSS que no se cargue; ningún color fuera de `tokens.css`; toda `var(--x)` está definida; cada archivo de CSS ≤ 300 líneas.
 - **Listo cuando:** la huella antes y después es **igual en todas las vistas** de `a11y.js` (320, 360 claro y oscuro, 390, 800 y 1280 claro y oscuro); `a11y.js`, `csp.js`, `pwa.js`, `rendimiento.js` y el resto de las pruebas en verde; versión 0.12.1.
 
-**Parte B · Botones (chat 15, 0.12.2)**
+**Parte B · Botones (chat 15, 0.12.2) ✔** (26-nov-2026: borde de los controles de 3:1 o más, todo lo tocable de 48 px, una acción principal por pantalla u hoja; lo hecho, en `decisiones/fase-13.md`)
 - **Tres niveles:** primario (relleno), secundario (borde con contraste) y terciario (enlace). Una acción principal por pantalla u hoja; las demás, secundarias o terciarias.
 - **Un solo tamaño táctil de 48 px** (`--toque` y `--alto-control`); `.btn.sm` se distingue por el relleno y la letra, no por una altura menor.
 - **Estados:** `:active` (se hunde o se oscurece), foco visible, `:hover` solo con `@media (hover: hover)` (también filas y menú) y transición de 120 ms (nada con movimiento reducido).

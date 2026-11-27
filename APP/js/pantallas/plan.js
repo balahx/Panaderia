@@ -84,7 +84,7 @@ function hojaPlan(fecha, c) {
   const ds = ' data-fecha="' + fecha + '"';
   hoja('Plan de ' + cuando(fecha, c) + (fecha === c.hoy ? '' : ' · ' + fechaTexto(fecha).replace(/ \d{4}$/, '')), '<p class="muted chico">Cuánto pesar de cada pan en el día (todas las entregas juntas). En blanco, ese pan no va en el plan.</p>' +
     '<p class="note" id="plSug" aria-live="polite">' + esc(textoSug(fecha)) + '</p>' +
-    '<div class="actions"><button class="btn ghost" id="plUsar" data-act="plan-sugerir"' + ds + (sug && sug.fecha === fecha && sug.lista ? '' : ' disabled') + '>Usar sugerencias</button></div>' +
+    '<div class="actions"><button class="btn ghost" id="plUsar" data-act="plan-sugerir" aria-describedby="plSug"' + ds + (sug && sug.fecha === fecha && sug.lista ? '' : ' disabled') + '>Usar sugerencias</button></div>' +
     '<div id="plCampos">' + panes.map(p => '<div class="plan-campo"><label class="lab" for="pl-' + esc(p.id) + '">' + esc(p.nombre) + ' <span class="muted">(' + (p.unidad === 'un' ? 'unidades' : 'kilos') + ')</span></label>' +
       '<input class="txt" id="pl-' + esc(p.id) + '" data-campo="pl-' + esc(p.id) + '" data-pan="' + esc(p.id) + '" inputmode="' + (p.unidad === 'un' ? 'numeric' : 'decimal') + '" maxlength="10" autocomplete="off" data-enter="plan-guardar" value="' + esc(valor(p.id)) + '">' +
       '<p class="muted chico plan-info" id="plI-' + esc(p.id) + '" aria-live="polite">' + esc(infoPan(p, valor(p.id), c, fecha)) + '</p></div>').join('') + '</div>' +
